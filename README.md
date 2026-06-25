@@ -20,13 +20,13 @@ plug-and-play (`exports`/`wiring`), App Store, light/dark theme.
 ## Installation
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/slashbinslashnoname/slashnode/main/bootstrap.sh | bash
+curl -fsSL https://raw.githubusercontent.com/slashbinslashnoname/slashnode/master/bootstrap.sh | bash
 ```
 
 Crypto-conscious audience? Audit before running:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/slashbinslashnoname/slashnode/main/bootstrap.sh -o slashnode.sh
+curl -fsSL https://raw.githubusercontent.com/slashbinslashnoname/slashnode/master/bootstrap.sh -o slashnode.sh
 less slashnode.sh
 bash slashnode.sh
 ```
