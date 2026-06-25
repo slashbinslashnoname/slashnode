@@ -4,6 +4,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { InstallForm } from "@/components/InstallForm";
 import { CredsPanel } from "@/components/CredsPanel";
 import { UpdateAppButton } from "@/components/UpdateAppButton";
+import { UninstallButton } from "@/components/UninstallButton";
 import { getApp } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
@@ -72,6 +73,12 @@ export default async function AppDetail({
       )}
 
       <InstallForm app={app} />
+
+      {app.installed && (
+        <div className="mt-8 border-t border-border pt-6">
+          <UninstallButton id={app.id} name={app.name} />
+        </div>
+      )}
     </main>
   );
 }

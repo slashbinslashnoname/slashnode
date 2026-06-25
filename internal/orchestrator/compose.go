@@ -214,6 +214,44 @@ func Status(appID, composeFile string) ([]ContainerStatus, error) {
 	return res, nil
 }
 
+// Pull fetches the latest images for the app's services.
+func Pull(appID, composeFile string) error {
+	return run("docker", "compose", "-p", project(appID), "-f", composeFile, "pull")
+}
+
+// ImagesOutdated reports whether any of the app's images has a newer version in
+// its registry (remote manifest digest differs from the local one). Best-effort:
+// returns false on any error or for not-yet-pulled images.
+func ImagesOutdated(appID, composeFile string) bool {
+	out, err := output("docker", "compose", "-p", project(appID), "-f", composeFile, "config", "--images")
+	if err != nil {
+		return false
+	}
+	for _, img := range strings.Fields(out) {
+		if imageOutdated(img) {
+			return true
+		}
+	}
+	return false
+}
+
+func imageOutdated(image string) bool {
+	local, err := output("docker", "image", "inspect", "--format", "{{index .RepoDigests 0}}", image)
+	if err != nil {
+		return false // not pulled yet — nothing to compare
+	}
+	remote, err := output("docker", "buildx", "imagetools", "inspect", "--format", "{{.Manifest.Digest}}", image)
+	if err != nil {
+		return false
+	}
+	ld := strings.TrimSpace(local)
+	if i := strings.Index(ld, "@"); i >= 0 {
+		ld = ld[i+1:]
+	}
+	rd := strings.TrimSpace(remote)
+	return ld != "" && rd != "" && ld != rd
+}
+
 // Start, Stop and Restart drive the lifecycle of an already-created app.
 func Start(appID, composeFile string) error {
 	return run("docker", "compose", "-p", project(appID), "-f", composeFile, "start")

@@ -8,6 +8,15 @@ import (
 // DockerAvailable reports whether a Docker daemon is reachable.
 func DockerAvailable() bool { return orchestrator.Available() }
 
+// ImageUpdate reports whether any of an installed app's images has a newer
+// version available in its registry (without bumping the manifest version).
+func ImageUpdate(id string) bool {
+	if !orchestrator.Available() {
+		return false
+	}
+	return orchestrator.ImagesOutdated(id, paths.AppComposeFile(id))
+}
+
 // Status returns the container status of an installed app. When Docker is not
 // available it returns nil (the caller treats it as "unknown").
 func Status(id string) ([]orchestrator.ContainerStatus, error) {

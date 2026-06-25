@@ -220,6 +220,10 @@ func installOne(dir, appID string, provided map[string]string, isTarget bool) er
 			switch {
 			case in.Default != nil:
 				val = fmt.Sprint(in.Default)
+			case in.Generate && (in.Secret || in.Type == "password"):
+				if val, err = randomToken(16); err != nil {
+					return err
+				}
 			case in.Required && (in.Secret || in.Type == "password"):
 				if isTarget {
 					return fmt.Errorf("missing required field: %s", in.Key)
@@ -337,8 +341,10 @@ func installOne(dir, appID string, provided map[string]string, isTarget bool) er
 		return err
 	}
 
-	// Launch (only when a Docker daemon is reachable).
+	// Launch (only when a Docker daemon is reachable). Pull first so updates
+	// fetch newer images for the same tag.
 	if orchestrator.Available() {
+		_ = orchestrator.Pull(appID, paths.AppComposeFile(appID))
 		if err := orchestrator.Up(appID, paths.AppComposeFile(appID)); err != nil {
 			return err
 		}

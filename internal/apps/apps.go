@@ -28,6 +28,7 @@ type Input struct {
 	Placeholder string   `json:"placeholder,omitempty"`
 	Help        string   `json:"help,omitempty"`
 	Secret      bool     `json:"secret,omitempty"`
+	Generate    bool     `json:"generate,omitempty"`
 	Options     []string `json:"options,omitempty"`
 	MinLength   int      `json:"minLength,omitempty"`
 	Min         *float64 `json:"min,omitempty"`

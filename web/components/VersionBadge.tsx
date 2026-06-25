@@ -19,7 +19,14 @@ export function VersionBadge({
     setState("updating");
     try {
       const r = await fetch("/api/update/apply", { method: "POST" });
-      setState(r.ok ? "done" : "error");
+      if (!r.ok) {
+        setState("error");
+        return;
+      }
+      setState("done");
+      // The daemon updates (binary + web + apps), reapplies and restarts;
+      // reload once it's likely back up.
+      setTimeout(() => location.reload(), 15000);
     } catch {
       setState("error");
     }

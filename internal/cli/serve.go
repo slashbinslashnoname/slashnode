@@ -131,8 +131,15 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 	}))
 
 	mux.Handle("POST /api/v1/update/apply", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
-		// Runs in the background: the restart will kill this process.
-		go func() { _ = updater.Apply("latest", cfg.Update.Channel) }()
+		// Update binary + web + apps, reapply running apps, then restart — the
+		// same end state as update.sh. Runs in the background.
+		go func() {
+			if err := updater.ApplyNoRestart("latest", cfg.Update.Channel); err != nil {
+				return
+			}
+			_ = apps.Reapply(appsDir)
+			updater.Restart()
+		}()
 		writeJSON(w, http.StatusAccepted, map[string]string{"status": "applying"})
 	}))
 
@@ -224,6 +231,10 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 			return
 		}
 		writeJSON(w, http.StatusOK, map[string]string{"status": "cleared"})
+	}))
+
+	mux.Handle("GET /api/v1/apps/{id}/image-update", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, http.StatusOK, map[string]any{"available": apps.ImageUpdate(r.PathValue("id"))})
 	}))
 
 	mux.Handle("GET /api/v1/apps/{id}/probe", bearer(sec, func(w http.ResponseWriter, r *http.Request) {

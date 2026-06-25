@@ -96,9 +96,23 @@ func LoadState(current string) *Info {
 	return &info
 }
 
-// Apply downloads the target version (or the latest), verifies the checksum,
-// atomically replaces the current binary then restarts the service.
+// Apply updates the node (binary + web + apps) then restarts.
 func Apply(target, channel string) error {
+	if err := ApplyNoRestart(target, channel); err != nil {
+		return err
+	}
+	restart()
+	return nil
+}
+
+// Restart relaunches the daemon (exported for callers that reapply apps between
+// updating and restarting).
+func Restart() { restart() }
+
+// ApplyNoRestart downloads the target version (or the latest), verifies the
+// checksum, replaces the binary and refreshes the web bundle + app catalog,
+// without restarting.
+func ApplyNoRestart(target, channel string) error {
 	// downloadTag is the release tag to fetch assets from; for the rolling
 	// release this is "latest" even though the displayed version differs.
 	downloadTag := target
@@ -138,9 +152,6 @@ func Apply(target, channel string) error {
 	// not just the binary (best-effort: missing on dev/test machines).
 	_ = updateBundle(downloadTag, "slashnode-web.tar.gz", paths.WebDir())
 	_ = updateBundle(downloadTag, "slashnode-apps.tar.gz", paths.AppsDir())
-
-	// Best-effort restart (systemd will relaunch with the new binary + web).
-	restart()
 	return nil
 }
 

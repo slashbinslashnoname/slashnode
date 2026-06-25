@@ -3,7 +3,13 @@ import { apiBase } from "@/lib/api";
 // Generic proxy for per-app operations. GET: status | logs | probe.
 // POST: install | uninstall | start | stop | restart. The Go API token is
 // added server-side and never exposed to the browser.
-const GET_ACTIONS = new Set(["status", "logs", "probe", "credentials"]);
+const GET_ACTIONS = new Set([
+  "status",
+  "logs",
+  "probe",
+  "credentials",
+  "image-update",
+]);
 const POST_ACTIONS = new Set([
   "install",
   "uninstall",
