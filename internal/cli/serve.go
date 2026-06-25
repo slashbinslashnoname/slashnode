@@ -265,9 +265,9 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 	return mux
 }
 
-// resolveAppsDir locates the app catalog: env > system path > ./examples (dev).
+// resolveAppsDir locates the app catalog: env > system path > ./apps (dev).
 func resolveAppsDir() string {
-	candidates := []string{os.Getenv("SLASHNODE_APPS_DIR"), paths.AppsDir(), "examples"}
+	candidates := []string{os.Getenv("SLASHNODE_APPS_DIR"), paths.AppsDir(), "apps"}
 	for _, c := range candidates {
 		if c == "" {
 			continue
@@ -276,7 +276,7 @@ func resolveAppsDir() string {
 			return c
 		}
 	}
-	return "examples"
+	return "apps"
 }
 
 // resolveWebDir determines the front directory: flag > env > system path >

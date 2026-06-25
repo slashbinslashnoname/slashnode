@@ -63,7 +63,7 @@ tar -czf "${OUT}/slashnode-web.tar.gz" -C "${OUT}/web" .
 echo "→ app catalog"
 rm -rf "${OUT}/apps"
 mkdir -p "${OUT}/apps"
-cp -r examples/. "${OUT}/apps/"
+cp -r apps/. "${OUT}/apps/"
 tar -czf "${OUT}/slashnode-apps.tar.gz" -C "${OUT}/apps" .
 ( cd "$OUT" && sha256sum slashnode-apps.tar.gz > slashnode-apps.tar.gz.sha256 )
 

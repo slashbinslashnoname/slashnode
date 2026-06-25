@@ -124,7 +124,7 @@ Build the release artifacts (amd64/arm64 + macOS binaries, web bundle):
 Each app = a JSON manifest (Docker services, `inputs` entered by the
 user → environment variables, `exports`/`wiring` for automatic
 wiring). See **[docs/app-manifest.md](docs/app-manifest.md)** and the
-examples in `examples/`.
+examples in `apps/`.
 
 ## License
 
