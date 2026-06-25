@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Slash } from "@/components/Slash";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { UpdateBanner } from "@/components/UpdateBanner";
 import { AppTile } from "@/components/AppTile";
@@ -17,7 +16,6 @@ export default async function Home() {
       <ThemeToggle />
 
       <header className="mb-8 flex items-center gap-4">
-        <Slash />
         <h1 className="flex-1 text-2xl font-bold tracking-widest">
           <span className="text-primary">/</span>SlashNode
         </h1>
