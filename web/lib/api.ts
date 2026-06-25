@@ -41,9 +41,12 @@ export type App = {
   dependencies?: string[];
   inputs?: AppInput[];
   installed: boolean;
+  installed_version?: string;
+  update_available?: boolean;
   url?: string;
   web?: { port: number; path?: string };
   probe?: { type: string };
+  notes?: string;
 };
 
 export type ServiceStatus = {

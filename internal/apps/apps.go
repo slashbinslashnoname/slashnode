@@ -92,13 +92,16 @@ type Manifest struct {
 	Web             *Web            `json:"web,omitempty"`
 	Probe           *Probe          `json:"probe,omitempty"`
 	Configs         []ConfigFile    `json:"configs,omitempty"`
+	Notes           string          `json:"notes,omitempty"`
 }
 
 // CatalogEntry enriches a manifest with its installation state for the UI.
 type CatalogEntry struct {
 	Manifest
-	Installed bool   `json:"installed"`
-	URL       string `json:"url,omitempty"` // reverse-proxy URL (set by the API layer)
+	Installed        bool   `json:"installed"`
+	InstalledVersion string `json:"installed_version,omitempty"`
+	UpdateAvailable  bool   `json:"update_available"`
+	URL              string `json:"url,omitempty"` // reverse-proxy URL (set by the API layer)
 }
 
 // LoadCatalog reads all manifests dir/*/slashnode-app.json, sorted by name.
@@ -174,8 +177,13 @@ func Catalog(dir string) ([]CatalogEntry, error) {
 	state := LoadState()
 	out := make([]CatalogEntry, 0, len(cat))
 	for _, m := range cat {
-		_, installed := state.Installed[m.ID]
-		out = append(out, CatalogEntry{Manifest: m, Installed: installed})
+		inst, installed := state.Installed[m.ID]
+		entry := CatalogEntry{Manifest: m, Installed: installed}
+		if installed {
+			entry.InstalledVersion = inst.Version
+			entry.UpdateAvailable = inst.Version != m.Version
+		}
+		out = append(out, entry)
 	}
 	return out, nil
 }

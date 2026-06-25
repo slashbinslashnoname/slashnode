@@ -63,7 +63,7 @@ func Apps(args []string) error {
 				purge = true
 			}
 		}
-		if err := apps.Uninstall(id, purge); err != nil {
+		if err := apps.Uninstall(dir, id, purge); err != nil {
 			return err
 		}
 		fmt.Println(colorize("✓ uninstalled "+id, ansiRed))

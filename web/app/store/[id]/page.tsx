@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { InstallForm } from "@/components/InstallForm";
+import { CredsPanel } from "@/components/CredsPanel";
+import { UpdateAppButton } from "@/components/UpdateAppButton";
 import { getApp } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
@@ -40,6 +42,26 @@ export default async function AppDetail({
 
       {app.description && (
         <p className="mb-6 text-muted">{app.description}</p>
+      )}
+
+      {app.notes && (
+        <div className="mb-6 rounded-lg border border-primary/40 bg-primary/10 p-4 text-sm">
+          ℹ {app.notes}
+        </div>
+      )}
+
+      {app.update_available && (
+        <UpdateAppButton
+          id={app.id}
+          from={app.installed_version}
+          to={app.version}
+        />
+      )}
+
+      {app.installed && (
+        <div className="mb-6">
+          <CredsPanel id={app.id} />
+        </div>
       )}
 
       {app.dependencies && app.dependencies.length > 0 && (

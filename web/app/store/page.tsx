@@ -51,11 +51,15 @@ function AppCard({ app }: { app: App }) {
             {app.category} · v{app.version}
           </div>
         </div>
-        {app.installed && (
+        {app.update_available ? (
+          <span className="ml-auto rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-white">
+            update
+          </span>
+        ) : app.installed ? (
           <span className="ml-auto rounded-full bg-primary/15 px-2 py-0.5 text-xs font-semibold text-primary">
             installed
           </span>
-        )}
+        ) : null}
       </div>
       {app.description && (
         <p className="text-sm text-muted">{app.description}</p>

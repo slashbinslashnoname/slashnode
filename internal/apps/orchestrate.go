@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -95,14 +96,62 @@ func Reapply(dir string) error {
 	return nil
 }
 
+// ReapplyOne re-renders and recreates a single installed app from the current
+// manifest (reusing stored inputs/secrets) — used to update one app to the
+// catalog's version without re-entering its settings.
+func ReapplyOne(dir, id string) error {
+	inst, ok := LoadState().Installed[id]
+	if !ok {
+		return fmt.Errorf("app not installed: %s", id)
+	}
+	if orchestrator.Available() {
+		if err := orchestrator.EnsureNetwork(); err != nil {
+			return fmt.Errorf("docker network: %w", err)
+		}
+	}
+	provided := map[string]string{}
+	for k, v := range inst.Inputs {
+		provided[k] = v
+	}
+	for k, v := range loadAppSecrets(id) {
+		provided[k] = v
+	}
+	if err := installOne(dir, id, provided, true); err != nil {
+		return err
+	}
+	_ = ReloadProxy()
+	return nil
+}
+
 // Uninstall stops the app's containers and removes it from the state/registry.
 // With purge, container volumes and the runtime directory are removed too.
-func Uninstall(id string, purge bool) error {
+// Refuses to remove an app that another installed app depends on.
+func Uninstall(dir, id string, purge bool) error {
+	state := LoadState()
+	var blockers []string
+	for other := range state.Installed {
+		if other == id {
+			continue
+		}
+		man, err := Find(dir, other)
+		if err != nil {
+			continue
+		}
+		for _, dep := range man.Dependencies {
+			if dep == id {
+				blockers = append(blockers, other)
+			}
+		}
+	}
+	if len(blockers) > 0 {
+		sort.Strings(blockers)
+		return fmt.Errorf("cannot remove %s: required by %s", id, strings.Join(blockers, ", "))
+	}
+
 	if orchestrator.Available() {
 		_ = orchestrator.Down(id, paths.AppComposeFile(id), purge)
 	}
 
-	state := LoadState()
 	delete(state.Installed, id)
 	if err := saveState(state); err != nil {
 		return err

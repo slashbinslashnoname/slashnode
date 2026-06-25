@@ -169,12 +169,13 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": err.Error()})
 			return
 		}
-		_, installed := apps.LoadState().Installed[man.ID]
-		writeJSON(w, http.StatusOK, apps.CatalogEntry{
-			Manifest:  *man,
-			Installed: installed,
-			URL:       apps.AppURL(cfg, man),
-		})
+		inst, installed := apps.LoadState().Installed[man.ID]
+		entry := apps.CatalogEntry{Manifest: *man, Installed: installed, URL: apps.AppURL(cfg, man)}
+		if installed {
+			entry.InstalledVersion = inst.Version
+			entry.UpdateAvailable = inst.Version != man.Version
+		}
+		writeJSON(w, http.StatusOK, entry)
 	}))
 
 	mux.Handle("POST /api/v1/apps/{id}/install", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
@@ -191,7 +192,7 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 
 	mux.Handle("POST /api/v1/apps/{id}/uninstall", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
 		purge := r.URL.Query().Get("purge") == "true"
-		if err := apps.Uninstall(r.PathValue("id"), purge); err != nil {
+		if err := apps.Uninstall(appsDir, r.PathValue("id"), purge); err != nil {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}
@@ -258,6 +259,14 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 			writeJSON(w, http.StatusOK, map[string]string{"status": ok})
 		}
 	}
+	mux.Handle("POST /api/v1/apps/{id}/update", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
+		if err := apps.ReapplyOne(appsDir, r.PathValue("id")); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]string{"status": "updated"})
+	}))
+
 	mux.Handle("POST /api/v1/apps/{id}/start", bearer(sec, lifecycle(apps.Start, "started")))
 	mux.Handle("POST /api/v1/apps/{id}/stop", bearer(sec, lifecycle(apps.Stop, "stopped")))
 	mux.Handle("POST /api/v1/apps/{id}/restart", bearer(sec, lifecycle(apps.Restart, "restarted")))
