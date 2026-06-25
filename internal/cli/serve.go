@@ -208,12 +208,21 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 	}))
 
 	mux.Handle("GET /api/v1/apps/{id}/credentials", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
-		fields, err := apps.Credentials(appsDir, r.PathValue("id"))
+		id := r.PathValue("id")
+		fields, err := apps.Credentials(appsDir, id)
 		if err != nil {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": err.Error()})
 			return
 		}
-		writeJSON(w, http.StatusOK, map[string]any{"fields": fields})
+		writeJSON(w, http.StatusOK, map[string]any{"fields": fields, "exports": apps.AppExports(id)})
+	}))
+
+	mux.Handle("POST /api/v1/apps/{id}/clear-logs", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
+		if err := apps.ClearLogs(r.PathValue("id")); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]string{"status": "cleared"})
 	}))
 
 	mux.Handle("GET /api/v1/apps/{id}/probe", bearer(sec, func(w http.ResponseWriter, r *http.Request) {

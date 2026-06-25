@@ -4,7 +4,14 @@ import { apiBase } from "@/lib/api";
 // POST: install | uninstall | start | stop | restart. The Go API token is
 // added server-side and never exposed to the browser.
 const GET_ACTIONS = new Set(["status", "logs", "probe", "credentials"]);
-const POST_ACTIONS = new Set(["install", "uninstall", "start", "stop", "restart"]);
+const POST_ACTIONS = new Set([
+  "install",
+  "uninstall",
+  "start",
+  "stop",
+  "restart",
+  "clear-logs",
+]);
 
 async function proxy(
   method: "GET" | "POST",

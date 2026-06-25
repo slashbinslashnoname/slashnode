@@ -3,16 +3,13 @@ import { Slash } from "@/components/Slash";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { UpdateBanner } from "@/components/UpdateBanner";
 import { AppTile } from "@/components/AppTile";
+import { BitcoinPrice } from "@/components/BitcoinPrice";
 import { getApps, getStatus, getUpdate } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [data, status, update] = await Promise.all([
-    getApps(),
-    getStatus(),
-    getUpdate(),
-  ]);
+  const [data, update] = await Promise.all([getApps(), getUpdate()]);
   const installed = (data?.apps ?? []).filter((a) => a.installed);
 
   return (
@@ -21,14 +18,10 @@ export default async function Home() {
 
       <header className="mb-8 flex items-center gap-4">
         <Slash />
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold tracking-widest">
-            <span className="text-primary">/</span>SlashNode
-          </h1>
-          <p className="text-sm text-muted">
-            {status ? `${status.node_id} · v${status.version}` : "your node, your rules"}
-          </p>
-        </div>
+        <h1 className="flex-1 text-2xl font-bold tracking-widest">
+          <span className="text-primary">/</span>SlashNode
+        </h1>
+        <BitcoinPrice />
         <Link
           href="/store"
           className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:opacity-90"

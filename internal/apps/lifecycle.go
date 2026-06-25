@@ -46,3 +46,11 @@ func Logs(id string, tail int) (string, error) {
 	}
 	return orchestrator.Logs(id, paths.AppComposeFile(id), tail)
 }
+
+// ClearLogs truncates the app's container logs.
+func ClearLogs(id string) error {
+	if !orchestrator.Available() {
+		return nil
+	}
+	return orchestrator.ClearLogs(id, paths.AppComposeFile(id))
+}

@@ -9,6 +9,12 @@ type CredField struct {
 	Secret bool   `json:"secret"`
 }
 
+// AppExports returns an installed app's resolved exports (its exposed
+// endpoints: rpc host/port/user/password, electrum host/port, …).
+func AppExports(id string) map[string]string {
+	return loadRegistry()[id]
+}
+
 // Credentials returns the stored input/secret values of an installed app,
 // labelled from its manifest, so the frontend can display and reuse them.
 func Credentials(dir, id string) ([]CredField, error) {

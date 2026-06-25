@@ -12,7 +12,10 @@ export function AppTile({ app }: { app: App }) {
   const [probe, setProbe] = useState<ProbeResult | null>(null);
   const [logs, setLogs] = useState<string | null>(null);
   const [busy, setBusy] = useState("");
-  const [creds, setCreds] = useState<CredField[] | null>(null);
+  const [config, setConfig] = useState<{
+    fields: CredField[];
+    exports: Record<string, string>;
+  } | null>(null);
   const consoles = useConsole();
 
   const refresh = useCallback(async () => {
@@ -46,16 +49,26 @@ export function AppTile({ app }: { app: App }) {
     router.refresh();
   }
 
-  async function toggleCreds() {
-    if (creds !== null) {
-      setCreds(null);
+  async function toggleConfig() {
+    if (config !== null) {
+      setConfig(null);
       return;
     }
     try {
       const j = await fetch(`/api/apps/${app.id}/credentials`).then((r) => r.json());
-      setCreds(j.fields ?? []);
+      setConfig({ fields: j.fields ?? [], exports: j.exports ?? {} });
     } catch {
-      setCreds([]);
+      setConfig({ fields: [], exports: {} });
+    }
+  }
+
+  async function clearLogs() {
+    await fetch(`/api/apps/${app.id}/clear-logs`, { method: "POST" });
+    try {
+      const j = await fetch(`/api/apps/${app.id}/logs?tail=200`).then((r) => r.json());
+      setLogs(j.logs || "(no logs)");
+    } catch {
+      setLogs("(no logs)");
     }
   }
 
@@ -96,12 +109,12 @@ export function AppTile({ app }: { app: App }) {
 
       {probe && <ProbeLine probe={probe} />}
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-1.5">
         <Btn onClick={() => act("start")} busy={busy === "start"}>start</Btn>
         <Btn onClick={() => act("stop")} busy={busy === "stop"}>stop</Btn>
         <Btn onClick={() => act("restart")} busy={busy === "restart"}>restart</Btn>
         <Btn onClick={toggleLogs}>{logs !== null ? "hide logs" : "logs"}</Btn>
-        <Btn onClick={toggleCreds}>{creds !== null ? "hide config" : "config"}</Btn>
+        <Btn onClick={toggleConfig}>{config !== null ? "hide config" : "config"}</Btn>
         {(services ?? []).map((s) => (
           <Btn key={s.service} onClick={() => consoles.open(s.service)}>
             {`console${(services ?? []).length > 1 ? `:${s.service}` : ""}`}
@@ -112,26 +125,53 @@ export function AppTile({ app }: { app: App }) {
             href={app.url}
             target="_blank"
             rel="noreferrer"
-            className="rounded-lg border border-border px-3 py-1.5 text-sm hover:border-primary"
+            className="rounded-md border border-border px-2 py-1 text-xs hover:border-primary"
           >
             open ↗
           </a>
         )}
       </div>
 
-
-      {creds !== null && creds.length > 0 && (
-        <div className="flex flex-col gap-1 rounded-lg bg-bg p-3 text-xs">
-          {creds.map((c) => (
-            <CredRow key={c.key} field={c} />
-          ))}
+      {config !== null && (
+        <div className="flex flex-col gap-2 rounded-lg bg-bg p-3 text-xs">
+          {config.fields.length > 0 && (
+            <div className="flex flex-col gap-1">
+              {config.fields.map((c) => (
+                <CredRow key={c.key} field={c} />
+              ))}
+            </div>
+          )}
+          {Object.keys(config.exports).length > 0 && (
+            <div className="flex flex-col gap-1 border-t border-border pt-2">
+              <span className="text-muted">exposes</span>
+              {Object.entries(config.exports).map(([k, v]) => (
+                <CredRow
+                  key={k}
+                  field={{
+                    key: k,
+                    label: k,
+                    value: v,
+                    secret: /pass|secret|key|token/i.test(k),
+                  }}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       {logs !== null && (
-        <pre className="max-h-60 overflow-auto rounded-lg bg-bg p-3 text-xs leading-relaxed">
-          {logs}
-        </pre>
+        <div className="flex flex-col gap-1">
+          <button
+            onClick={clearLogs}
+            className="self-end text-xs text-muted hover:text-primary"
+          >
+            clear logs
+          </button>
+          <pre className="max-h-60 overflow-auto rounded-lg bg-bg p-3 text-xs leading-relaxed">
+            {logs}
+          </pre>
+        </div>
       )}
     </div>
   );
@@ -206,7 +246,7 @@ function Btn({
     <button
       onClick={onClick}
       disabled={busy}
-      className="rounded-lg border border-border px-3 py-1.5 text-sm hover:border-primary disabled:opacity-50"
+      className="rounded-md border border-border px-2 py-1 text-xs hover:border-primary disabled:opacity-50"
     >
       {busy ? "…" : children}
     </button>

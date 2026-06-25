@@ -37,6 +37,7 @@ type Volume struct {
 // Service is one container declared in a manifest's `services` block.
 type Service struct {
 	Image       string            `json:"image"`
+	Entrypoint  string            `json:"entrypoint,omitempty"`
 	Command     string            `json:"command,omitempty"`
 	ShmSize     string            `json:"shmSize,omitempty"`
 	Ports       []Port            `json:"ports,omitempty"`
@@ -70,6 +71,9 @@ func BuildCompose(appID string, services map[string]Service, env map[string]stri
 			"container_name": name,
 			"restart":        "unless-stopped",
 			"networks":       []string{Network},
+		}
+		if s.Entrypoint != "" {
+			svc["entrypoint"] = s.Entrypoint
 		}
 		if s.Command != "" {
 			svc["command"] = s.Command
@@ -210,6 +214,24 @@ func Restart(appID, composeFile string) error {
 func Logs(appID, composeFile string, tail int) (string, error) {
 	return output("docker", "compose", "-p", project(appID), "-f", composeFile,
 		"logs", "--no-color", "--tail", strconv.Itoa(tail))
+}
+
+// ClearLogs truncates the JSON log file of each of the app's containers.
+func ClearLogs(appID, composeFile string) error {
+	out, err := output("docker", "compose", "-p", project(appID), "-f", composeFile, "ps", "-q")
+	if err != nil {
+		return err
+	}
+	for _, id := range strings.Fields(out) {
+		lp, err := output("docker", "inspect", "--format", "{{.LogPath}}", id)
+		if err != nil {
+			continue
+		}
+		if p := strings.TrimSpace(lp); p != "" {
+			_ = exec.Command("truncate", "-s", "0", p).Run()
+		}
+	}
+	return nil
 }
 
 func project(appID string) string { return "slashnode-" + appID }

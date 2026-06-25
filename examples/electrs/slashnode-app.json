@@ -7,26 +7,16 @@
   "description": "High-performance Electrum server. Indexes the blockchain for wallets.",
   "icon": "🔍",
   "dependencies": ["bitcoind"],
-  "inputs": [
-    {
-      "key": "TXINDEX",
-      "label": "Full transaction index",
-      "type": "boolean",
-      "default": true
-    }
-  ],
+  "inputs": [],
   "services": {
     "electrs": {
       "image": "mempool/electrs:latest",
+      "entrypoint": "electrs",
+      "command": "--network bitcoin --daemon-rpc-addr ${bitcoind.exports.rpc.host}:8332 --daemon-p2p-addr ${bitcoind.exports.rpc.host}:8333 --electrum-rpc-addr 0.0.0.0:50001 --db-dir /data --cookie ${bitcoind.exports.rpc.user}:${bitcoind.exports.rpc.password}",
       "ports": [{ "host": 50001, "container": 50001 }],
-      "volumes": [{ "name": "electrs-data", "path": "/data/electrs" }],
+      "volumes": [{ "name": "electrs-data", "path": "/data" }],
       "healthcheck": { "type": "tcp", "port": 50001, "interval": "30s" }
     }
-  },
-  "wiring": {
-    "bitcoind.rpchost": "${bitcoind.exports.rpc.host}",
-    "bitcoind.rpcuser": "${bitcoind.exports.rpc.user}",
-    "bitcoind.rpcpass": "${bitcoind.exports.rpc.password}"
   },
   "probe": {
     "type": "electrum",

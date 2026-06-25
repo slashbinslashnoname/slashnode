@@ -196,6 +196,9 @@ func installOne(dir, appID string, provided map[string]string, isTarget bool) er
 		if rv, rerr := resolveValue(s.Command, nonSecret, secret, registry); rerr == nil {
 			s.Command = rv
 		}
+		if rv, rerr := resolveValue(s.Entrypoint, nonSecret, secret, registry); rerr == nil {
+			s.Entrypoint = rv
+		}
 		services[name] = s
 	}
 

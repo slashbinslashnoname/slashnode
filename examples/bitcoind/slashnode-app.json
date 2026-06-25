@@ -43,6 +43,8 @@
   "services": {
     "bitcoind": {
       "image": "lncm/bitcoind:v27.0",
+      "entrypoint": "bitcoind",
+      "command": "-datadir=/data/.bitcoin -server=1 -txindex=1 -rpcbind=0.0.0.0 -rpcallowip=0.0.0.0/0 -rpcuser=${input.RPC_USER} -rpcpassword=${secret.RPC_PASSWORD} -zmqpubrawblock=tcp://0.0.0.0:28332 -zmqpubrawtx=tcp://0.0.0.0:28333",
       "ports": [
         { "host": 8333, "container": 8333 },
         { "hostIP": "127.0.0.1", "host": 8332, "container": 8332 }
@@ -51,12 +53,6 @@
       "healthcheck": { "type": "rpc", "method": "getblockchaininfo", "interval": "30s" }
     }
   },
-  "configs": [
-    {
-      "path": "/data/.bitcoin/bitcoin.conf",
-      "content": "server=1\ntxindex=1\nrpcuser=${input.RPC_USER}\nrpcpassword=${secret.RPC_PASSWORD}\nrpcbind=0.0.0.0\nrpcallowip=0.0.0.0/0\nzmqpubrawblock=tcp://0.0.0.0:28332\nzmqpubrawtx=tcp://0.0.0.0:28333\n"
-    }
-  ],
   "probe": {
     "type": "rpc",
     "port": 8332,
