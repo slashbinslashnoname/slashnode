@@ -39,6 +39,7 @@ func AppRuntimeDir(id string) string { return p("var", "lib", "slashnode", "apps
 func AppComposeFile(id string) string {
 	return p("var", "lib", "slashnode", "apps", id, "docker-compose.yml")
 }
+func AppConfigDir(id string) string { return p("var", "lib", "slashnode", "apps", id, "config") }
 
 // Next.js front deployed on the device (served/launched by the daemon).
 func WebDir() string { return p("usr", "share", "slashnode", "web") }

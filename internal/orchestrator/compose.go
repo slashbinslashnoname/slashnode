@@ -58,7 +58,9 @@ func ParseServices(raw json.RawMessage) (map[string]Service, error) {
 
 // BuildCompose renders a Compose file (as JSON) for the given app. env is merged
 // into every service's environment (manifest defaults are kept, env wins).
-func BuildCompose(appID string, services map[string]Service, env map[string]string) ([]byte, error) {
+// configMounts maps a service name to extra bind-mount specs
+// ("hostpath:containerpath:ro") for rendered config files.
+func BuildCompose(appID string, services map[string]Service, env map[string]string, configMounts map[string][]string) ([]byte, error) {
 	svcMap := map[string]any{}
 	volumes := map[string]any{}
 
@@ -89,13 +91,14 @@ func BuildCompose(appID string, services map[string]Service, env map[string]stri
 			}
 			svc["ports"] = ports
 		}
-		if len(s.Volumes) > 0 {
-			mounts := make([]string, 0, len(s.Volumes))
-			for _, v := range s.Volumes {
-				volName := appID + "_" + v.Name
-				mounts = append(mounts, volName+":"+v.Path)
-				volumes[volName] = map[string]any{}
-			}
+		mounts := make([]string, 0, len(s.Volumes))
+		for _, v := range s.Volumes {
+			volName := appID + "_" + v.Name
+			mounts = append(mounts, volName+":"+v.Path)
+			volumes[volName] = map[string]any{}
+		}
+		mounts = append(mounts, configMounts[name]...)
+		if len(mounts) > 0 {
 			svc["volumes"] = mounts
 		}
 

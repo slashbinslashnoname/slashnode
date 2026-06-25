@@ -40,6 +40,7 @@
   "services": {
     "geth": {
       "image": "ethereum/client-go:v1.14.0",
+      "command": "--datadir /data/.ethereum --http --http.addr 0.0.0.0 --http.api eth,net,web3 --http.vhosts=* --syncmode ${input.SYNC_MODE}",
       "ports": [
         { "host": 30303, "container": 30303 },
         { "host": 30303, "container": 30303, "protocol": "udp" },
@@ -60,7 +61,6 @@
     "rpc.http.port": 8545,
     "rpc.ws.port": 8546,
     "engine.host": "geth",
-    "engine.port": 8551,
-    "engine.jwt": "${secret.JWT_SECRET}"
+    "engine.port": 8551
   }
 }

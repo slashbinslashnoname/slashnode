@@ -67,6 +67,14 @@ type Probe struct {
 	Display    []ProbeStat `json:"display,omitempty"`
 }
 
+// ConfigFile declares a config file rendered from a ${...} template and
+// bind-mounted into a service at Path. Service defaults to the app id.
+type ConfigFile struct {
+	Service string `json:"service,omitempty"`
+	Path    string `json:"path"`
+	Content string `json:"content"`
+}
+
 // Manifest is an app manifest (slashnode-app.json).
 type Manifest struct {
 	ManifestVersion int             `json:"manifestVersion"`
@@ -83,6 +91,7 @@ type Manifest struct {
 	Wiring          map[string]any  `json:"wiring,omitempty"`
 	Web             *Web            `json:"web,omitempty"`
 	Probe           *Probe          `json:"probe,omitempty"`
+	Configs         []ConfigFile    `json:"configs,omitempty"`
 }
 
 // CatalogEntry enriches a manifest with its installation state for the UI.

@@ -51,6 +51,12 @@
       "healthcheck": { "type": "rpc", "method": "getblockchaininfo", "interval": "30s" }
     }
   },
+  "configs": [
+    {
+      "path": "/data/.bitcoin/bitcoin.conf",
+      "content": "server=1\ntxindex=1\nrpcuser=${input.RPC_USER}\nrpcpassword=${secret.RPC_PASSWORD}\nrpcbind=0.0.0.0\nrpcallowip=0.0.0.0/0\nzmqpubrawblock=tcp://0.0.0.0:28332\nzmqpubrawtx=tcp://0.0.0.0:28333\n"
+    }
+  ],
   "probe": {
     "type": "rpc",
     "port": 8332,

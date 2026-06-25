@@ -31,16 +31,16 @@
         { "host": 9735, "container": 9735 },
         { "hostIP": "127.0.0.1", "host": 8085, "container": 8080 }
       ],
-      "volumes": [{ "name": "lnd-data", "path": "/data/.lnd" }],
+      "volumes": [{ "name": "lnd-data", "path": "/root/.lnd" }],
       "healthcheck": { "type": "rpc", "method": "getinfo", "interval": "30s" }
     }
   },
-  "wiring": {
-    "bitcoind.rpchost": "${bitcoind.exports.rpc.host}",
-    "bitcoind.rpcuser": "${bitcoind.exports.rpc.user}",
-    "bitcoind.rpcpass": "${bitcoind.exports.rpc.password}",
-    "bitcoind.zmqpubrawblock": "${bitcoind.exports.zmq.rawblock}"
-  },
+  "configs": [
+    {
+      "path": "/root/.lnd/lnd.conf",
+      "content": "[Application Options]\nalias=${input.ALIAS}\nrestlisten=0.0.0.0:8080\n\n[Bitcoin]\nbitcoin.active=true\nbitcoin.mainnet=true\nbitcoin.node=bitcoind\n\n[Bitcoind]\nbitcoind.rpchost=${bitcoind.exports.rpc.host}:8332\nbitcoind.rpcuser=${bitcoind.exports.rpc.user}\nbitcoind.rpcpass=${bitcoind.exports.rpc.password}\nbitcoind.zmqpubrawblock=${bitcoind.exports.zmq.rawblock}\nbitcoind.zmqpubrawtx=tcp://bitcoind:28333\n"
+    }
+  ],
   "probe": {
     "type": "lnd",
     "port": 8085,

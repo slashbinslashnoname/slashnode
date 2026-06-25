@@ -153,7 +153,7 @@ func installOne(dir, appID string, provided map[string]string, isTarget bool) er
 	for k, v := range man.Exports {
 		rv, rerr := resolveValue(fmt.Sprint(v), nonSecret, secret, registry)
 		if rerr != nil {
-			return fmt.Errorf("export %s: %w", k, rerr)
+			continue // skip exports that reference unset inputs/secrets
 		}
 		exports[k] = rv
 	}
@@ -193,9 +193,35 @@ func installOne(dir, appID string, provided map[string]string, isTarget bool) er
 				s.Environment[k] = rv
 			}
 		}
+		if rv, rerr := resolveValue(s.Command, nonSecret, secret, registry); rerr == nil {
+			s.Command = rv
+		}
 		services[name] = s
 	}
-	compose, err := orchestrator.BuildCompose(appID, services, env)
+
+	// Render config-file templates to host files and bind-mount them.
+	configMounts := map[string][]string{}
+	for i, c := range man.Configs {
+		content, rerr := resolveValue(c.Content, nonSecret, secret, registry)
+		if rerr != nil {
+			return fmt.Errorf("config %s: %w", c.Path, rerr)
+		}
+		if err := os.MkdirAll(paths.AppConfigDir(appID), 0o700); err != nil {
+			return err
+		}
+		hostFile := filepath.Join(paths.AppConfigDir(appID),
+			fmt.Sprintf("%d-%s", i, filepath.Base(c.Path)))
+		if err := os.WriteFile(hostFile, []byte(content), 0o600); err != nil {
+			return err
+		}
+		svc := c.Service
+		if svc == "" {
+			svc = appID
+		}
+		configMounts[svc] = append(configMounts[svc], hostFile+":"+c.Path+":ro")
+	}
+
+	compose, err := orchestrator.BuildCompose(appID, services, env, configMounts)
 	if err != nil {
 		return err
 	}
