@@ -1,0 +1,55 @@
+name: release
+
+# Builds slashnoded (linux/macOS, amd64/arm64), the Next.js web bundle and the
+# app catalog, then publishes them as release assets so `bootstrap.sh` can fetch
+# them. Pushes to master refresh the rolling "latest" release; pushing a v* tag
+# cuts a versioned release.
+on:
+  push:
+    branches: [master]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Determine version
+        id: ver
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            echo "version=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=latest" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build artifacts
+        run: bash scripts/build.sh "${{ steps.ver.outputs.version }}"
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          # Recreate the release so assets always match the latest build.
+          gh release delete "$VERSION" --yes --cleanup-tag || true
+          gh release create "$VERSION" \
+            dist/slashnoded-* \
+            dist/slashnode-web.tar.gz dist/slashnode-web.tar.gz.sha256 \
+            dist/slashnode-apps.tar.gz dist/slashnode-apps.tar.gz.sha256 \
+            --title "$VERSION" \
+            --notes "Build ${GITHUB_SHA}" \
+            --target "$GITHUB_SHA"
