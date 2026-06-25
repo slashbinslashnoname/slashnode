@@ -42,6 +42,16 @@ type Web struct {
 	Path string `json:"path,omitempty"`
 }
 
+// Endpoint declares a connection URL/address exposed by an app (RPC, REST, S3,
+// a game server, …). The frontend renders these as copyable URLs built from the
+// node host + Port; http/https endpoints also get an open link.
+type Endpoint struct {
+	Label  string `json:"label"`
+	Scheme string `json:"scheme,omitempty"` // http, https, tcp, … (empty = host:port only)
+	Port   int    `json:"port"`
+	Path   string `json:"path,omitempty"`
+}
+
 // ProbeStat declares one display value: a Label, the result Field to read (empty
 // = the scalar result, e.g. geth eth_blockNumber), and whether it is Hex.
 type ProbeStat struct {
@@ -91,6 +101,7 @@ type Manifest struct {
 	Exports         map[string]any  `json:"exports,omitempty"`
 	Wiring          map[string]any  `json:"wiring,omitempty"`
 	Web             *Web            `json:"web,omitempty"`
+	Endpoints       []Endpoint      `json:"endpoints,omitempty"`
 	Probe           *Probe          `json:"probe,omitempty"`
 	Configs         []ConfigFile    `json:"configs,omitempty"`
 	Notes           string          `json:"notes,omitempty"`

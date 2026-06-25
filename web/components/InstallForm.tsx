@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { App, AppInput } from "@/lib/api";
 
@@ -18,28 +18,52 @@ export function InstallForm({ app }: { app: App }) {
     "idle",
   );
   const [error, setError] = useState("");
+  const [output, setOutput] = useState("");
+  const [showOutput, setShowOutput] = useState(false);
+  const preRef = useRef<HTMLPreElement>(null);
 
   function set(key: string, v: string) {
     setValues((prev) => ({ ...prev, [key]: v }));
   }
 
+  // Keep the live log scrolled to the bottom as output streams in.
+  useEffect(() => {
+    if (preRef.current) preRef.current.scrollTop = preRef.current.scrollHeight;
+  }, [output]);
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setState("saving");
     setError("");
+    setOutput("");
+    setShowOutput(true);
     try {
-      const res = await fetch(`/api/apps/${app.id}/install`, {
+      const res = await fetch(`/api/apps/${app.id}/install-stream`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ inputs: values }),
       });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        setError(body.error ?? "install failed");
+      if (!res.ok || !res.body) {
+        const body = await res.text().catch(() => "");
+        setError(body || "install failed");
         setState("error");
         return;
       }
-      setState("done");
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let acc = "";
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        acc += decoder.decode(value, { stream: true });
+        setOutput(acc);
+      }
+      if (acc.includes("INSTALL FAILED")) {
+        setError("install failed — see output below");
+        setState("error");
+      } else {
+        setState("done");
+      }
       router.refresh();
     } catch {
       setError("daemon unreachable");
@@ -55,16 +79,36 @@ export function InstallForm({ app }: { app: App }) {
 
       {error && <p className="text-sm text-primary">{error}</p>}
 
-      <button
-        type="submit"
-        disabled={state === "saving"}
-        className="self-start rounded-lg bg-primary px-5 py-2.5 font-semibold text-white disabled:opacity-60"
-      >
-        {state === "idle" && (app.installed ? "Reconfigure & launch" : "Install & launch")}
-        {state === "saving" && "Launching…"}
-        {state === "done" && "✓ Launched"}
-        {state === "error" && "Retry"}
-      </button>
+      <div className="flex items-center gap-3">
+        <button
+          type="submit"
+          disabled={state === "saving"}
+          className="rounded-lg bg-primary px-5 py-2.5 font-semibold text-white disabled:opacity-60"
+        >
+          {state === "idle" && (app.installed ? "Reconfigure & launch" : "Install & launch")}
+          {state === "saving" && "Launching…"}
+          {state === "done" && "✓ Launched"}
+          {state === "error" && "Retry"}
+        </button>
+        {output && (
+          <button
+            type="button"
+            onClick={() => setShowOutput((s) => !s)}
+            className="text-sm text-muted hover:text-primary"
+          >
+            {showOutput ? "hide output" : "show output"}
+          </button>
+        )}
+      </div>
+
+      {showOutput && output && (
+        <pre
+          ref={preRef}
+          className="max-h-72 overflow-auto rounded-lg bg-bg p-3 text-xs leading-relaxed"
+        >
+          {output}
+        </pre>
+      )}
     </form>
   );
 }

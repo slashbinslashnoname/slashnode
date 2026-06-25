@@ -45,5 +45,9 @@
     "s3.port": 9000
   },
   "web": { "port": 9001, "path": "/" },
+  "endpoints": [
+    { "label": "Console", "scheme": "http", "port": 9001, "path": "/" },
+    { "label": "S3 API", "scheme": "http", "port": 9000, "path": "/" }
+  ],
   "probe": { "type": "http", "port": 9001, "path": "/" }
 }

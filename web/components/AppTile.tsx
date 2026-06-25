@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { App, ServiceStatus, ProbeResult } from "@/lib/api";
 import { useConsole } from "@/components/console/ConsoleProvider";
 import { CredsPanel } from "@/components/CredsPanel";
+import { EndpointsPanel } from "@/components/EndpointsPanel";
 
 export function AppTile({ app }: { app: App }) {
   const router = useRouter();
@@ -169,7 +170,14 @@ export function AppTile({ app }: { app: App }) {
         )}
       </div>
 
-      {showConfig && <CredsPanel id={app.id} />}
+      {showConfig && (
+        <div className="flex flex-col gap-3">
+          {app.endpoints && app.endpoints.length > 0 && (
+            <EndpointsPanel endpoints={app.endpoints} />
+          )}
+          <CredsPanel id={app.id} />
+        </div>
+      )}
 
       {logs !== null && (
         <div className="flex flex-col gap-1">

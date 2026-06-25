@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -20,6 +21,12 @@ import (
 // first), renders a Compose file for each app, launches it via Docker and
 // records its exports in the service registry so consumers can wire to it.
 func Install(dir, id string, inputs map[string]string) error {
+	return InstallStream(dir, id, inputs, io.Discard)
+}
+
+// InstallStream is Install with the Docker pull/up output (and progress lines)
+// streamed live to out, so the UI can show install progress as it happens.
+func InstallStream(dir, id string, inputs map[string]string, out io.Writer) error {
 	plan, err := installPlan(dir, id)
 	if err != nil {
 		return err
@@ -37,12 +44,16 @@ func Install(dir, id string, inputs map[string]string) error {
 		if isTarget {
 			provided = inputs
 		}
-		if err := installOne(dir, appID, provided, isTarget); err != nil {
+		fmt.Fprintf(out, "\n==> installing %s\n", appID)
+		if err := installOne(dir, appID, provided, isTarget, out); err != nil {
+			fmt.Fprintf(out, "error: %v\n", err)
 			return fmt.Errorf("installing %s: %w", appID, err)
 		}
 	}
+	fmt.Fprintln(out, "\n==> wiring reverse proxy & tor")
 	_ = ReloadProxy() // best-effort: refresh reverse-proxy routes
 	_ = ReloadTor()   // best-effort: refresh Tor hidden services
+	fmt.Fprintln(out, "==> done")
 	return nil
 }
 
@@ -89,7 +100,7 @@ func Reapply(dir string) error {
 		for k, v := range loadAppSecrets(id) {
 			provided[k] = v
 		}
-		if err := installOne(dir, id, provided, true); err != nil {
+		if err := installOne(dir, id, provided, true, io.Discard); err != nil {
 			return fmt.Errorf("reapply %s: %w", id, err)
 		}
 	}
@@ -118,10 +129,11 @@ func ReapplyOne(dir, id string) error {
 	for k, v := range loadAppSecrets(id) {
 		provided[k] = v
 	}
-	if err := installOne(dir, id, provided, true); err != nil {
+	if err := installOne(dir, id, provided, true, io.Discard); err != nil {
 		return err
 	}
 	_ = ReloadProxy()
+	_ = ReloadTor()
 	return nil
 }
 
@@ -209,7 +221,7 @@ func installPlan(dir, id string) ([]string, error) {
 // an error; for auto-installed dependencies, required secrets are generated and
 // required non-secret fields must have a default (else we bail and ask the
 // operator to install the dependency manually).
-func installOne(dir, appID string, provided map[string]string, isTarget bool) error {
+func installOne(dir, appID string, provided map[string]string, isTarget bool, out io.Writer) error {
 	man, err := Find(dir, appID)
 	if err != nil {
 		return err
@@ -345,10 +357,13 @@ func installOne(dir, appID string, provided map[string]string, isTarget bool) er
 	}
 
 	// Launch (only when a Docker daemon is reachable). Pull first so updates
-	// fetch newer images for the same tag.
+	// fetch newer images for the same tag. Output is streamed to out (io.Discard
+	// for non-interactive callers).
 	if orchestrator.Available() {
-		_ = orchestrator.Pull(appID, paths.AppComposeFile(appID))
-		if err := orchestrator.Up(appID, paths.AppComposeFile(appID)); err != nil {
+		fmt.Fprintf(out, "--> pulling images for %s\n", appID)
+		_ = orchestrator.PullStreamed(appID, paths.AppComposeFile(appID), out)
+		fmt.Fprintf(out, "--> starting %s\n", appID)
+		if err := orchestrator.UpStreamed(appID, paths.AppComposeFile(appID), out); err != nil {
 			return err
 		}
 	}

@@ -47,8 +47,16 @@ export type App = {
   url?: string;
   onion_url?: string;
   web?: { port: number; path?: string };
+  endpoints?: AppEndpoint[];
   probe?: { type: string };
   notes?: string;
+};
+
+export type AppEndpoint = {
+  label: string;
+  scheme?: string;
+  port: number;
+  path?: string;
 };
 
 export type ServiceStatus = {

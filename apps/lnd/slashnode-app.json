@@ -48,5 +48,9 @@
       { "label": "Height", "field": "block_height" },
       { "label": "Synced", "field": "synced_to_chain" }
     ]
-  }
+  },
+  "endpoints": [
+    { "label": "REST API", "scheme": "https", "port": 8085, "path": "/v1/getinfo" },
+    { "label": "P2P", "port": 9735 }
+  ]
 }

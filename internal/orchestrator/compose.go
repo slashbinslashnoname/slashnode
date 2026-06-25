@@ -10,6 +10,7 @@ package orchestrator
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"strconv"
@@ -219,6 +220,16 @@ func Pull(appID, composeFile string) error {
 	return run("docker", "compose", "-p", project(appID), "-f", composeFile, "pull")
 }
 
+// PullStreamed pulls the app's images, streaming docker's output to w.
+func PullStreamed(appID, composeFile string, w io.Writer) error {
+	return runStreamed(w, "docker", "compose", "-p", project(appID), "-f", composeFile, "pull")
+}
+
+// UpStreamed brings the app up, streaming docker's output to w.
+func UpStreamed(appID, composeFile string, w io.Writer) error {
+	return runStreamed(w, "docker", "compose", "-p", project(appID), "-f", composeFile, "up", "-d")
+}
+
 // ImagesOutdated reports whether any of the app's images has a newer version in
 // its registry (remote manifest digest differs from the local one). Best-effort:
 // returns false on any error or for not-yet-pulled images.
@@ -307,6 +318,17 @@ func run(name string, args ...string) error {
 	cmd.Stderr = &out
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("%s %s: %w\n%s", name, strings.Join(args, " "), err, out.String())
+	}
+	return nil
+}
+
+// runStreamed runs a command writing its combined stdout+stderr to w live.
+func runStreamed(w io.Writer, name string, args ...string) error {
+	cmd := exec.Command(name, args...)
+	cmd.Stdout = w
+	cmd.Stderr = w
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("%s %s: %w", name, strings.Join(args, " "), err)
 	}
 	return nil
 }

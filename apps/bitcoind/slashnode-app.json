@@ -70,5 +70,9 @@
     "rpc.user": "${input.RPC_USER}",
     "rpc.password": "${secret.RPC_PASSWORD}",
     "zmq.rawblock": "tcp://bitcoind:28332"
-  }
+  },
+  "endpoints": [
+    { "label": "RPC", "scheme": "http", "port": 8332, "path": "/" },
+    { "label": "P2P", "port": 8333 }
+  ]
 }

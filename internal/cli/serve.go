@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -208,6 +209,28 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 		writeJSON(w, http.StatusOK, map[string]string{"status": "installed"})
 	}))
 
+	// Streaming install: runs the install and streams docker pull/up output as
+	// plain text (chunked), flushing each line so the UI shows live progress.
+	mux.Handle("POST /api/v1/apps/{id}/install/stream", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Inputs map[string]string `json:"inputs"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("X-Accel-Buffering", "no")
+		w.WriteHeader(http.StatusOK)
+		fw := &flushWriter{w: w}
+		if f, ok := w.(http.Flusher); ok {
+			fw.f = f
+		}
+		if err := apps.InstallStream(appsDir, r.PathValue("id"), body.Inputs, fw); err != nil {
+			fmt.Fprintf(fw, "\nINSTALL FAILED: %v\n", err)
+			return
+		}
+		fmt.Fprintln(fw, "\nINSTALL OK")
+	}))
+
 	mux.Handle("POST /api/v1/apps/{id}/uninstall", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
 		purge := r.URL.Query().Get("purge") == "true"
 		if err := apps.Uninstall(appsDir, r.PathValue("id"), purge); err != nil {
@@ -400,6 +423,21 @@ func bearer(sec *secrets.Secrets, next http.HandlerFunc) http.Handler {
 		}
 		next(w, r)
 	})
+}
+
+// flushWriter flushes the HTTP response after each write so streamed output
+// reaches the client immediately rather than being buffered.
+type flushWriter struct {
+	w io.Writer
+	f http.Flusher
+}
+
+func (fw *flushWriter) Write(p []byte) (int, error) {
+	n, err := fw.w.Write(p)
+	if fw.f != nil {
+		fw.f.Flush()
+	}
+	return n, err
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {

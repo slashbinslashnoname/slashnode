@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AppTabs } from "@/components/AppTabs";
+import { EndpointsPanel } from "@/components/EndpointsPanel";
 import { UpdateAppButton } from "@/components/UpdateAppButton";
 import { UninstallButton } from "@/components/UninstallButton";
 import { getApp } from "@/lib/api";
@@ -56,6 +57,12 @@ export default async function AppDetail({
           from={app.installed_version}
           to={app.version}
         />
+      )}
+
+      {app.installed && app.endpoints && app.endpoints.length > 0 && (
+        <div className="mb-6">
+          <EndpointsPanel endpoints={app.endpoints} />
+        </div>
       )}
 
       {app.dependencies && app.dependencies.length > 0 && (
