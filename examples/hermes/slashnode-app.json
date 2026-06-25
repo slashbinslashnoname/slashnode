@@ -1,0 +1,87 @@
+{
+  "manifestVersion": 1,
+  "id": "hermes",
+  "name": "Hermes Agent",
+  "version": "latest",
+  "category": "ai",
+  "description": "Nous Research Hermes — autonomous AI agent with an OpenAI-compatible API and a web dashboard.",
+  "icon": "🪽",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "ANTHROPIC_API_KEY",
+      "label": "Anthropic API key",
+      "type": "password",
+      "secret": true,
+      "required": false,
+      "help": "Provide at least one model provider key (Anthropic or OpenAI)."
+    },
+    {
+      "key": "OPENAI_API_KEY",
+      "label": "OpenAI API key",
+      "type": "password",
+      "secret": true,
+      "required": false,
+      "help": "Optional if an Anthropic key is provided."
+    },
+    {
+      "key": "TELEGRAM_BOT_TOKEN",
+      "label": "Telegram bot token",
+      "type": "password",
+      "secret": true,
+      "required": false,
+      "help": "Optional — enables the Telegram platform integration."
+    },
+    {
+      "key": "API_SERVER_KEY",
+      "label": "API server key",
+      "type": "password",
+      "secret": true,
+      "required": true,
+      "minLength": 8,
+      "help": "Auth key for the OpenAI-compatible API (min 8 characters)."
+    },
+    {
+      "key": "HERMES_DASHBOARD_BASIC_AUTH_USERNAME",
+      "label": "Dashboard username",
+      "type": "text",
+      "required": true,
+      "default": "admin"
+    },
+    {
+      "key": "HERMES_DASHBOARD_BASIC_AUTH_PASSWORD",
+      "label": "Dashboard password",
+      "type": "password",
+      "secret": true,
+      "required": true,
+      "minLength": 8
+    }
+  ],
+  "services": {
+    "hermes": {
+      "image": "nousresearch/hermes-agent:latest",
+      "command": "gateway run",
+      "shmSize": "1g",
+      "ports": [
+        { "host": 8642, "container": 8642 },
+        { "host": 9119, "container": 9119 }
+      ],
+      "volumes": [{ "name": "hermes-data", "path": "/opt/data" }],
+      "environment": {
+        "HERMES_DASHBOARD": "1",
+        "HERMES_DASHBOARD_HOST": "0.0.0.0",
+        "HERMES_DASHBOARD_PORT": "9119",
+        "API_SERVER_ENABLED": "true",
+        "API_SERVER_HOST": "0.0.0.0",
+        "API_SERVER_PORT": "8642"
+      },
+      "healthcheck": { "type": "http", "path": "/", "port": 9119, "interval": "30s" }
+    }
+  },
+  "exports": {
+    "api.host": "hermes",
+    "api.port": 8642,
+    "api.key": "${secret.API_SERVER_KEY}",
+    "dashboard.port": 9119
+  }
+}
