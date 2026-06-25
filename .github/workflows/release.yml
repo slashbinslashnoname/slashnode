@@ -44,12 +44,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.ver.outputs.version }}
         run: |
-          # Recreate the release so assets always match the latest build.
-          gh release delete "$VERSION" --yes --cleanup-tag || true
-          gh release create "$VERSION" \
+          # Keep the release/tag in place and clobber assets, so an install
+          # caught mid-publish never sees a missing release (only briefly stale
+          # assets, which the bootstrap retries on a checksum mismatch).
+          if ! gh release view "$VERSION" >/dev/null 2>&1; then
+            gh release create "$VERSION" \
+              --title "$VERSION" --notes "Build ${GITHUB_SHA}" --target "$GITHUB_SHA"
+          fi
+          gh release upload "$VERSION" --clobber \
             dist/slashnoded-* \
             dist/slashnode-web.tar.gz dist/slashnode-web.tar.gz.sha256 \
-            dist/slashnode-apps.tar.gz dist/slashnode-apps.tar.gz.sha256 \
-            --title "$VERSION" \
-            --notes "Build ${GITHUB_SHA}" \
-            --target "$GITHUB_SHA"
+            dist/slashnode-apps.tar.gz dist/slashnode-apps.tar.gz.sha256

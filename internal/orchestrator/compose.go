@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 )
 
@@ -152,7 +153,69 @@ func Down(appID, composeFile string, removeVolumes bool) error {
 	return run("docker", args...)
 }
 
+// ContainerStatus is the status of one service container of an app.
+type ContainerStatus struct {
+	Service string `json:"service"`
+	State   string `json:"state"`
+	Status  string `json:"status"`
+	Health  string `json:"health,omitempty"`
+}
+
+// Status returns the per-service container status (docker compose ps).
+func Status(appID, composeFile string) ([]ContainerStatus, error) {
+	out, err := output("docker", "compose", "-p", project(appID), "-f", composeFile, "ps", "-a", "--format", "json")
+	if err != nil {
+		return nil, err
+	}
+	var res []ContainerStatus
+	// Compose may emit NDJSON (one object per line) or a JSON array.
+	for _, line := range strings.Split(strings.TrimSpace(out), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		var c ContainerStatus
+		if err := json.Unmarshal([]byte(line), &c); err == nil && c.Service != "" {
+			res = append(res, c)
+			continue
+		}
+		var arr []ContainerStatus
+		if err := json.Unmarshal([]byte(line), &arr); err == nil {
+			res = append(res, arr...)
+		}
+	}
+	return res, nil
+}
+
+// Start, Stop and Restart drive the lifecycle of an already-created app.
+func Start(appID, composeFile string) error {
+	return run("docker", "compose", "-p", project(appID), "-f", composeFile, "start")
+}
+func Stop(appID, composeFile string) error {
+	return run("docker", "compose", "-p", project(appID), "-f", composeFile, "stop")
+}
+func Restart(appID, composeFile string) error {
+	return run("docker", "compose", "-p", project(appID), "-f", composeFile, "restart")
+}
+
+// Logs returns the last `tail` log lines across the app's services.
+func Logs(appID, composeFile string, tail int) (string, error) {
+	return output("docker", "compose", "-p", project(appID), "-f", composeFile,
+		"logs", "--no-color", "--tail", strconv.Itoa(tail))
+}
+
 func project(appID string) string { return "slashnode-" + appID }
+
+func output(name string, args ...string) (string, error) {
+	cmd := exec.Command(name, args...)
+	var out, errb strings.Builder
+	cmd.Stdout = &out
+	cmd.Stderr = &errb
+	if err := cmd.Run(); err != nil {
+		return "", fmt.Errorf("%s %s: %w\n%s", name, strings.Join(args, " "), err, errb.String())
+	}
+	return out.String(), nil
+}
 
 func run(name string, args ...string) error {
 	cmd := exec.Command(name, args...)

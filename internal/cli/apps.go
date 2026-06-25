@@ -69,6 +69,57 @@ func Apps(args []string) error {
 		fmt.Println(colorize("✓ uninstalled "+id, ansiRed))
 		return nil
 
+	case "status":
+		if len(args) < 2 {
+			return fmt.Errorf("usage: slashnoded apps status <id>")
+		}
+		if !apps.DockerAvailable() {
+			fmt.Println("docker not available")
+			return nil
+		}
+		st, err := apps.Status(args[1])
+		if err != nil {
+			return err
+		}
+		if len(st) == 0 {
+			fmt.Println("no containers")
+			return nil
+		}
+		for _, s := range st {
+			fmt.Printf("%-14s %-10s %s\n", s.Service, s.State, s.Status)
+		}
+		return nil
+
+	case "start", "stop", "restart":
+		if len(args) < 2 {
+			return fmt.Errorf("usage: slashnoded apps %s <id>", args[0])
+		}
+		var err error
+		switch args[0] {
+		case "start":
+			err = apps.Start(args[1])
+		case "stop":
+			err = apps.Stop(args[1])
+		case "restart":
+			err = apps.Restart(args[1])
+		}
+		if err != nil {
+			return err
+		}
+		fmt.Println(colorize("✓ "+args[0]+" "+args[1], ansiRed))
+		return nil
+
+	case "logs":
+		if len(args) < 2 {
+			return fmt.Errorf("usage: slashnoded apps logs <id>")
+		}
+		logs, err := apps.Logs(args[1], 200)
+		if err != nil {
+			return err
+		}
+		fmt.Print(logs)
+		return nil
+
 	default:
 		return fmt.Errorf("unknown apps subcommand: %q", args[0])
 	}

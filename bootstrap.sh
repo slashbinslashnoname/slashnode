@@ -93,16 +93,28 @@ install_node() {
   apt-get install -y nodejs
 }
 
+# fetch_verify <name>: download /tmp/<name> and /tmp/<name>.sha256 and verify
+# the checksum, retrying on any failure. The rolling "latest" release is
+# refreshed by CI, so a download caught mid-publish is retried rather than fatal.
+fetch_verify() {
+  local name="$1"
+  local url="${BASE_URL}/${SLASHNODE_VERSION}/${name}"
+  local attempt
+  for attempt in 1 2 3 4 5; do
+    if curl -fsSL -o "/tmp/${name}" "$url" \
+      && curl -fsSL -o "/tmp/${name}.sha256" "${url}.sha256" \
+      && ( cd /tmp && sha256sum -c "${name}.sha256" >/dev/null 2>&1 ); then
+      return 0
+    fi
+    info "fetch/verify of ${name} failed (release may be mid-publish), retry in 5s (${attempt}/5)…"
+    sleep 5
+  done
+  die "could not fetch/verify ${name} after retries — installation aborted."
+}
+
 install_web() {
-  local tag="$SLASHNODE_VERSION"
-  local url="${BASE_URL}/${tag}/slashnode-web.tar.gz"
   info "Downloading the Next.js front end…"
-  curl -fsSL -o /tmp/slashnode-web.tar.gz "$url" \
-    || die "front end download failed: $url"
-  curl -fsSL -o /tmp/slashnode-web.tar.gz.sha256 "${url}.sha256" \
-    || die "front end checksum not found: ${url}.sha256"
-  ( cd /tmp && sha256sum -c slashnode-web.tar.gz.sha256 >/dev/null 2>&1 ) \
-    || die "invalid front end checksum — installation aborted."
+  fetch_verify slashnode-web.tar.gz
   rm -rf /usr/share/slashnode/web
   mkdir -p /usr/share/slashnode/web
   tar -xzf /tmp/slashnode-web.tar.gz -C /usr/share/slashnode/web
@@ -111,15 +123,8 @@ install_web() {
 }
 
 install_apps() {
-  local tag="$SLASHNODE_VERSION"
-  local url="${BASE_URL}/${tag}/slashnode-apps.tar.gz"
   info "Downloading the app catalog…"
-  curl -fsSL -o /tmp/slashnode-apps.tar.gz "$url" \
-    || die "app catalog download failed: $url"
-  curl -fsSL -o /tmp/slashnode-apps.tar.gz.sha256 "${url}.sha256" \
-    || die "app catalog checksum not found: ${url}.sha256"
-  ( cd /tmp && sha256sum -c slashnode-apps.tar.gz.sha256 >/dev/null 2>&1 ) \
-    || die "invalid app catalog checksum — installation aborted."
+  fetch_verify slashnode-apps.tar.gz
   rm -rf /usr/share/slashnode/apps
   mkdir -p /usr/share/slashnode/apps
   tar -xzf /tmp/slashnode-apps.tar.gz -C /usr/share/slashnode/apps
@@ -187,22 +192,12 @@ install_binary() {
   local arch tag
   arch="$(detect_arch)"
   tag="$SLASHNODE_VERSION"
-  [ "$tag" = "latest" ] && tag="latest"
 
   # Download under the original artifact name so the checksum file (which
   # references that name) verifies with `sha256sum -c`.
   local name="slashnoded-linux-${arch}"
-  local url="${BASE_URL}/${tag}/${name}"
   info "Downloading slashnoded (linux/${arch}, ${tag})…"
-  curl -fsSL -o "/tmp/${name}" "$url" \
-    || die "download failed: $url"
-  curl -fsSL -o "/tmp/${name}.sha256" "${url}.sha256" \
-    || die "checksum not found: ${url}.sha256"
-
-  info "Verifying checksum…"
-  ( cd /tmp && sha256sum -c "${name}.sha256" >/dev/null 2>&1 ) \
-    || die "invalid checksum — installation aborted."
-
+  fetch_verify "$name"
   install -m 0755 "/tmp/${name}" "${INSTALL_DIR}/slashnoded"
   rm -f "/tmp/${name}" "/tmp/${name}.sha256"
   info "Binary installed: ${INSTALL_DIR}/slashnoded"

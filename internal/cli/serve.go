@@ -165,6 +165,43 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 		writeJSON(w, http.StatusOK, map[string]string{"status": "uninstalled"})
 	}))
 
+	mux.Handle("GET /api/v1/apps/{id}/status", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
+		st, err := apps.Status(r.PathValue("id"))
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"docker": apps.DockerAvailable(), "services": st})
+	}))
+
+	mux.Handle("GET /api/v1/apps/{id}/logs", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
+		tail := 200
+		if t := r.URL.Query().Get("tail"); t != "" {
+			if n, err := strconv.Atoi(t); err == nil {
+				tail = n
+			}
+		}
+		logs, err := apps.Logs(r.PathValue("id"), tail)
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]string{"logs": logs})
+	}))
+
+	lifecycle := func(action func(string) error, ok string) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			if err := action(r.PathValue("id")); err != nil {
+				writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+				return
+			}
+			writeJSON(w, http.StatusOK, map[string]string{"status": ok})
+		}
+	}
+	mux.Handle("POST /api/v1/apps/{id}/start", bearer(sec, lifecycle(apps.Start, "started")))
+	mux.Handle("POST /api/v1/apps/{id}/stop", bearer(sec, lifecycle(apps.Stop, "stopped")))
+	mux.Handle("POST /api/v1/apps/{id}/restart", bearer(sec, lifecycle(apps.Restart, "restarted")))
+
 	return mux
 }
 
