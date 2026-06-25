@@ -1,9 +1,10 @@
-// Package orchestrator turns an app manifest's `services` block into a Docker
-// Compose file (rendered as JSON, which is valid YAML) and drives the container
-// lifecycle via `docker compose`.
+// Package orchestrator drives the container lifecycle (docker compose up/down/…)
+// for each app from a docker-compose document and parses image references back
+// out of it for the version picker.
 //
-// All app containers join a shared external network ("slashnode") and set a
-// container_name equal to their service name, so that exports such as
+// Apps ship a real compose document in their manifest's `compose` field. By
+// convention each service joins the shared external network ("slashnode") and
+// sets a container_name equal to its service name, so that exports such as
 // "rpc.host": "bitcoind" resolve across apps by DNS.
 package orchestrator
 
@@ -20,131 +21,56 @@ import (
 // Network is the shared Docker network all app containers join.
 const Network = "slashnode"
 
-// Port maps a host port to a container port. HostIP optionally binds the host
-// side to a specific address (e.g. 127.0.0.1 to keep an RPC port local-only).
-type Port struct {
-	HostIP    string `json:"hostIP,omitempty"`
-	Host      int    `json:"host"`
-	Container int    `json:"container"`
-	Protocol  string `json:"protocol,omitempty"`
-}
-
-// Volume maps a named volume to a container path. From references another app's
-// volume (shared, e.g. electrs reading bitcoind's blocks); ReadOnly mounts it
-// read-only.
-type Volume struct {
-	Name     string `json:"name"`
-	Path     string `json:"path"`
-	From     string `json:"from,omitempty"`
-	ReadOnly bool   `json:"readOnly,omitempty"`
-}
-
-// Service is one container declared in a manifest's `services` block.
-type Service struct {
-	Image       string            `json:"image"`
-	Entrypoint  string            `json:"entrypoint,omitempty"`
-	Command     string            `json:"command,omitempty"`
-	ShmSize     string            `json:"shmSize,omitempty"`
-	Ports       []Port            `json:"ports,omitempty"`
-	Volumes     []Volume          `json:"volumes,omitempty"`
-	Environment map[string]string `json:"environment,omitempty"`
-}
-
-// ParseServices decodes a manifest's raw `services` block.
-func ParseServices(raw json.RawMessage) (map[string]Service, error) {
-	if len(raw) == 0 {
-		return nil, fmt.Errorf("manifest has no services")
-	}
-	var svcs map[string]Service
-	if err := json.Unmarshal(raw, &svcs); err != nil {
-		return nil, fmt.Errorf("invalid services block: %w", err)
-	}
-	return svcs, nil
-}
-
-// BuildCompose renders a Compose file (as JSON) for the given app. env is merged
-// into every service's environment (manifest defaults are kept, env wins).
-// configMounts maps a service name to extra bind-mount specs
-// ("hostpath:containerpath:ro") for rendered config files.
-func BuildCompose(appID string, services map[string]Service, env map[string]string, configMounts map[string][]string) ([]byte, error) {
-	svcMap := map[string]any{}
-	volumes := map[string]any{}
-
-	for name, s := range services {
-		svc := map[string]any{
-			"image":          s.Image,
-			"container_name": name,
-			"restart":        "unless-stopped",
-			"networks":       []string{Network},
+// ParseComposeImages extracts the service → image map from a docker-compose
+// document (YAML or our JSON-rendered equivalent), so the version picker can
+// list/override the tag of each service. Best-effort line parser: it tracks the
+// service keys under the top-level `services:` map and reads each one's `image:`.
+func ParseComposeImages(content string) map[string]string {
+	out := map[string]string{}
+	inServices := false
+	servicesIndent := -1
+	svcKeyIndent := -1
+	current := ""
+	for _, raw := range strings.Split(content, "\n") {
+		line := strings.TrimRight(raw, "\r")
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
+			continue
 		}
-		if s.Entrypoint != "" {
-			svc["entrypoint"] = s.Entrypoint
-		}
-		if s.Command != "" {
-			svc["command"] = s.Command
-		}
-		if s.ShmSize != "" {
-			svc["shm_size"] = s.ShmSize
-		}
-		if len(s.Ports) > 0 {
-			ports := make([]string, 0, len(s.Ports))
-			for _, p := range s.Ports {
-				spec := fmt.Sprintf("%d:%d", p.Host, p.Container)
-				if p.HostIP != "" {
-					spec = fmt.Sprintf("%s:%d:%d", p.HostIP, p.Host, p.Container)
-				}
-				if p.Protocol != "" {
-					spec += "/" + p.Protocol
-				}
-				ports = append(ports, spec)
+		indent := len(line) - len(strings.TrimLeft(line, " \t"))
+
+		if !inServices {
+			if trimmed == "services:" {
+				inServices = true
+				servicesIndent = indent
+				svcKeyIndent = -1
 			}
-			svc["ports"] = ports
+			continue
 		}
-		mounts := make([]string, 0, len(s.Volumes))
-		for _, v := range s.Volumes {
-			var volName string
-			if v.From != "" {
-				// Share another app's volume (compose names it "<project>_<key>").
-				volName = fmt.Sprintf("slashnode-%s_%s_%s", v.From, v.From, v.Name)
-				volumes[volName] = map[string]any{"external": true}
-			} else {
-				volName = appID + "_" + v.Name
-				volumes[volName] = map[string]any{}
+		// A key at or above the `services:` indent ends the services block.
+		if indent <= servicesIndent {
+			inServices = false
+			current = ""
+			continue
+		}
+		if svcKeyIndent == -1 {
+			svcKeyIndent = indent
+		}
+		switch {
+		case indent == svcKeyIndent && strings.HasSuffix(trimmed, ":"):
+			current = strings.TrimSpace(strings.TrimSuffix(trimmed, ":"))
+		case indent > svcKeyIndent && current != "" && strings.HasPrefix(trimmed, "image:"):
+			img := strings.TrimSpace(strings.TrimPrefix(trimmed, "image:"))
+			img = strings.Trim(img, `"'`)
+			if i := strings.IndexAny(img, " \t#"); i >= 0 { // strip trailing comment
+				img = strings.TrimSpace(img[:i])
 			}
-			spec := volName + ":" + v.Path
-			if v.ReadOnly {
-				spec += ":ro"
+			if img != "" {
+				out[current] = img
 			}
-			mounts = append(mounts, spec)
 		}
-		mounts = append(mounts, configMounts[name]...)
-		if len(mounts) > 0 {
-			svc["volumes"] = mounts
-		}
-
-		merged := map[string]string{}
-		for k, v := range s.Environment {
-			merged[k] = v
-		}
-		for k, v := range env {
-			merged[k] = v
-		}
-		if len(merged) > 0 {
-			svc["environment"] = merged
-		}
-
-		svcMap[name] = svc
 	}
-
-	compose := map[string]any{
-		"name":     "slashnode-" + appID,
-		"services": svcMap,
-		"networks": map[string]any{Network: map[string]any{"external": true}},
-	}
-	if len(volumes) > 0 {
-		compose["volumes"] = volumes
-	}
-	return json.MarshalIndent(compose, "", "  ")
+	return out
 }
 
 // Available reports whether docker (with a reachable daemon) can be used.

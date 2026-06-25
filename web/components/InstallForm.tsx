@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { App, AppInput } from "@/lib/api";
+import { VersionCombo } from "@/components/VersionCombo";
 
 export function InstallForm({ app }: { app: App }) {
   const router = useRouter();
@@ -14,6 +15,10 @@ export function InstallForm({ app }: { app: App }) {
       ]),
     ),
   );
+  // Per-service image tag chosen before install (defaults to the latest stable
+  // release for each image). Empty until the registry responds.
+  const [imageTags, setImageTags] = useState<Record<string, string>>({});
+  const services = Object.keys(app.images ?? {});
   const [state, setState] = useState<"idle" | "saving" | "done" | "error">(
     "idle",
   );
@@ -41,7 +46,7 @@ export function InstallForm({ app }: { app: App }) {
       const res = await fetch(`/api/apps/${app.id}/install-stream`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ inputs: values }),
+        body: JSON.stringify({ inputs: values, imageTags }),
       });
       if (!res.ok || !res.body) {
         const body = await res.text().catch(() => "");
@@ -71,8 +76,28 @@ export function InstallForm({ app }: { app: App }) {
     }
   }
 
+  function pickVersion(service: string, tag: string) {
+    setImageTags((prev) => ({ ...prev, [service]: tag }));
+  }
+
   return (
     <form onSubmit={submit} className="flex flex-col gap-4">
+      {services.length > 0 && !app.installed && (
+        <div className="flex flex-col gap-2">
+          <span className="text-sm font-medium">Image version</span>
+          {services.map((svc) => (
+            <ServiceVersion
+              key={svc}
+              id={app.id}
+              service={svc}
+              image={(app.images ?? {})[svc]}
+              showService={services.length > 1}
+              onPick={pickVersion}
+            />
+          ))}
+        </div>
+      )}
+
       {(app.inputs ?? []).map((input) => (
         <Field key={input.key} input={input} value={values[input.key] ?? ""} onChange={set} />
       ))}
@@ -110,6 +135,70 @@ export function InstallForm({ app }: { app: App }) {
         </pre>
       )}
     </form>
+  );
+}
+
+function splitTag(image: string): { repo: string; tag: string } {
+  const slash = image.lastIndexOf("/");
+  const last = slash >= 0 ? image.slice(slash + 1) : image;
+  const colon = last.indexOf(":");
+  if (colon < 0) return { repo: image, tag: "latest" };
+  return {
+    repo: image.slice(0, image.length - (last.length - colon)),
+    tag: last.slice(colon + 1),
+  };
+}
+
+// ServiceVersion fetches the registry tags for one service's image and lets the
+// operator pick a version before installing, defaulting to the latest stable
+// release (falling back to the manifest's tag when the registry is unavailable).
+function ServiceVersion({
+  id,
+  service,
+  image,
+  showService,
+  onPick,
+}: {
+  id: string;
+  service: string;
+  image: string;
+  showService: boolean;
+  onPick: (service: string, tag: string) => void;
+}) {
+  const { repo, tag: manifestTag } = splitTag(image);
+  const [tag, setTag] = useState(manifestTag);
+  const [tags, setTags] = useState<string[]>([]);
+
+  useEffect(() => {
+    onPick(service, manifestTag);
+    fetch(`/api/apps/${id}/image-tags?service=${encodeURIComponent(service)}`)
+      .then((r) => r.json())
+      .then((j) => {
+        const list: string[] = Array.isArray(j.tags) ? j.tags : [];
+        setTags(list);
+        // Default to the latest stable release the registry reports.
+        if (j.latest) {
+          setTag(j.latest);
+          onPick(service, j.latest);
+        }
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, service]);
+
+  function change(t: string) {
+    setTag(t);
+    onPick(service, t);
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-xs">
+      <code className="text-muted">
+        {showService ? `${service}: ` : ""}
+        {repo}:
+      </code>
+      <VersionCombo value={tag} options={tags} onChange={change} />
+    </div>
   );
 }
 

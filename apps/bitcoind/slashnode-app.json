@@ -29,7 +29,11 @@
       "key": "NETWORK",
       "label": "Network",
       "type": "select",
-      "options": ["mainnet", "testnet", "signet"],
+      "options": [
+        "mainnet",
+        "testnet",
+        "signet"
+      ],
       "default": "mainnet"
     },
     {
@@ -40,19 +44,7 @@
       "min": 0
     }
   ],
-  "services": {
-    "bitcoind": {
-      "image": "bitcoin/bitcoin:28.1",
-      "entrypoint": "bitcoind",
-      "command": "-datadir=/home/bitcoin/.bitcoin -server=1 -txindex=1 -rpcbind=0.0.0.0 -rpcallowip=0.0.0.0/0 -rpcuser=${input.RPC_USER} -rpcpassword=${secret.RPC_PASSWORD} -zmqpubrawblock=tcp://0.0.0.0:28332 -zmqpubrawtx=tcp://0.0.0.0:28333",
-      "ports": [
-        { "host": 8333, "container": 8333 },
-        { "hostIP": "127.0.0.1", "host": 8332, "container": 8332 }
-      ],
-      "volumes": [{ "name": "bitcoin-data", "path": "/home/bitcoin/.bitcoin" }],
-      "healthcheck": { "type": "rpc", "method": "getblockchaininfo", "interval": "30s" }
-    }
-  },
+  "compose": "name: \"slashnode-bitcoind\"\nservices:\n  bitcoind:\n    image: \"bitcoin/bitcoin:28.1\"\n    container_name: \"bitcoind\"\n    restart: \"unless-stopped\"\n    networks:\n      - slashnode\n    entrypoint: \"bitcoind\"\n    command: \"-datadir=/home/bitcoin/.bitcoin -server=1 -txindex=1 -rpcbind=0.0.0.0 -rpcallowip=0.0.0.0/0 -rpcuser=${input.RPC_USER} -rpcpassword=${secret.RPC_PASSWORD} -zmqpubrawblock=tcp://0.0.0.0:28332 -zmqpubrawtx=tcp://0.0.0.0:28333\"\n    ports:\n      - \"8333:8333\"\n      - \"127.0.0.1:8332:8332\"\n    volumes:\n      - \"bitcoin-data:/home/bitcoin/.bitcoin\"\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  bitcoin-data:\n    name: \"slashnode-bitcoind_bitcoind_bitcoin-data\"\n",
   "probe": {
     "type": "rpc",
     "port": 8332,
@@ -60,8 +52,14 @@
     "userInput": "RPC_USER",
     "passSecret": "RPC_PASSWORD",
     "display": [
-      { "label": "Height", "field": "blocks" },
-      { "label": "Headers", "field": "headers" }
+      {
+        "label": "Height",
+        "field": "blocks"
+      },
+      {
+        "label": "Headers",
+        "field": "headers"
+      }
     ]
   },
   "exports": {
@@ -72,7 +70,15 @@
     "zmq.rawblock": "tcp://bitcoind:28332"
   },
   "endpoints": [
-    { "label": "RPC", "scheme": "http", "port": 8332, "path": "/" },
-    { "label": "P2P", "port": 8333 }
+    {
+      "label": "RPC",
+      "scheme": "http",
+      "port": 8332,
+      "path": "/"
+    },
+    {
+      "label": "P2P",
+      "port": 8333
+    }
   ]
 }

@@ -8,15 +8,15 @@
   "icon": "💬",
   "dependencies": [],
   "inputs": [],
-  "services": {
-    "open-webui": {
-      "image": "ghcr.io/open-webui/open-webui:main",
-      "ports": [{ "host": 3010, "container": 8080 }],
-      "volumes": [{ "name": "open-webui-data", "path": "/app/backend/data" }],
-      "healthcheck": { "type": "http", "path": "/", "port": 8080, "interval": "30s" }
-    }
+  "compose": "name: \"slashnode-open-webui\"\nservices:\n  open-webui:\n    image: \"ghcr.io/open-webui/open-webui:main\"\n    container_name: \"open-webui\"\n    restart: \"unless-stopped\"\n    networks:\n      - slashnode\n    ports:\n      - \"3010:8080\"\n    volumes:\n      - \"open-webui-data:/app/backend/data\"\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  open-webui-data:\n    name: \"slashnode-open-webui_open-webui_open-webui-data\"\n",
+  "web": {
+    "port": 3010,
+    "path": "/"
   },
-  "web": { "port": 3010, "path": "/" },
-  "probe": { "type": "http", "port": 3010, "path": "/" },
+  "probe": {
+    "type": "http",
+    "port": 3010,
+    "path": "/"
+  },
   "notes": "On first launch, create the admin account. Add an Ollama URL or an OpenAI API key under Settings → Connections."
 }

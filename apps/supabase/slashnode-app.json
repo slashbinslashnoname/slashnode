@@ -17,111 +17,7 @@
       "minLength": 12
     }
   ],
-  "services": {
-    "supabase-db": {
-      "image": "supabase/postgres:15.1.0.147",
-      "volumes": [{ "name": "supabase-db", "path": "/var/lib/postgresql/data" }],
-      "environment": {
-        "POSTGRES_HOST": "/var/run/postgresql",
-        "POSTGRES_DB": "postgres",
-        "POSTGRES_PORT": "5432",
-        "POSTGRES_PASSWORD": "${secret.POSTGRES_PASSWORD}",
-        "JWT_SECRET": "your-super-secret-jwt-token-with-at-least-32-characters-long",
-        "JWT_EXP": "3600"
-      },
-      "healthcheck": { "type": "tcp", "port": 5432, "interval": "30s" }
-    },
-    "supabase-meta": {
-      "image": "supabase/postgres-meta:v0.80.0",
-      "environment": {
-        "PG_META_PORT": "8080",
-        "PG_META_DB_HOST": "supabase-db",
-        "PG_META_DB_PORT": "5432",
-        "PG_META_DB_NAME": "postgres",
-        "PG_META_DB_USER": "supabase_admin",
-        "PG_META_DB_PASSWORD": "${secret.POSTGRES_PASSWORD}"
-      }
-    },
-    "supabase-auth": {
-      "image": "supabase/gotrue:v2.151.0",
-      "environment": {
-        "GOTRUE_API_HOST": "0.0.0.0",
-        "GOTRUE_API_PORT": "9999",
-        "API_EXTERNAL_URL": "http://localhost:8000",
-        "GOTRUE_DB_DRIVER": "postgres",
-        "GOTRUE_DB_DATABASE_URL": "postgres://supabase_auth_admin:${secret.POSTGRES_PASSWORD}@supabase-db:5432/postgres",
-        "GOTRUE_SITE_URL": "http://localhost:8000",
-        "GOTRUE_JWT_SECRET": "your-super-secret-jwt-token-with-at-least-32-characters-long",
-        "GOTRUE_JWT_EXP": "3600",
-        "GOTRUE_JWT_AUD": "authenticated",
-        "GOTRUE_JWT_DEFAULT_GROUP_NAME": "authenticated",
-        "GOTRUE_JWT_ADMIN_ROLES": "service_role",
-        "GOTRUE_DISABLE_SIGNUP": "false",
-        "GOTRUE_MAILER_AUTOCONFIRM": "true"
-      }
-    },
-    "supabase-rest": {
-      "image": "postgrest/postgrest:v12.2.0",
-      "environment": {
-        "PGRST_DB_URI": "postgres://authenticator:${secret.POSTGRES_PASSWORD}@supabase-db:5432/postgres",
-        "PGRST_DB_SCHEMAS": "public,storage,graphql_public",
-        "PGRST_DB_ANON_ROLE": "anon",
-        "PGRST_JWT_SECRET": "your-super-secret-jwt-token-with-at-least-32-characters-long",
-        "PGRST_DB_USE_LEGACY_GUCS": "false"
-      }
-    },
-    "supabase-storage": {
-      "image": "supabase/storage-api:v1.11.0",
-      "volumes": [{ "name": "supabase-storage", "path": "/var/lib/storage" }],
-      "environment": {
-        "ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlLWRlbW8iLCJpYXQiOjE2NDE3NjkyMDAsImV4cCI6MTc5OTUzNTYwMH0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE",
-        "SERVICE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UtZGVtbyIsImlhdCI6MTY0MTc2OTIwMCwiZXhwIjoxNzk5NTM1NjAwfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q",
-        "POSTGREST_URL": "http://supabase-rest:3000",
-        "PGRST_JWT_SECRET": "your-super-secret-jwt-token-with-at-least-32-characters-long",
-        "DATABASE_URL": "postgres://supabase_storage_admin:${secret.POSTGRES_PASSWORD}@supabase-db:5432/postgres",
-        "FILE_SIZE_LIMIT": "52428800",
-        "STORAGE_BACKEND": "file",
-        "FILE_STORAGE_BACKEND_PATH": "/var/lib/storage",
-        "TENANT_ID": "stub",
-        "REGION": "stub",
-        "GLOBAL_S3_BUCKET": "stub",
-        "IMGPROXY_URL": "http://supabase-imgproxy:5001"
-      }
-    },
-    "supabase-imgproxy": {
-      "image": "darthsim/imgproxy:v3.8.0",
-      "environment": {
-        "IMGPROXY_BIND": ":5001",
-        "IMGPROXY_USE_ETAG": "true",
-        "IMGPROXY_ENABLE_WEBP_DETECTION": "true"
-      }
-    },
-    "supabase-studio": {
-      "image": "supabase/studio:20240729-ce42139",
-      "environment": {
-        "STUDIO_PG_META_URL": "http://supabase-meta:8080",
-        "POSTGRES_PASSWORD": "${secret.POSTGRES_PASSWORD}",
-        "DEFAULT_ORGANIZATION_NAME": "SlashNode",
-        "DEFAULT_PROJECT_NAME": "SlashNode",
-        "SUPABASE_URL": "http://supabase-kong:8000",
-        "SUPABASE_PUBLIC_URL": "http://localhost:8000",
-        "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlLWRlbW8iLCJpYXQiOjE2NDE3NjkyMDAsImV4cCI6MTc5OTUzNTYwMH0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE",
-        "SUPABASE_SERVICE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UtZGVtbyIsImlhdCI6MTY0MTc2OTIwMCwiZXhwIjoxNzk5NTM1NjAwfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q",
-        "AUTH_JWT_SECRET": "your-super-secret-jwt-token-with-at-least-32-characters-long"
-      }
-    },
-    "supabase-kong": {
-      "image": "kong:2.8.1",
-      "ports": [{ "host": 8000, "container": 8000 }],
-      "environment": {
-        "KONG_DATABASE": "off",
-        "KONG_DECLARATIVE_CONFIG": "/home/kong/kong.yml",
-        "KONG_DNS_ORDER": "LAST,A,CNAME",
-        "KONG_PLUGINS": "request-transformer,cors"
-      },
-      "healthcheck": { "type": "http", "path": "/", "port": 8000, "interval": "30s" }
-    }
-  },
+  "compose": "name: \"slashnode-supabase\"\nservices:\n  supabase-db:\n    image: \"supabase/postgres:15.1.0.147\"\n    container_name: \"supabase-db\"\n    restart: \"unless-stopped\"\n    networks:\n      - slashnode\n    volumes:\n      - \"supabase-db:/var/lib/postgresql/data\"\n    environment:\n      POSTGRES_HOST: \"/var/run/postgresql\"\n      POSTGRES_DB: \"postgres\"\n      POSTGRES_PORT: \"5432\"\n      POSTGRES_PASSWORD: \"${secret.POSTGRES_PASSWORD}\"\n      JWT_SECRET: \"your-super-secret-jwt-token-with-at-least-32-characters-long\"\n      JWT_EXP: \"3600\"\n  supabase-meta:\n    image: \"supabase/postgres-meta:v0.80.0\"\n    container_name: \"supabase-meta\"\n    restart: \"unless-stopped\"\n    networks:\n      - slashnode\n    environment:\n      PG_META_PORT: \"8080\"\n      PG_META_DB_HOST: \"supabase-db\"\n      PG_META_DB_PORT: \"5432\"\n      PG_META_DB_NAME: \"postgres\"\n      PG_META_DB_USER: \"supabase_admin\"\n      PG_META_DB_PASSWORD: \"${secret.POSTGRES_PASSWORD}\"\n  supabase-auth:\n    image: \"supabase/gotrue:v2.151.0\"\n    container_name: \"supabase-auth\"\n    restart: \"unless-stopped\"\n    networks:\n      - slashnode\n    environment:\n      GOTRUE_API_HOST: \"0.0.0.0\"\n      GOTRUE_API_PORT: \"9999\"\n      API_EXTERNAL_URL: \"http://localhost:8000\"\n      GOTRUE_DB_DRIVER: \"postgres\"\n      GOTRUE_DB_DATABASE_URL: \"postgres://supabase_auth_admin:${secret.POSTGRES_PASSWORD}@supabase-db:5432/postgres\"\n      GOTRUE_SITE_URL: \"http://localhost:8000\"\n      GOTRUE_JWT_SECRET: \"your-super-secret-jwt-token-with-at-least-32-characters-long\"\n      GOTRUE_JWT_EXP: \"3600\"\n      GOTRUE_JWT_AUD: \"authenticated\"\n      GOTRUE_JWT_DEFAULT_GROUP_NAME: \"authenticated\"\n      GOTRUE_JWT_ADMIN_ROLES: \"service_role\"\n      GOTRUE_DISABLE_SIGNUP: \"false\"\n      GOTRUE_MAILER_AUTOCONFIRM: \"true\"\n  supabase-rest:\n    image: \"postgrest/postgrest:v12.2.0\"\n    container_name: \"supabase-rest\"\n    restart: \"unless-stopped\"\n    networks:\n      - slashnode\n    environment:\n      PGRST_DB_URI: \"postgres://authenticator:${secret.POSTGRES_PASSWORD}@supabase-db:5432/postgres\"\n      PGRST_DB_SCHEMAS: \"public,storage,graphql_public\"\n      PGRST_DB_ANON_ROLE: \"anon\"\n      PGRST_JWT_SECRET: \"your-super-secret-jwt-token-with-at-least-32-characters-long\"\n      PGRST_DB_USE_LEGACY_GUCS: \"false\"\n  supabase-storage:\n    image: \"supabase/storage-api:v1.11.0\"\n    container_name: \"supabase-storage\"\n    restart: \"unless-stopped\"\n    networks:\n      - slashnode\n    volumes:\n      - \"supabase-storage:/var/lib/storage\"\n    environment:\n      ANON_KEY: \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlLWRlbW8iLCJpYXQiOjE2NDE3NjkyMDAsImV4cCI6MTc5OTUzNTYwMH0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE\"\n      SERVICE_KEY: \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UtZGVtbyIsImlhdCI6MTY0MTc2OTIwMCwiZXhwIjoxNzk5NTM1NjAwfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q\"\n      POSTGREST_URL: \"http://supabase-rest:3000\"\n      PGRST_JWT_SECRET: \"your-super-secret-jwt-token-with-at-least-32-characters-long\"\n      DATABASE_URL: \"postgres://supabase_storage_admin:${secret.POSTGRES_PASSWORD}@supabase-db:5432/postgres\"\n      FILE_SIZE_LIMIT: \"52428800\"\n      STORAGE_BACKEND: \"file\"\n      FILE_STORAGE_BACKEND_PATH: \"/var/lib/storage\"\n      TENANT_ID: \"stub\"\n      REGION: \"stub\"\n      GLOBAL_S3_BUCKET: \"stub\"\n      IMGPROXY_URL: \"http://supabase-imgproxy:5001\"\n  supabase-imgproxy:\n    image: \"darthsim/imgproxy:v3.8.0\"\n    container_name: \"supabase-imgproxy\"\n    restart: \"unless-stopped\"\n    networks:\n      - slashnode\n    environment:\n      IMGPROXY_BIND: \":5001\"\n      IMGPROXY_USE_ETAG: \"true\"\n      IMGPROXY_ENABLE_WEBP_DETECTION: \"true\"\n  supabase-studio:\n    image: \"supabase/studio:20240729-ce42139\"\n    container_name: \"supabase-studio\"\n    restart: \"unless-stopped\"\n    networks:\n      - slashnode\n    environment:\n      STUDIO_PG_META_URL: \"http://supabase-meta:8080\"\n      POSTGRES_PASSWORD: \"${secret.POSTGRES_PASSWORD}\"\n      DEFAULT_ORGANIZATION_NAME: \"SlashNode\"\n      DEFAULT_PROJECT_NAME: \"SlashNode\"\n      SUPABASE_URL: \"http://supabase-kong:8000\"\n      SUPABASE_PUBLIC_URL: \"http://localhost:8000\"\n      SUPABASE_ANON_KEY: \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlLWRlbW8iLCJpYXQiOjE2NDE3NjkyMDAsImV4cCI6MTc5OTUzNTYwMH0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE\"\n      SUPABASE_SERVICE_KEY: \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UtZGVtbyIsImlhdCI6MTY0MTc2OTIwMCwiZXhwIjoxNzk5NTM1NjAwfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q\"\n      AUTH_JWT_SECRET: \"your-super-secret-jwt-token-with-at-least-32-characters-long\"\n  supabase-kong:\n    image: \"kong:2.8.1\"\n    container_name: \"supabase-kong\"\n    restart: \"unless-stopped\"\n    networks:\n      - slashnode\n    ports:\n      - \"8000:8000\"\n    volumes:\n      - \"./config/kong.yml:/home/kong/kong.yml:ro\"\n    environment:\n      KONG_DATABASE: \"off\"\n      KONG_DECLARATIVE_CONFIG: \"/home/kong/kong.yml\"\n      KONG_DNS_ORDER: \"LAST,A,CNAME\"\n      KONG_PLUGINS: \"request-transformer,cors\"\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  supabase-db:\n    name: \"slashnode-supabase_supabase_supabase-db\"\n  supabase-storage:\n    name: \"slashnode-supabase_supabase_supabase-storage\"\n",
   "configs": [
     {
       "service": "supabase-kong",
@@ -129,12 +25,34 @@
       "content": "_format_version: \"2.1\"\nservices:\n  - name: auth-v1\n    url: http://supabase-auth:9999/\n    routes:\n      - name: auth-v1\n        strip_path: true\n        paths: [\"/auth/v1\"]\n  - name: rest-v1\n    url: http://supabase-rest:3000/\n    routes:\n      - name: rest-v1\n        strip_path: true\n        paths: [\"/rest/v1\"]\n  - name: storage-v1\n    url: http://supabase-storage:5000/\n    routes:\n      - name: storage-v1\n        strip_path: true\n        paths: [\"/storage/v1\"]\n  - name: meta\n    url: http://supabase-meta:8080/\n    routes:\n      - name: meta\n        strip_path: true\n        paths: [\"/pg\"]\n  - name: studio\n    url: http://supabase-studio:3000/\n    routes:\n      - name: studio\n        strip_path: false\n        paths: [\"/\"]\n"
     }
   ],
-  "web": { "port": 8000, "path": "/" },
+  "web": {
+    "port": 8000,
+    "path": "/"
+  },
   "endpoints": [
-    { "label": "Studio", "scheme": "http", "port": 8000, "path": "/" },
-    { "label": "REST API", "scheme": "http", "port": 8000, "path": "/rest/v1/" },
-    { "label": "Auth API", "scheme": "http", "port": 8000, "path": "/auth/v1/" }
+    {
+      "label": "Studio",
+      "scheme": "http",
+      "port": 8000,
+      "path": "/"
+    },
+    {
+      "label": "REST API",
+      "scheme": "http",
+      "port": 8000,
+      "path": "/rest/v1/"
+    },
+    {
+      "label": "Auth API",
+      "scheme": "http",
+      "port": 8000,
+      "path": "/auth/v1/"
+    }
   ],
-  "probe": { "type": "http", "port": 8000, "path": "/" },
+  "probe": {
+    "type": "http",
+    "port": 8000,
+    "path": "/"
+  },
   "notes": "Experimental multi-service stack. Uses Supabase's DEMO JWT keys (insecure) — regenerate JWT secret + anon/service keys for production. Studio is at port 8000; the API gateway (kong) is on the same port under /rest/v1, /auth/v1, /storage/v1."
 }

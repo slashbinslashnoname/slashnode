@@ -97,9 +97,13 @@ type Manifest struct {
 	Icon            string          `json:"icon"`
 	Dependencies    []string        `json:"dependencies"`
 	Inputs          []Input         `json:"inputs"`
-	Services        json.RawMessage `json:"services,omitempty"`
+	// Compose is the app's docker-compose document (YAML). SlashNode templates
+	// ${input.X}/${secret.X}/${app.exports.key} references into it, then runs it
+	// verbatim via `docker compose -f`, so any docker-compose-only project is
+	// compatible. Per-service image tags are still selectable (the version
+	// picker reads/overrides each service's `image:`).
+	Compose         string          `json:"compose,omitempty"`
 	Exports         map[string]any  `json:"exports,omitempty"`
-	Wiring          map[string]any  `json:"wiring,omitempty"`
 	Web             *Web            `json:"web,omitempty"`
 	Endpoints       []Endpoint      `json:"endpoints,omitempty"`
 	Probe           *Probe          `json:"probe,omitempty"`

@@ -24,30 +24,32 @@
       "minLength": 8
     }
   ],
-  "services": {
-    "minio": {
-      "image": "minio/minio:latest",
-      "command": "server /data --console-address :9001",
-      "ports": [
-        { "host": 9000, "container": 9000 },
-        { "host": 9001, "container": 9001 }
-      ],
-      "volumes": [{ "name": "minio-data", "path": "/data" }],
-      "environment": {
-        "MINIO_ROOT_USER": "${input.MINIO_ROOT_USER}",
-        "MINIO_ROOT_PASSWORD": "${secret.MINIO_ROOT_PASSWORD}"
-      },
-      "healthcheck": { "type": "http", "path": "/minio/health/live", "port": 9000, "interval": "30s" }
-    }
-  },
+  "compose": "name: \"slashnode-minio\"\nservices:\n  minio:\n    image: \"minio/minio:latest\"\n    container_name: \"minio\"\n    restart: \"unless-stopped\"\n    networks:\n      - slashnode\n    command: \"server /data --console-address :9001\"\n    ports:\n      - \"9000:9000\"\n      - \"9001:9001\"\n    volumes:\n      - \"minio-data:/data\"\n    environment:\n      MINIO_ROOT_USER: \"${input.MINIO_ROOT_USER}\"\n      MINIO_ROOT_PASSWORD: \"${secret.MINIO_ROOT_PASSWORD}\"\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  minio-data:\n    name: \"slashnode-minio_minio_minio-data\"\n",
   "exports": {
     "s3.host": "minio",
     "s3.port": 9000
   },
-  "web": { "port": 9001, "path": "/" },
+  "web": {
+    "port": 9001,
+    "path": "/"
+  },
   "endpoints": [
-    { "label": "Console", "scheme": "http", "port": 9001, "path": "/" },
-    { "label": "S3 API", "scheme": "http", "port": 9000, "path": "/" }
+    {
+      "label": "Console",
+      "scheme": "http",
+      "port": 9001,
+      "path": "/"
+    },
+    {
+      "label": "S3 API",
+      "scheme": "http",
+      "port": 9000,
+      "path": "/"
+    }
   ],
-  "probe": { "type": "http", "port": 9001, "path": "/" }
+  "probe": {
+    "type": "http",
+    "port": 9001,
+    "path": "/"
+  }
 }

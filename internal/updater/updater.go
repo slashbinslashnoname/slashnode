@@ -19,6 +19,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/slashbinslashnoname/slashnode/internal/paths"
@@ -33,6 +34,7 @@ type Info struct {
 	Latest    string `json:"latest"`
 	Available bool   `json:"available"`
 	CheckedAt string `json:"checked_at"`
+	Error     string `json:"error,omitempty"` // last apply failure, surfaced to the UI
 }
 
 var httpClient = &http.Client{Timeout: 30 * time.Second}
@@ -94,6 +96,24 @@ func LoadState(current string) *Info {
 		return &Info{Current: normalize(current), Latest: normalize(current), Available: false}
 	}
 	return &info
+}
+
+// RecordApplyError persists the outcome of the most recent Apply so the UI can
+// surface a failure instead of spinning forever waiting for a restart that will
+// never come. A nil error clears any previous one.
+func RecordApplyError(err error) {
+	info := LoadState("")
+	if err != nil {
+		info.Error = err.Error()
+	} else {
+		info.Error = ""
+	}
+	cacheMu.Lock()
+	if cacheInfo != nil {
+		cacheInfo.Error = info.Error
+	}
+	cacheMu.Unlock()
+	_ = save(info)
 }
 
 // Apply updates the node (binary + web + apps) then restarts.
@@ -304,13 +324,21 @@ func save(info *Info) error {
 
 func normalize(v string) string { return strings.TrimPrefix(v, "v") }
 
-// restart relaunches the service via systemd (best-effort). In test --root mode
-// or outside Linux, it is a no-op.
+// restart relaunches the daemon so the freshly written binary takes effect.
+// On systemd hosts it asks systemctl to restart the unit; otherwise (dev,
+// macOS, containers) it re-execs itself in place. In test --root mode it is a
+// no-op so it never disrupts a test run.
 func restart() {
-	if runtime.GOOS != "linux" || os.Getenv("SLASHNODE_ROOT") != "" {
+	if os.Getenv("SLASHNODE_ROOT") != "" {
 		return
 	}
-	if path, err := exec.LookPath("systemctl"); err == nil {
-		_ = exec.Command(path, "restart", "slashnoded").Start()
+	if runtime.GOOS == "linux" {
+		if path, err := exec.LookPath("systemctl"); err == nil {
+			_ = exec.Command(path, "restart", "slashnoded").Start()
+			return
+		}
+	}
+	if self, err := os.Executable(); err == nil {
+		_ = syscall.Exec(self, os.Args, os.Environ())
 	}
 }

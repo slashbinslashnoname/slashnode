@@ -6,7 +6,9 @@
   "category": "lightning",
   "description": "Lightning Network implementation. Wires automatically to Bitcoin Core.",
   "icon": "⚡",
-  "dependencies": ["bitcoind"],
+  "dependencies": [
+    "bitcoind"
+  ],
   "inputs": [
     {
       "key": "ALIAS",
@@ -24,17 +26,7 @@
       "minLength": 12
     }
   ],
-  "services": {
-    "lnd": {
-      "image": "lightninglabs/lnd:v0.18.0-beta",
-      "ports": [
-        { "host": 9735, "container": 9735 },
-        { "hostIP": "127.0.0.1", "host": 8085, "container": 8080 }
-      ],
-      "volumes": [{ "name": "lnd-data", "path": "/root/.lnd" }],
-      "healthcheck": { "type": "rpc", "method": "getinfo", "interval": "30s" }
-    }
-  },
+  "compose": "name: \"slashnode-lnd\"\nservices:\n  lnd:\n    image: \"lightninglabs/lnd:v0.18.0-beta\"\n    container_name: \"lnd\"\n    restart: \"unless-stopped\"\n    networks:\n      - slashnode\n    ports:\n      - \"9735:9735\"\n      - \"127.0.0.1:8085:8080\"\n    volumes:\n      - \"lnd-data:/root/.lnd\"\n      - \"./config/lnd.conf:/root/.lnd/lnd.conf:ro\"\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  lnd-data:\n    name: \"slashnode-lnd_lnd_lnd-data\"\n",
   "configs": [
     {
       "path": "/root/.lnd/lnd.conf",
@@ -45,12 +37,26 @@
     "type": "lnd",
     "port": 8085,
     "display": [
-      { "label": "Height", "field": "block_height" },
-      { "label": "Synced", "field": "synced_to_chain" }
+      {
+        "label": "Height",
+        "field": "block_height"
+      },
+      {
+        "label": "Synced",
+        "field": "synced_to_chain"
+      }
     ]
   },
   "endpoints": [
-    { "label": "REST API", "scheme": "https", "port": 8085, "path": "/v1/getinfo" },
-    { "label": "P2P", "port": 9735 }
+    {
+      "label": "REST API",
+      "scheme": "https",
+      "port": 8085,
+      "path": "/v1/getinfo"
+    },
+    {
+      "label": "P2P",
+      "port": 9735
+    }
   ]
 }

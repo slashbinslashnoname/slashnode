@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { VersionCombo } from "@/components/VersionCombo";
 
 // VersionSelector lets the operator change the image tag of any docker image an
 // app runs (e.g. bump bitcoind), one service at a time, then re-applies it.
@@ -58,7 +59,6 @@ function ServiceTag({
   const [tag, setTag] = useState(current);
   const [state, setState] = useState<"idle" | "applying" | "error">("idle");
   const [tags, setTags] = useState<string[]>([]);
-  const listId = `tags-${id}-${service}`;
 
   // Fetch available tags from the registry for this service's image.
   useEffect(() => {
@@ -91,21 +91,12 @@ function ServiceTag({
         {showService ? `${service}: ` : ""}
         {repo}:
       </code>
-      <input
+      <VersionCombo
         value={tag}
-        list={tags.length ? listId : undefined}
-        onChange={(e) => setTag(e.target.value)}
+        options={tags}
+        onChange={setTag}
         disabled={state === "applying"}
-        placeholder="tag"
-        className="w-32 rounded-md border border-border bg-bg px-2 py-1 outline-none focus:border-primary"
       />
-      {tags.length > 0 && (
-        <datalist id={listId}>
-          {tags.map((v) => (
-            <option key={v} value={v} />
-          ))}
-        </datalist>
-      )}
       <button
         onClick={apply}
         disabled={state === "applying" || !tag || tag === current}
