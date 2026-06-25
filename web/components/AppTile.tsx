@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { App, ServiceStatus, ProbeResult } from "@/lib/api";
+import { Console } from "@/components/Console";
 
 export function AppTile({ app }: { app: App }) {
   const router = useRouter();
@@ -11,6 +12,7 @@ export function AppTile({ app }: { app: App }) {
   const [probe, setProbe] = useState<ProbeResult | null>(null);
   const [logs, setLogs] = useState<string | null>(null);
   const [busy, setBusy] = useState("");
+  const [consoleFor, setConsoleFor] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -85,6 +87,11 @@ export function AppTile({ app }: { app: App }) {
         <Btn onClick={() => act("stop")} busy={busy === "stop"}>stop</Btn>
         <Btn onClick={() => act("restart")} busy={busy === "restart"}>restart</Btn>
         <Btn onClick={toggleLogs}>{logs !== null ? "hide logs" : "logs"}</Btn>
+        {(services ?? []).map((s) => (
+          <Btn key={s.service} onClick={() => setConsoleFor(s.service)}>
+            {`console${(services ?? []).length > 1 ? `:${s.service}` : ""}`}
+          </Btn>
+        ))}
         {app.url && (
           <a
             href={app.url}
@@ -96,6 +103,10 @@ export function AppTile({ app }: { app: App }) {
           </a>
         )}
       </div>
+
+      {consoleFor && (
+        <Console container={consoleFor} onClose={() => setConsoleFor(null)} />
+      )}
 
       {logs !== null && (
         <pre className="max-h-60 overflow-auto rounded-lg bg-bg p-3 text-xs leading-relaxed">

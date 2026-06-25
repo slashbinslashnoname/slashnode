@@ -91,6 +91,9 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok", "node": cfg.NodeID})
 	})
 
+	// Interactive container console (WebSocket), reached via Caddy at /__console.
+	mux.HandleFunc("/__console", consoleHandler(cfg, sec))
+
 	mux.Handle("/api/v1/status", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]any{
 			"node_id":  cfg.NodeID,

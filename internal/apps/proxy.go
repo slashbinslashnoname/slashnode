@@ -27,17 +27,17 @@ func ReloadProxy() error {
 	}
 	host, internalTLS := baseHost(cfg)
 
-	routes := []caddy.Route{{Host: host, UpstreamPort: cfg.HTTP.Port}}
+	var appRoutes []caddy.Route
 	for _, a := range LoadState().Installed {
 		if a.WebPort > 0 {
-			routes = append(routes, caddy.Route{
+			appRoutes = append(appRoutes, caddy.Route{
 				Host:         a.ID + "." + host,
 				UpstreamPort: a.WebPort,
 			})
 		}
 	}
 
-	if err := caddy.Write(paths.CaddyfilePath(), routes, internalTLS); err != nil {
+	if err := caddy.Write(paths.CaddyfilePath(), host, cfg.HTTP.Port, cfg.HTTP.APIPort, appRoutes, internalTLS); err != nil {
 		return err
 	}
 	if caddy.Available() {
