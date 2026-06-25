@@ -9,6 +9,7 @@ const GET_ACTIONS = new Set([
   "probe",
   "credentials",
   "image-update",
+  "image-tags",
 ]);
 const POST_ACTIONS = new Set([
   "install",

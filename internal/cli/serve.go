@@ -22,6 +22,7 @@ import (
 	"github.com/slashbinslashnoname/slashnode/internal/apps"
 	"github.com/slashbinslashnoname/slashnode/internal/config"
 	"github.com/slashbinslashnoname/slashnode/internal/paths"
+	"github.com/slashbinslashnoname/slashnode/internal/registry"
 	"github.com/slashbinslashnoname/slashnode/internal/secrets"
 	"github.com/slashbinslashnoname/slashnode/internal/updater"
 )
@@ -270,6 +271,23 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 
 	mux.Handle("GET /api/v1/apps/{id}/image-update", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]any{"available": apps.ImageUpdate(r.PathValue("id"))})
+	}))
+
+	// Available registry tags for a service's image (dynamic version list).
+	mux.Handle("GET /api/v1/apps/{id}/image-tags", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
+		man, err := apps.Find(appsDir, r.PathValue("id"))
+		if err != nil {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": err.Error()})
+			return
+		}
+		images := apps.ResolvedImages(man, man.ID)
+		image := images[r.URL.Query().Get("service")]
+		if image == "" {
+			writeJSON(w, http.StatusOK, map[string]any{"tags": []string{}})
+			return
+		}
+		tags, _ := registry.Tags(image) // best-effort; empty on non-Docker-Hub
+		writeJSON(w, http.StatusOK, map[string]any{"tags": tags})
 	}))
 
 	mux.Handle("GET /api/v1/apps/{id}/probe", bearer(sec, func(w http.ResponseWriter, r *http.Request) {

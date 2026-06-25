@@ -36,7 +36,6 @@ export type App = {
   id: string;
   name: string;
   version: string;
-  versions?: string[];
   images?: Record<string, string>;
   category: string;
   description?: string;

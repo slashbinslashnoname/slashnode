@@ -1,21 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 // VersionSelector lets the operator change the image tag of any docker image an
-// app runs (e.g. bump bitcoind to v31), one service at a time, then re-applies
-// it. Nothing is auto-updated — the change happens only on "change".
-// `images` maps each service to its current image ref ("repo:tag"); `suggest`
-// offers optional tag suggestions (manifest `versions`).
+// app runs (e.g. bump bitcoind), one service at a time, then re-applies it.
+// Available tags are fetched live from the registry (Docker Hub) — nothing is
+// hardcoded. Nothing is auto-updated — the change happens only on "change".
 export function VersionSelector({
   id,
   images,
-  suggest,
 }: {
   id: string;
   images: Record<string, string>;
-  suggest?: string[];
 }) {
   const services = Object.keys(images);
   if (services.length === 0) return null;
@@ -27,7 +24,6 @@ export function VersionSelector({
           id={id}
           service={svc}
           image={images[svc]}
-          suggest={suggest}
           showService={services.length > 1}
         />
       ))}
@@ -50,20 +46,27 @@ function ServiceTag({
   id,
   service,
   image,
-  suggest,
   showService,
 }: {
   id: string;
   service: string;
   image: string;
-  suggest?: string[];
   showService: boolean;
 }) {
   const router = useRouter();
   const { repo, tag: current } = splitTag(image);
   const [tag, setTag] = useState(current);
   const [state, setState] = useState<"idle" | "applying" | "error">("idle");
+  const [tags, setTags] = useState<string[]>([]);
   const listId = `tags-${id}-${service}`;
+
+  // Fetch available tags from the registry for this service's image.
+  useEffect(() => {
+    fetch(`/api/apps/${id}/image-tags?service=${encodeURIComponent(service)}`)
+      .then((r) => r.json())
+      .then((j) => setTags(Array.isArray(j.tags) ? j.tags : []))
+      .catch(() => setTags([]));
+  }, [id, service]);
 
   async function apply() {
     if (!tag || tag === current) return;
@@ -90,14 +93,15 @@ function ServiceTag({
       </code>
       <input
         value={tag}
-        list={suggest && suggest.length ? listId : undefined}
+        list={tags.length ? listId : undefined}
         onChange={(e) => setTag(e.target.value)}
         disabled={state === "applying"}
-        className="w-28 rounded-md border border-border bg-bg px-2 py-1 outline-none focus:border-primary"
+        placeholder="tag"
+        className="w-32 rounded-md border border-border bg-bg px-2 py-1 outline-none focus:border-primary"
       />
-      {suggest && suggest.length > 0 && (
+      {tags.length > 0 && (
         <datalist id={listId}>
-          {suggest.map((v) => (
+          {tags.map((v) => (
             <option key={v} value={v} />
           ))}
         </datalist>

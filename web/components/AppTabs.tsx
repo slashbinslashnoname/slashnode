@@ -33,11 +33,7 @@ export function AppTabs({ app }: { app: App }) {
           {app.images && Object.keys(app.images).length > 0 && (
             <div className="flex flex-col gap-1">
               <span className="text-sm font-medium">Image version</span>
-              <VersionSelector
-                id={app.id}
-                images={app.images}
-                suggest={app.versions}
-              />
+              <VersionSelector id={app.id} images={app.images} />
             </div>
           )}
           <InstallForm app={app} />
