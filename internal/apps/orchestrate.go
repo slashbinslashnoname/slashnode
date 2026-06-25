@@ -44,6 +44,57 @@ func Install(dir, id string, inputs map[string]string) error {
 	return nil
 }
 
+// Reapply re-renders and recreates every installed app from the current
+// manifests (in dependency order), reusing the stored inputs/secrets. Used after
+// an update so manifest/config changes take effect without manual reinstall.
+func Reapply(dir string) error {
+	state := LoadState()
+
+	var order []string
+	seen := map[string]bool{}
+	var visit func(string)
+	visit = func(id string) {
+		if seen[id] {
+			return
+		}
+		seen[id] = true
+		if man, err := Find(dir, id); err == nil {
+			for _, dep := range man.Dependencies {
+				if _, ok := state.Installed[dep]; ok {
+					visit(dep)
+				}
+			}
+		}
+		if _, ok := state.Installed[id]; ok {
+			order = append(order, id)
+		}
+	}
+	for id := range state.Installed {
+		visit(id)
+	}
+
+	if orchestrator.Available() {
+		if err := orchestrator.EnsureNetwork(); err != nil {
+			return fmt.Errorf("docker network: %w", err)
+		}
+	}
+	for _, id := range order {
+		inst := state.Installed[id]
+		provided := map[string]string{}
+		for k, v := range inst.Inputs {
+			provided[k] = v
+		}
+		for k, v := range loadAppSecrets(id) {
+			provided[k] = v
+		}
+		if err := installOne(dir, id, provided, true); err != nil {
+			return fmt.Errorf("reapply %s: %w", id, err)
+		}
+	}
+	_ = ReloadProxy()
+	return nil
+}
+
 // Uninstall stops the app's containers and removes it from the state/registry.
 // With purge, container volumes and the runtime directory are removed too.
 func Uninstall(id string, purge bool) error {

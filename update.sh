@@ -89,6 +89,11 @@ main() {
   systemctl restart slashnoded
   systemctl reload caddy 2>/dev/null || systemctl restart caddy 2>/dev/null || true
 
+  # Re-render and recreate installed app containers so manifest/config changes
+  # from this update take effect (entrypoints, commands, wiring, …).
+  info "Reapplying installed apps…"
+  slashnoded apps reapply || true
+
   echo
   red "✓ Updated to $(slashnoded version | awk '{print $2}')"
   slashnoded status --post-install

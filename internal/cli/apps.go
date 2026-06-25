@@ -120,6 +120,13 @@ func Apps(args []string) error {
 		fmt.Print(logs)
 		return nil
 
+	case "reapply":
+		if err := apps.Reapply(dir); err != nil {
+			return err
+		}
+		fmt.Println(colorize("✓ reapplied installed apps", ansiRed))
+		return nil
+
 	case "probe":
 		if len(args) < 2 {
 			return fmt.Errorf("usage: slashnoded apps probe <id>")

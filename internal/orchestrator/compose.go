@@ -28,10 +28,14 @@ type Port struct {
 	Protocol  string `json:"protocol,omitempty"`
 }
 
-// Volume maps a named volume to a container path.
+// Volume maps a named volume to a container path. From references another app's
+// volume (shared, e.g. electrs reading bitcoind's blocks); ReadOnly mounts it
+// read-only.
 type Volume struct {
-	Name string `json:"name"`
-	Path string `json:"path"`
+	Name     string `json:"name"`
+	Path     string `json:"path"`
+	From     string `json:"from,omitempty"`
+	ReadOnly bool   `json:"readOnly,omitempty"`
 }
 
 // Service is one container declared in a manifest's `services` block.
@@ -97,9 +101,20 @@ func BuildCompose(appID string, services map[string]Service, env map[string]stri
 		}
 		mounts := make([]string, 0, len(s.Volumes))
 		for _, v := range s.Volumes {
-			volName := appID + "_" + v.Name
-			mounts = append(mounts, volName+":"+v.Path)
-			volumes[volName] = map[string]any{}
+			var volName string
+			if v.From != "" {
+				// Share another app's volume (compose names it "<project>_<key>").
+				volName = fmt.Sprintf("slashnode-%s_%s_%s", v.From, v.From, v.Name)
+				volumes[volName] = map[string]any{"external": true}
+			} else {
+				volName = appID + "_" + v.Name
+				volumes[volName] = map[string]any{}
+			}
+			spec := volName + ":" + v.Path
+			if v.ReadOnly {
+				spec += ":ro"
+			}
+			mounts = append(mounts, spec)
 		}
 		mounts = append(mounts, configMounts[name]...)
 		if len(mounts) > 0 {

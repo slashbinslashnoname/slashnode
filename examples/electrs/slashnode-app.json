@@ -12,9 +12,12 @@
     "electrs": {
       "image": "mempool/electrs:latest",
       "entrypoint": "electrs",
-      "command": "--network bitcoin --daemon-rpc-addr ${bitcoind.exports.rpc.host}:8332 --daemon-p2p-addr ${bitcoind.exports.rpc.host}:8333 --electrum-rpc-addr 0.0.0.0:50001 --db-dir /data --cookie ${bitcoind.exports.rpc.user}:${bitcoind.exports.rpc.password}",
+      "command": "--daemon-rpc-addr ${bitcoind.exports.rpc.host}:8332 --daemon-dir /bitcoin --cookie ${bitcoind.exports.rpc.user}:${bitcoind.exports.rpc.password} --electrum-rpc-addr 0.0.0.0:50001 --http-addr 0.0.0.0:3000 --db-dir /data",
       "ports": [{ "host": 50001, "container": 50001 }],
-      "volumes": [{ "name": "electrs-data", "path": "/data" }],
+      "volumes": [
+        { "name": "electrs-data", "path": "/data" },
+        { "from": "bitcoind", "name": "bitcoin-data", "path": "/bitcoin", "readOnly": true }
+      ],
       "healthcheck": { "type": "tcp", "port": 50001, "interval": "30s" }
     }
   },
