@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { TopControls } from "@/components/TopControls";
 import { getApps, type App } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +10,7 @@ export default async function Store() {
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-5xl px-4 py-10">
-      <ThemeToggle />
+      <TopControls />
 
       <header className="mb-8 flex items-end justify-between">
         <div>

@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { App } from "@/lib/api";
 import { InstallForm } from "@/components/InstallForm";
 import { CredsPanel } from "@/components/CredsPanel";
+import { VersionSelector } from "@/components/VersionSelector";
 
 // AppTabs splits an installed app's detail into two top-level tabs:
 //   - "Config" : the editable form (rpc user/password, …) → reconfigure & launch.
@@ -27,7 +28,23 @@ export function AppTabs({ app }: { app: App }) {
         </Tab>
       </div>
 
-      {tab === "config" ? <InstallForm app={app} /> : <CredsPanel id={app.id} />}
+      {tab === "config" ? (
+        <div className="flex flex-col gap-4">
+          {app.images && Object.keys(app.images).length > 0 && (
+            <div className="flex flex-col gap-1">
+              <span className="text-sm font-medium">Image version</span>
+              <VersionSelector
+                id={app.id}
+                images={app.images}
+                suggest={app.versions}
+              />
+            </div>
+          )}
+          <InstallForm app={app} />
+        </div>
+      ) : (
+        <CredsPanel id={app.id} endpoints={app.endpoints} />
+      )}
     </div>
   );
 }

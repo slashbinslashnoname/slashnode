@@ -2,7 +2,8 @@
   "manifestVersion": 1,
   "id": "bitcoind",
   "name": "Bitcoin Core",
-  "version": "27.0",
+  "version": "v27.0",
+  "versions": ["v27.0", "v27.1", "v28.0", "v28.1", "v29.0", "v30.0", "v31.0"],
   "category": "bitcoin",
   "description": "The reference Bitcoin node. Validates the blockchain and exposes the RPC API.",
   "icon": "₿",
@@ -42,7 +43,7 @@
   ],
   "services": {
     "bitcoind": {
-      "image": "lncm/bitcoind:v27.0",
+      "image": "lncm/bitcoind:${version}",
       "entrypoint": "bitcoind",
       "command": "-datadir=/data/.bitcoin -server=1 -txindex=1 -rpcbind=0.0.0.0 -rpcallowip=0.0.0.0/0 -rpcuser=${input.RPC_USER} -rpcpassword=${secret.RPC_PASSWORD} -zmqpubrawblock=tcp://0.0.0.0:28332 -zmqpubrawtx=tcp://0.0.0.0:28333",
       "ports": [

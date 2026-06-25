@@ -125,6 +125,10 @@ export function AppTile({ app }: { app: App }) {
 
       {probe && <ProbeLine probe={probe} />}
 
+      {app.endpoints && app.endpoints.length > 0 && (
+        <EndpointsPanel endpoints={app.endpoints} />
+      )}
+
       <div className="flex flex-wrap gap-1.5">
         {hasUpdate && (
           <button
@@ -170,14 +174,7 @@ export function AppTile({ app }: { app: App }) {
         )}
       </div>
 
-      {showConfig && (
-        <div className="flex flex-col gap-3">
-          {app.endpoints && app.endpoints.length > 0 && (
-            <EndpointsPanel endpoints={app.endpoints} />
-          )}
-          <CredsPanel id={app.id} />
-        </div>
-      )}
+      {showConfig && <CredsPanel id={app.id} />}
 
       {logs !== null && (
         <div className="flex flex-col gap-1">

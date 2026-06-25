@@ -37,7 +37,7 @@ export function ThemeToggle() {
     <button
       onClick={cycle}
       aria-label="Toggle theme"
-      className="fixed top-4 right-4 rounded-lg border border-border bg-card px-3 py-1.5 text-sm hover:border-primary transition-colors"
+      className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm hover:border-primary transition-colors"
     >
       {LABELS[mode]}
     </button>

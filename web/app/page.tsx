@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { TopControls } from "@/components/TopControls";
 import { UpdateBanner } from "@/components/UpdateBanner";
 import { AppTile } from "@/components/AppTile";
 import { BitcoinPrice } from "@/components/BitcoinPrice";
@@ -13,7 +13,7 @@ export default async function Home() {
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-5xl px-4 py-10">
-      <ThemeToggle />
+      <TopControls />
 
       <header className="mb-8 flex items-center gap-4">
         <h1 className="flex-1 text-2xl font-bold tracking-widest">

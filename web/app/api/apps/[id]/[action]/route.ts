@@ -18,6 +18,7 @@ const POST_ACTIONS = new Set([
   "restart",
   "clear-logs",
   "update",
+  "set-version",
 ]);
 
 async function proxy(

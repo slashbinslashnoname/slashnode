@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { TopControls } from "@/components/TopControls";
 import { AppTabs } from "@/components/AppTabs";
-import { EndpointsPanel } from "@/components/EndpointsPanel";
 import { UpdateAppButton } from "@/components/UpdateAppButton";
 import { UninstallButton } from "@/components/UninstallButton";
 import { getApp } from "@/lib/api";
@@ -20,7 +19,7 @@ export default async function AppDetail({
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-2xl px-4 py-10">
-      <ThemeToggle />
+      <TopControls />
 
       <Link href="/store" className="text-sm text-muted hover:text-primary">
         ← App Store
@@ -57,12 +56,6 @@ export default async function AppDetail({
           from={app.installed_version}
           to={app.version}
         />
-      )}
-
-      {app.installed && app.endpoints && app.endpoints.length > 0 && (
-        <div className="mb-6">
-          <EndpointsPanel endpoints={app.endpoints} />
-        </div>
       )}
 
       {app.dependencies && app.dependencies.length > 0 && (

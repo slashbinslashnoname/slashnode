@@ -92,6 +92,7 @@ type Manifest struct {
 	ID              string          `json:"id"`
 	Name            string          `json:"name"`
 	Version         string          `json:"version"`
+	Versions        []string        `json:"versions,omitempty"` // selectable image tags (for ${version})
 	Category        string          `json:"category"`
 	Description     string          `json:"description"`
 	Icon            string          `json:"icon"`
@@ -110,11 +111,12 @@ type Manifest struct {
 // CatalogEntry enriches a manifest with its installation state for the UI.
 type CatalogEntry struct {
 	Manifest
-	Installed        bool   `json:"installed"`
-	InstalledVersion string `json:"installed_version,omitempty"`
-	UpdateAvailable  bool   `json:"update_available"`
-	URL              string `json:"url,omitempty"`       // reverse-proxy URL (set by the API layer)
-	OnionURL         string `json:"onion_url,omitempty"` // Tor hidden-service URL (set by the API layer)
+	Installed        bool              `json:"installed"`
+	InstalledVersion string            `json:"installed_version,omitempty"`
+	Images           map[string]string `json:"images,omitempty"` // service → currently resolved image ref
+	UpdateAvailable  bool              `json:"update_available"`
+	URL              string            `json:"url,omitempty"`       // reverse-proxy URL (set by the API layer)
+	OnionURL         string            `json:"onion_url,omitempty"` // Tor hidden-service URL (set by the API layer)
 }
 
 // LoadCatalog reads all manifests dir/*/slashnode-app.json, sorted by name.
@@ -157,6 +159,7 @@ func Find(dir, id string) (*Manifest, error) {
 type InstalledApp struct {
 	ID          string            `json:"id"`
 	Version     string            `json:"version"`
+	ImageTags   map[string]string `json:"image_tags,omitempty"` // service → chosen image tag override
 	InstalledAt string            `json:"installed_at"`
 	Inputs      map[string]string `json:"inputs"`
 	WebPort     int               `json:"web_port,omitempty"` // host port of the app's web UI (for the reverse proxy)
@@ -194,6 +197,7 @@ func Catalog(dir string) ([]CatalogEntry, error) {
 		entry := CatalogEntry{Manifest: m, Installed: installed}
 		if installed {
 			entry.InstalledVersion = inst.Version
+			entry.Images, _ = resolveImages(&m, inst.ImageTags)
 			entry.UpdateAvailable = inst.Version != m.Version
 		}
 		out = append(out, entry)

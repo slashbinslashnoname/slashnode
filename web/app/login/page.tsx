@@ -13,7 +13,9 @@ export default async function Login({
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-4">
-      <ThemeToggle />
+      <div className="fixed top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
       <Slash />
       <div className="text-center">
         <h1 className="text-2xl font-bold tracking-widest">

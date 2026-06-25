@@ -187,6 +187,7 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 		entry := apps.CatalogEntry{Manifest: *man, Installed: installed, URL: apps.AppURL(cfg, man)}
 		if installed {
 			entry.InstalledVersion = inst.Version
+			entry.Images = apps.ResolvedImages(man, man.ID)
 			entry.UpdateAvailable = inst.Version != man.Version
 			if man.Web != nil {
 				if onion := apps.AppOnion(man.ID); onion != "" {
@@ -310,6 +311,29 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 			return
 		}
 		writeJSON(w, http.StatusOK, map[string]string{"status": "updated"})
+	}))
+
+	mux.Handle("POST /api/v1/apps/{id}/set-version", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
+		service := r.URL.Query().Get("service")
+		tag := r.URL.Query().Get("tag")
+		if service == "" || tag == "" {
+			var body struct {
+				Service string `json:"service"`
+				Tag     string `json:"tag"`
+			}
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			if service == "" {
+				service = body.Service
+			}
+			if tag == "" {
+				tag = body.Tag
+			}
+		}
+		if err := apps.SetImageTag(appsDir, r.PathValue("id"), service, tag); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]string{"status": "version-set"})
 	}))
 
 	mux.Handle("POST /api/v1/apps/{id}/start", bearer(sec, lifecycle(apps.Start, "started")))

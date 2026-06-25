@@ -137,6 +137,75 @@ func ReapplyOne(dir, id string) error {
 	return nil
 }
 
+// SetImageTag switches one service of an installed app to a different image tag
+// (e.g. bump bitcoind to v31) and re-applies it. Works for any docker image:
+// the tag of the service's current image is replaced. Never auto-bumped — only
+// changed through this call.
+func SetImageTag(dir, id, service, tag string) error {
+	if service == "" || tag == "" {
+		return fmt.Errorf("service and tag required")
+	}
+	state := LoadState()
+	inst, ok := state.Installed[id]
+	if !ok {
+		return fmt.Errorf("app not installed: %s", id)
+	}
+	if inst.ImageTags == nil {
+		inst.ImageTags = map[string]string{}
+	}
+	inst.ImageTags[service] = tag
+	state.Installed[id] = inst
+	if err := saveState(state); err != nil {
+		return err
+	}
+	return ReapplyOne(dir, id)
+}
+
+// ResolvedImages returns an installed app's per-service image refs (with any
+// stored tag overrides applied), for display in the version picker.
+func ResolvedImages(man *Manifest, id string) map[string]string {
+	inst := LoadState().Installed[id]
+	imgs, _ := resolveImages(man, inst.ImageTags)
+	return imgs
+}
+
+// resolveImages returns each service's currently resolved image ref (manifest
+// image with ${version} → manifest version and any stored tag overrides applied).
+func resolveImages(man *Manifest, tags map[string]string) (map[string]string, error) {
+	services, err := orchestrator.ParseServices(man.Services)
+	if err != nil {
+		return nil, err
+	}
+	out := map[string]string{}
+	for name, s := range services {
+		img := strings.ReplaceAll(s.Image, "${version}", man.Version)
+		if t := tags[name]; t != "" {
+			img = replaceTag(img, t)
+		}
+		out[name] = img
+	}
+	return out, nil
+}
+
+// replaceTag swaps the tag of a docker image reference, preserving the registry
+// (which may itself contain a ':' for a port) and stripping any digest.
+func replaceTag(image, tag string) string {
+	name := image
+	if at := strings.Index(name, "@"); at >= 0 {
+		name = name[:at]
+	}
+	prefix := ""
+	last := name
+	if slash := strings.LastIndex(name, "/"); slash >= 0 {
+		prefix = name[:slash+1]
+		last = name[slash+1:]
+	}
+	if colon := strings.Index(last, ":"); colon >= 0 {
+		last = last[:colon]
+	}
+	return prefix + last + ":" + tag
+}
+
 // Uninstall stops the app's containers and removes it from the state/registry.
 // With purge, container volumes and the runtime directory are removed too.
 // Refuses to remove an app that another installed app depends on.
@@ -299,6 +368,12 @@ func installOne(dir, appID string, provided map[string]string, isTarget bool, ou
 		env[envName(k)] = rv
 	}
 
+	// Per-service image tag overrides (set via SetImageTag). Never auto-bumped.
+	var imageTags map[string]string
+	if inst, ok := LoadState().Installed[appID]; ok {
+		imageTags = inst.ImageTags
+	}
+
 	// Render and write the Compose file.
 	services, err := orchestrator.ParseServices(man.Services)
 	if err != nil {
@@ -307,6 +382,10 @@ func installOne(dir, appID string, provided map[string]string, isTarget bool, ou
 	// Resolve ${input}/${secret}/${dep.exports.key} references inside each
 	// service's environment values (config templating).
 	for name, s := range services {
+		s.Image = strings.ReplaceAll(s.Image, "${version}", man.Version)
+		if t := imageTags[name]; t != "" {
+			s.Image = replaceTag(s.Image, t)
+		}
 		for k, v := range s.Environment {
 			if rv, rerr := resolveValue(v, nonSecret, secret, registry); rerr == nil {
 				s.Environment[k] = rv
@@ -384,6 +463,7 @@ func installOne(dir, appID string, provided map[string]string, isTarget bool, ou
 	state.Installed[appID] = InstalledApp{
 		ID:          appID,
 		Version:     man.Version,
+		ImageTags:   imageTags,
 		InstalledAt: time.Now().UTC().Format(time.RFC3339),
 		Inputs:      nonSecret,
 		WebPort:     webPort,
