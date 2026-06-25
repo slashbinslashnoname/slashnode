@@ -92,7 +92,6 @@ type Manifest struct {
 	ID              string          `json:"id"`
 	Name            string          `json:"name"`
 	Version         string          `json:"version"`
-	Versions        []string        `json:"versions,omitempty"` // selectable image tags (for ${version})
 	Category        string          `json:"category"`
 	Description     string          `json:"description"`
 	Icon            string          `json:"icon"`

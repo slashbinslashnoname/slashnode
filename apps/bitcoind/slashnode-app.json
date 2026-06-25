@@ -2,7 +2,7 @@
   "manifestVersion": 1,
   "id": "bitcoind",
   "name": "Bitcoin Core",
-  "version": "v27.0",
+  "version": "28.1",
   "category": "bitcoin",
   "description": "The reference Bitcoin node. Validates the blockchain and exposes the RPC API.",
   "icon": "₿",
@@ -42,14 +42,14 @@
   ],
   "services": {
     "bitcoind": {
-      "image": "lncm/bitcoind:${version}",
+      "image": "bitcoin/bitcoin:28.1",
       "entrypoint": "bitcoind",
-      "command": "-datadir=/data/.bitcoin -server=1 -txindex=1 -rpcbind=0.0.0.0 -rpcallowip=0.0.0.0/0 -rpcuser=${input.RPC_USER} -rpcpassword=${secret.RPC_PASSWORD} -zmqpubrawblock=tcp://0.0.0.0:28332 -zmqpubrawtx=tcp://0.0.0.0:28333",
+      "command": "-datadir=/home/bitcoin/.bitcoin -server=1 -txindex=1 -rpcbind=0.0.0.0 -rpcallowip=0.0.0.0/0 -rpcuser=${input.RPC_USER} -rpcpassword=${secret.RPC_PASSWORD} -zmqpubrawblock=tcp://0.0.0.0:28332 -zmqpubrawtx=tcp://0.0.0.0:28333",
       "ports": [
         { "host": 8333, "container": 8333 },
         { "hostIP": "127.0.0.1", "host": 8332, "container": 8332 }
       ],
-      "volumes": [{ "name": "bitcoin-data", "path": "/data/.bitcoin" }],
+      "volumes": [{ "name": "bitcoin-data", "path": "/home/bitcoin/.bitcoin" }],
       "healthcheck": { "type": "rpc", "method": "getblockchaininfo", "interval": "30s" }
     }
   },

@@ -169,8 +169,8 @@ func ResolvedImages(man *Manifest, id string) map[string]string {
 	return imgs
 }
 
-// resolveImages returns each service's currently resolved image ref (manifest
-// image with ${version} → manifest version and any stored tag overrides applied).
+// resolveImages returns each service's currently resolved image ref (the
+// manifest image with any stored per-service tag override applied).
 func resolveImages(man *Manifest, tags map[string]string) (map[string]string, error) {
 	services, err := orchestrator.ParseServices(man.Services)
 	if err != nil {
@@ -178,7 +178,7 @@ func resolveImages(man *Manifest, tags map[string]string) (map[string]string, er
 	}
 	out := map[string]string{}
 	for name, s := range services {
-		img := strings.ReplaceAll(s.Image, "${version}", man.Version)
+		img := s.Image
 		if t := tags[name]; t != "" {
 			img = replaceTag(img, t)
 		}
@@ -382,7 +382,6 @@ func installOne(dir, appID string, provided map[string]string, isTarget bool, ou
 	// Resolve ${input}/${secret}/${dep.exports.key} references inside each
 	// service's environment values (config templating).
 	for name, s := range services {
-		s.Image = strings.ReplaceAll(s.Image, "${version}", man.Version)
 		if t := imageTags[name]; t != "" {
 			s.Image = replaceTag(s.Image, t)
 		}
