@@ -211,7 +211,9 @@ func installOne(dir, appID string, provided map[string]string, isTarget bool) er
 		}
 		hostFile := filepath.Join(paths.AppConfigDir(appID),
 			fmt.Sprintf("%d-%s", i, filepath.Base(c.Path)))
-		if err := os.WriteFile(hostFile, []byte(content), 0o600); err != nil {
+		// 0644 so the (often non-root) container user can read the bind-mounted
+		// config. The file lives under root-owned /var/lib/slashnode.
+		if err := os.WriteFile(hostFile, []byte(content), 0o644); err != nil {
 			return err
 		}
 		svc := c.Service

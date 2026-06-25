@@ -7,6 +7,8 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -48,8 +50,12 @@ func Serve(args []string) error {
 	Banner()
 
 	appsDir := resolveAppsDir()
+	// Next runs on a localhost-only internal port; slashnoded fronts the public
+	// port so it can serve /__console (WebSocket) on the same origin and proxy
+	// the rest to Next.
+	internalWeb := cfg.HTTP.Port + 10000
 
-	// 1. API Go locale.
+	// 1. Local Go API (127.0.0.1) — called server-side by the front.
 	apiAddr := fmt.Sprintf("127.0.0.1:%d", cfg.HTTP.APIPort)
 	apiSrv := &http.Server{
 		Addr:              apiAddr,
@@ -64,14 +70,30 @@ func Serve(args []string) error {
 		}
 	}()
 
-	// 2. Next.js front (supervised).
+	// 2. Public front server: serves /__console and reverse-proxies to Next.
+	pubMux := http.NewServeMux()
+	pubMux.HandleFunc("/__console", consoleHandler(cfg, sec))
+	if !*noWeb {
+		target := &url.URL{Scheme: "http", Host: fmt.Sprintf("127.0.0.1:%d", internalWeb)}
+		pubMux.Handle("/", httputil.NewSingleHostReverseProxy(target))
+	}
+	pubAddr := fmt.Sprintf("%s:%d", cfg.HTTP.Bind, cfg.HTTP.Port)
+	pubSrv := &http.Server{Addr: pubAddr, Handler: pubMux, ReadHeaderTimeout: 10 * time.Second}
+	go func() {
+		fmt.Printf("Front   : %s\n", colorize(fmt.Sprintf("http://%s:%d", cfg.Hostname, cfg.HTTP.Port), ansiRed))
+		if err := pubSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			fmt.Fprintln(os.Stderr, "front error:", err)
+			stop()
+		}
+	}()
+
+	// 3. Next.js (supervised) on the internal port.
 	if !*noWeb {
 		dir := resolveWebDir(*webDir)
 		if dir == "" {
-			fmt.Fprintln(os.Stderr, colorize("⚠ Next.js front not found — API only. (--web-dir to specify it)", ansiDim))
+			fmt.Fprintln(os.Stderr, colorize("⚠ Next.js front not found — proxy will 502. (--web-dir to specify it)", ansiDim))
 		} else {
-			fmt.Printf("Front   : %s\n", colorize(fmt.Sprintf("http://%s:%d", cfg.Hostname, cfg.HTTP.Port), ansiRed))
-			go superviseWeb(ctx, cfg, sec, dir)
+			go superviseWeb(ctx, cfg, sec, dir, internalWeb)
 		}
 	}
 
@@ -79,6 +101,7 @@ func Serve(args []string) error {
 	fmt.Println("\nshutting down…")
 	shutCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
+	_ = pubSrv.Shutdown(shutCtx)
 	return apiSrv.Shutdown(shutCtx)
 }
 
@@ -184,6 +207,15 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 		writeJSON(w, http.StatusOK, map[string]any{"docker": apps.DockerAvailable(), "services": st})
 	}))
 
+	mux.Handle("GET /api/v1/apps/{id}/credentials", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
+		fields, err := apps.Credentials(appsDir, r.PathValue("id"))
+		if err != nil {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"fields": fields})
+	}))
+
 	mux.Handle("GET /api/v1/apps/{id}/probe", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
 		res, err := apps.RunProbe(appsDir, r.PathValue("id"))
 		if err != nil {
@@ -255,10 +287,10 @@ func resolveWebDir(flagVal string) string {
 
 // superviseWeb launches the Next server and relaunches it if it dies, until
 // the context is cancelled.
-func superviseWeb(ctx context.Context, cfg *config.Config, sec *secrets.Secrets, dir string) {
+func superviseWeb(ctx context.Context, cfg *config.Config, sec *secrets.Secrets, dir string, port int) {
 	backoff := time.Second
 	for ctx.Err() == nil {
-		cmd := webCommand(ctx, cfg, sec, dir)
+		cmd := webCommand(ctx, cfg, sec, dir, port)
 		fmt.Printf("→ front: %s (cwd %s)\n", strings.Join(cmd.Args, " "), dir)
 		start := time.Now()
 		if err := cmd.Run(); err != nil && ctx.Err() == nil {
@@ -284,7 +316,7 @@ func superviseWeb(ctx context.Context, cfg *config.Config, sec *secrets.Secrets,
 
 // webCommand builds the front launch command. Prefers the standalone build
 // (node server.js) otherwise `npm run start`.
-func webCommand(ctx context.Context, cfg *config.Config, sec *secrets.Secrets, dir string) *exec.Cmd {
+func webCommand(ctx context.Context, cfg *config.Config, sec *secrets.Secrets, dir string, port int) *exec.Cmd {
 	var cmd *exec.Cmd
 	if _, err := os.Stat(filepath.Join(dir, "server.js")); err == nil {
 		cmd = exec.CommandContext(ctx, "node", "server.js")
@@ -296,8 +328,8 @@ func webCommand(ctx context.Context, cfg *config.Config, sec *secrets.Secrets, d
 	cmd.Stderr = os.Stderr
 	cmd.Env = append(os.Environ(),
 		"NODE_ENV=production",
-		"PORT="+strconv.Itoa(cfg.HTTP.Port),
-		"HOSTNAME="+cfg.HTTP.Bind,
+		"PORT="+strconv.Itoa(port),
+		"HOSTNAME=127.0.0.1",
 		fmt.Sprintf("SLASHNODE_API_URL=http://127.0.0.1:%d", cfg.HTTP.APIPort),
 		"SLASHNODE_API_TOKEN="+sec.APIToken,
 		fmt.Sprintf("SLASHNODE_PASSWORD_PROTECTED=%t", cfg.Access.PasswordProtected),

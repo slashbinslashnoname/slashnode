@@ -53,6 +53,13 @@ export type ServiceStatus = {
   health?: string;
 };
 
+export type CredField = {
+  key: string;
+  label: string;
+  value: string;
+  secret: boolean;
+};
+
 export type ProbeStat = { label: string; value: string };
 
 export type ProbeResult = {

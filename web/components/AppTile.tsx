@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { App, ServiceStatus, ProbeResult } from "@/lib/api";
+import type { App, ServiceStatus, ProbeResult, CredField } from "@/lib/api";
 import { Console } from "@/components/Console";
 
 export function AppTile({ app }: { app: App }) {
@@ -13,6 +13,7 @@ export function AppTile({ app }: { app: App }) {
   const [logs, setLogs] = useState<string | null>(null);
   const [busy, setBusy] = useState("");
   const [consoleFor, setConsoleFor] = useState<string | null>(null);
+  const [creds, setCreds] = useState<CredField[] | null>(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -43,6 +44,19 @@ export function AppTile({ app }: { app: App }) {
     await refresh();
     setBusy("");
     router.refresh();
+  }
+
+  async function toggleCreds() {
+    if (creds !== null) {
+      setCreds(null);
+      return;
+    }
+    try {
+      const j = await fetch(`/api/apps/${app.id}/credentials`).then((r) => r.json());
+      setCreds(j.fields ?? []);
+    } catch {
+      setCreds([]);
+    }
   }
 
   async function toggleLogs() {
@@ -87,6 +101,7 @@ export function AppTile({ app }: { app: App }) {
         <Btn onClick={() => act("stop")} busy={busy === "stop"}>stop</Btn>
         <Btn onClick={() => act("restart")} busy={busy === "restart"}>restart</Btn>
         <Btn onClick={toggleLogs}>{logs !== null ? "hide logs" : "logs"}</Btn>
+        <Btn onClick={toggleCreds}>{creds !== null ? "hide config" : "config"}</Btn>
         {(services ?? []).map((s) => (
           <Btn key={s.service} onClick={() => setConsoleFor(s.service)}>
             {`console${(services ?? []).length > 1 ? `:${s.service}` : ""}`}
@@ -106,6 +121,14 @@ export function AppTile({ app }: { app: App }) {
 
       {consoleFor && (
         <Console container={consoleFor} onClose={() => setConsoleFor(null)} />
+      )}
+
+      {creds !== null && creds.length > 0 && (
+        <div className="flex flex-col gap-1 rounded-lg bg-bg p-3 text-xs">
+          {creds.map((c) => (
+            <CredRow key={c.key} field={c} />
+          ))}
+        </div>
       )}
 
       {logs !== null && (
@@ -136,6 +159,39 @@ function ProbeLine({ probe }: { probe: ProbeResult }) {
           {probe.detail ? ` — ${probe.detail}` : ""}
         </span>
       )}
+    </div>
+  );
+}
+
+function CredRow({ field }: { field: CredField }) {
+  const [show, setShow] = useState(false);
+  const masked = field.secret && !show;
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-muted">{field.label}</span>
+      <span className="flex items-center gap-2">
+        <code className="text-fg">
+          {masked ? "•".repeat(Math.min(field.value.length || 8, 16)) : field.value || "—"}
+        </code>
+        {field.secret && (
+          <button
+            onClick={() => setShow((s) => !s)}
+            className="text-muted hover:text-primary"
+            aria-label={show ? "Hide" : "Show"}
+          >
+            {show ? "🙈" : "👁"}
+          </button>
+        )}
+        {field.value && (
+          <button
+            onClick={() => navigator.clipboard?.writeText(field.value)}
+            className="text-muted hover:text-primary"
+            aria-label="Copy"
+          >
+            ⧉
+          </button>
+        )}
+      </span>
     </div>
   );
 }

@@ -17,7 +17,7 @@
   ],
   "services": {
     "electrs": {
-      "image": "getumbrel/electrs:v0.10.0",
+      "image": "mempool/electrs:latest",
       "ports": [{ "host": 50001, "container": 50001 }],
       "volumes": [{ "name": "electrs-data", "path": "/data/electrs" }],
       "healthcheck": { "type": "tcp", "port": 50001, "interval": "30s" }
