@@ -9,23 +9,23 @@
 
 # SlashNode
 
-**SlashNode est un système d'exploitation pour serveur personnel** qui permet
-aux utilisateurs de :
+**SlashNode is an operating system for your personal server** that lets users:
 
-- **Auto-héberger des services** : Bitcoin Core, Lightning Network (LND),
-  Electrs, Mempool, Supabase, MinIO, Jitsi… en un clic, avec leurs dépendances
-  installées et câblées automatiquement.
-- **Reprendre le contrôle de ses données** : tout tourne chez soi, sur son
-  propre matériel — pas de cloud tiers, pas d'intermédiaire.
-- **Interface conviviale** : un App Store web (thème clair/sombre) pour
-  installer, configurer, mettre à jour et surveiller chaque service.
-- **Privacy-first** : secrets chiffrés au repos, API locale protégée par token,
-  rien n'est exposé sans action explicite.
-- **Tor compliant** : chaque service peut être publié en service caché `.onion`.
+- **Self-host services** — Bitcoin Core, Lightning Network (LND), Electrs,
+  Mempool, Supabase, MinIO, Jitsi… in one click, with their dependencies
+  installed and wired automatically.
+- **Take back control of their data** — everything runs at home, on your own
+  hardware; no third-party cloud, no middleman.
+- **Use a friendly interface** — a web App Store (light/dark theme) to install,
+  configure, update and monitor each service.
+- **Stay privacy-first** — secrets encrypted at rest, a token-protected local
+  API, nothing exposed without an explicit action.
+- **Be Tor compliant** — every service can be published as a `.onion` hidden
+  service.
 
-> Techniquement, c'est un daemon Go (`slashnoded`) — un seul binaire — qui
-> s'installe sur n'importe quel Debian/Ubuntu existant en une ligne et orchestre
-> les apps via Docker Compose.
+> Under the hood it's a Go daemon (`slashnoded`) — a single binary — that
+> installs on any existing Debian/Ubuntu in one line and orchestrates apps via
+> Docker Compose.
 
 ## Installation
 
