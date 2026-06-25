@@ -22,20 +22,16 @@
       "help": "JVM heap, e.g. 2G."
     }
   ],
-  "services": {
-    "minecraft": {
-      "image": "itzg/minecraft-server:latest",
-      "ports": [{ "host": 25565, "container": 25565 }],
-      "volumes": [{ "name": "minecraft-data", "path": "/data" }],
-      "environment": {
-        "EULA": "TRUE",
-        "VERSION": "${input.VERSION}",
-        "MEMORY": "${input.MEMORY}"
-      },
-      "healthcheck": { "type": "tcp", "port": 25565, "interval": "30s" }
-    }
+  "compose": "name: \"slashnode-minecraft\"\nservices:\n  minecraft:\n    image: \"itzg/minecraft-server:latest\"\n    container_name: \"minecraft\"\n    restart: \"unless-stopped\"\n    networks:\n      - slashnode\n    ports:\n      - \"25565:25565\"\n    volumes:\n      - \"minecraft-data:/data\"\n    environment:\n      EULA: \"TRUE\"\n      VERSION: \"${input.VERSION}\"\n      MEMORY: \"${input.MEMORY}\"\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  minecraft-data:\n    name: \"slashnode-minecraft_minecraft_minecraft-data\"\n",
+  "probe": {
+    "type": "tcp",
+    "port": 25565
   },
-  "probe": { "type": "tcp", "port": 25565 },
-  "endpoints": [{ "label": "Server address", "port": 25565 }],
+  "endpoints": [
+    {
+      "label": "Server address",
+      "port": 25565
+    }
+  ],
   "notes": "Connect from Minecraft Java Edition to <your-host>:25565. By installing you accept the Minecraft EULA."
 }

@@ -135,11 +135,15 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 
 	mux.Handle("POST /api/v1/update/apply", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
 		// Update binary + web + apps, reapply running apps, then restart — the
-		// same end state as update.sh. Runs in the background.
+		// same end state as update.sh. Runs in the background; the UI confirms
+		// success by polling /status for the new version.
 		go func() {
 			if err := updater.ApplyNoRestart("latest", cfg.Update.Channel); err != nil {
+				updater.RecordApplyError(err)
+				fmt.Fprintln(os.Stderr, "update apply failed:", err)
 				return
 			}
+			updater.RecordApplyError(nil)
 			_ = apps.Reapply(appsDir)
 			updater.Restart()
 		}()
@@ -186,9 +190,11 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 		}
 		inst, installed := apps.LoadState().Installed[man.ID]
 		entry := apps.CatalogEntry{Manifest: *man, Installed: installed, URL: apps.AppURL(cfg, man)}
+		// Always expose the per-service image refs so the install form can offer a
+		// version picker before the app is installed (defaults applied).
+		entry.Images = apps.ResolvedImages(man, man.ID)
 		if installed {
 			entry.InstalledVersion = inst.Version
-			entry.Images = apps.ResolvedImages(man, man.ID)
 			entry.UpdateAvailable = inst.Version != man.Version
 			if man.Web != nil {
 				if onion := apps.AppOnion(man.ID); onion != "" {
@@ -201,10 +207,11 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 
 	mux.Handle("POST /api/v1/apps/{id}/install", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
 		var body struct {
-			Inputs map[string]string `json:"inputs"`
+			Inputs    map[string]string `json:"inputs"`
+			ImageTags map[string]string `json:"imageTags"`
 		}
 		_ = json.NewDecoder(r.Body).Decode(&body)
-		if err := apps.Install(appsDir, r.PathValue("id"), body.Inputs); err != nil {
+		if err := apps.InstallStream(appsDir, r.PathValue("id"), body.Inputs, body.ImageTags, io.Discard); err != nil {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}
@@ -215,7 +222,8 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 	// plain text (chunked), flushing each line so the UI shows live progress.
 	mux.Handle("POST /api/v1/apps/{id}/install/stream", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
 		var body struct {
-			Inputs map[string]string `json:"inputs"`
+			Inputs    map[string]string `json:"inputs"`
+			ImageTags map[string]string `json:"imageTags"`
 		}
 		_ = json.NewDecoder(r.Body).Decode(&body)
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
@@ -226,7 +234,7 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 		if f, ok := w.(http.Flusher); ok {
 			fw.f = f
 		}
-		if err := apps.InstallStream(appsDir, r.PathValue("id"), body.Inputs, fw); err != nil {
+		if err := apps.InstallStream(appsDir, r.PathValue("id"), body.Inputs, body.ImageTags, fw); err != nil {
 			fmt.Fprintf(fw, "\nINSTALL FAILED: %v\n", err)
 			return
 		}
@@ -283,11 +291,14 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 		images := apps.ResolvedImages(man, man.ID)
 		image := images[r.URL.Query().Get("service")]
 		if image == "" {
-			writeJSON(w, http.StatusOK, map[string]any{"tags": []string{}})
+			writeJSON(w, http.StatusOK, map[string]any{"tags": []string{}, "latest": ""})
 			return
 		}
 		tags, _ := registry.Tags(image) // best-effort; empty on non-Docker-Hub
-		writeJSON(w, http.StatusOK, map[string]any{"tags": tags})
+		writeJSON(w, http.StatusOK, map[string]any{
+			"tags":   tags,
+			"latest": registry.LatestStable(tags),
+		})
 	}))
 
 	mux.Handle("GET /api/v1/apps/{id}/probe", bearer(sec, func(w http.ResponseWriter, r *http.Request) {

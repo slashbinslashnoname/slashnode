@@ -6,7 +6,10 @@
   "category": "bitcoin",
   "description": "Self-hosted blockchain explorer and mempool visualizer.",
   "icon": "📊",
-  "dependencies": ["bitcoind", "electrs"],
+  "dependencies": [
+    "bitcoind",
+    "electrs"
+  ],
   "inputs": [
     {
       "key": "DB_PASSWORD",
@@ -18,49 +21,14 @@
       "help": "Password for the bundled MariaDB."
     }
   ],
-  "services": {
-    "mempool-db": {
-      "image": "mariadb:10.5",
-      "volumes": [{ "name": "mempool-db", "path": "/var/lib/mysql" }],
-      "environment": {
-        "MYSQL_DATABASE": "mempool",
-        "MYSQL_USER": "mempool",
-        "MYSQL_PASSWORD": "${secret.DB_PASSWORD}",
-        "MYSQL_ROOT_PASSWORD": "${secret.DB_PASSWORD}"
-      }
-    },
-    "mempool-api": {
-      "image": "mempool/backend:v3.0.0",
-      "volumes": [{ "name": "mempool-api", "path": "/backend/cache" }],
-      "environment": {
-        "MEMPOOL_BACKEND": "electrum",
-        "ELECTRUM_HOST": "${electrs.exports.electrum.host}",
-        "ELECTRUM_PORT": "${electrs.exports.electrum.port}",
-        "ELECTRUM_TLS_ENABLED": "false",
-        "CORE_RPC_HOST": "${bitcoind.exports.rpc.host}",
-        "CORE_RPC_PORT": "8332",
-        "CORE_RPC_USERNAME": "${bitcoind.exports.rpc.user}",
-        "CORE_RPC_PASSWORD": "${bitcoind.exports.rpc.password}",
-        "DATABASE_ENABLED": "true",
-        "DATABASE_HOST": "mempool-db",
-        "DATABASE_DATABASE": "mempool",
-        "DATABASE_USERNAME": "mempool",
-        "DATABASE_PASSWORD": "${secret.DB_PASSWORD}"
-      }
-    },
-    "mempool-web": {
-      "image": "mempool/frontend:v3.0.0",
-      "ports": [{ "host": 8999, "container": 8080 }],
-      "environment": {
-        "FRONTEND_HTTP_PORT": "8080",
-        "BACKEND_MAINNET_HTTP_HOST": "mempool-api"
-      }
-    }
+  "compose": "name: \"slashnode-mempool\"\nservices:\n  mempool-db:\n    image: \"mariadb:10.5\"\n    container_name: \"mempool-db\"\n    restart: \"unless-stopped\"\n    networks:\n      - slashnode\n    volumes:\n      - \"mempool-db:/var/lib/mysql\"\n    environment:\n      MYSQL_DATABASE: \"mempool\"\n      MYSQL_USER: \"mempool\"\n      MYSQL_PASSWORD: \"${secret.DB_PASSWORD}\"\n      MYSQL_ROOT_PASSWORD: \"${secret.DB_PASSWORD}\"\n  mempool-api:\n    image: \"mempool/backend:v3.0.0\"\n    container_name: \"mempool-api\"\n    restart: \"unless-stopped\"\n    networks:\n      - slashnode\n    volumes:\n      - \"mempool-api:/backend/cache\"\n    environment:\n      MEMPOOL_BACKEND: \"electrum\"\n      ELECTRUM_HOST: \"${electrs.exports.electrum.host}\"\n      ELECTRUM_PORT: \"${electrs.exports.electrum.port}\"\n      ELECTRUM_TLS_ENABLED: \"false\"\n      CORE_RPC_HOST: \"${bitcoind.exports.rpc.host}\"\n      CORE_RPC_PORT: \"8332\"\n      CORE_RPC_USERNAME: \"${bitcoind.exports.rpc.user}\"\n      CORE_RPC_PASSWORD: \"${bitcoind.exports.rpc.password}\"\n      DATABASE_ENABLED: \"true\"\n      DATABASE_HOST: \"mempool-db\"\n      DATABASE_DATABASE: \"mempool\"\n      DATABASE_USERNAME: \"mempool\"\n      DATABASE_PASSWORD: \"${secret.DB_PASSWORD}\"\n  mempool-web:\n    image: \"mempool/frontend:v3.0.0\"\n    container_name: \"mempool-web\"\n    restart: \"unless-stopped\"\n    networks:\n      - slashnode\n    ports:\n      - \"8999:8080\"\n    environment:\n      FRONTEND_HTTP_PORT: \"8080\"\n      BACKEND_MAINNET_HTTP_HOST: \"mempool-api\"\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  mempool-db:\n    name: \"slashnode-mempool_mempool_mempool-db\"\n  mempool-api:\n    name: \"slashnode-mempool_mempool_mempool-api\"\n",
+  "web": {
+    "port": 8999,
+    "path": "/"
   },
-  "wiring": {
-    "bitcoind.rpchost": "${bitcoind.exports.rpc.host}",
-    "electrs.host": "${electrs.exports.electrum.host}"
-  },
-  "web": { "port": 8999, "path": "/" },
-  "probe": { "type": "http", "port": 8999, "path": "/" }
+  "probe": {
+    "type": "http",
+    "port": 8999,
+    "path": "/"
+  }
 }

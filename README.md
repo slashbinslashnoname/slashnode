@@ -9,12 +9,23 @@
 
 # SlashNode
 
-**Orchestrator for self-hosted services driven by JSON manifests, built on
-Docker.** Designed for Bitcoin/Lightning nodes and self-hosting:
-plug-and-play (`exports`/`wiring`), App Store, light/dark theme.
+**SlashNode est un système d'exploitation pour serveur personnel** qui permet
+aux utilisateurs de :
 
-> This is not a custom OS. It's a Go daemon (`slashnoded`) that installs on
-> any existing Debian/Ubuntu with a single line.
+- **Auto-héberger des services** : Bitcoin Core, Lightning Network (LND),
+  Electrs, Mempool, Supabase, MinIO, Jitsi… en un clic, avec leurs dépendances
+  installées et câblées automatiquement.
+- **Reprendre le contrôle de ses données** : tout tourne chez soi, sur son
+  propre matériel — pas de cloud tiers, pas d'intermédiaire.
+- **Interface conviviale** : un App Store web (thème clair/sombre) pour
+  installer, configurer, mettre à jour et surveiller chaque service.
+- **Privacy-first** : secrets chiffrés au repos, API locale protégée par token,
+  rien n'est exposé sans action explicite.
+- **Tor compliant** : chaque service peut être publié en service caché `.onion`.
+
+> Techniquement, c'est un daemon Go (`slashnoded`) — un seul binaire — qui
+> s'installe sur n'importe quel Debian/Ubuntu existant en une ligne et orchestre
+> les apps via Docker Compose.
 
 ## Installation
 
@@ -121,10 +132,13 @@ Build the release artifacts (amd64/arm64 + macOS binaries, web bundle):
 
 ## Apps (manifests)
 
-Each app = a JSON manifest (Docker services, `inputs` entered by the
-user → environment variables, `exports`/`wiring` for automatic
-wiring). See **[docs/app-manifest.md](docs/app-manifest.md)** and the
-examples in `apps/`.
+Each app = a JSON manifest carrying a standard **docker-compose** document
+(`compose`), `inputs` entered by the user → environment variables, and
+`exports` for automatic wiring between apps. Installing an app auto-installs and
+wires its dependencies (e.g. Mempool pulls in Bitcoin Core + Electrs). Any
+docker-compose-only project is compatible — paste its compose into the manifest.
+Per-service image versions are selectable at install and afterwards. See
+**[docs/app-manifest.md](docs/app-manifest.md)** and the examples in `apps/`.
 
 ## License
 

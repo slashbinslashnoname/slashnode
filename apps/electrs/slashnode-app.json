@@ -6,25 +6,20 @@
   "category": "bitcoin",
   "description": "High-performance Electrum server. Indexes the blockchain for wallets.",
   "icon": "🔍",
-  "dependencies": ["bitcoind"],
+  "dependencies": [
+    "bitcoind"
+  ],
   "inputs": [],
-  "services": {
-    "electrs": {
-      "image": "mempool/electrs:latest",
-      "entrypoint": "electrs",
-      "command": "--network mainnet --daemon-rpc-addr ${bitcoind.exports.rpc.host}:8332 --daemon-dir /home/bitcoin/.bitcoin --cookie ${bitcoind.exports.rpc.user}:${bitcoind.exports.rpc.password} --electrum-rpc-addr 0.0.0.0:50001 --http-addr 0.0.0.0:3000 --db-dir /data",
-      "ports": [{ "host": 50001, "container": 50001 }],
-      "volumes": [
-        { "name": "electrs-data", "path": "/data" },
-        { "from": "bitcoind", "name": "bitcoin-data", "path": "/home/bitcoin/.bitcoin", "readOnly": true }
-      ],
-      "healthcheck": { "type": "tcp", "port": 50001, "interval": "30s" }
-    }
-  },
+  "compose": "name: \"slashnode-electrs\"\nservices:\n  electrs:\n    image: \"mempool/electrs:latest\"\n    container_name: \"electrs\"\n    restart: \"unless-stopped\"\n    networks:\n      - slashnode\n    entrypoint: \"electrs\"\n    command: \"--network mainnet --daemon-rpc-addr ${bitcoind.exports.rpc.host}:8332 --daemon-dir /home/bitcoin/.bitcoin --cookie ${bitcoind.exports.rpc.user}:${bitcoind.exports.rpc.password} --electrum-rpc-addr 0.0.0.0:50001 --http-addr 0.0.0.0:3000 --db-dir /data\"\n    ports:\n      - \"50001:50001\"\n    volumes:\n      - \"electrs-data:/data\"\n      - \"bitcoin-data:/home/bitcoin/.bitcoin:ro\"\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  electrs-data:\n    name: \"slashnode-electrs_electrs_electrs-data\"\n  bitcoin-data:\n    external: true\n    name: \"slashnode-bitcoind_bitcoind_bitcoin-data\"\n",
   "probe": {
     "type": "electrum",
     "port": 50001,
-    "display": [{ "label": "Height", "field": "height" }]
+    "display": [
+      {
+        "label": "Height",
+        "field": "height"
+      }
+    ]
   },
   "exports": {
     "electrum.host": "electrs",

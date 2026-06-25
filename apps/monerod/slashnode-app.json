@@ -8,24 +8,16 @@
   "icon": "ɱ",
   "dependencies": [],
   "inputs": [],
-  "services": {
-    "monerod": {
-      "image": "sethsimmons/simple-monerod:latest",
-      "command": "--rpc-bind-ip=0.0.0.0 --rpc-bind-port=18081 --confirm-external-bind --rpc-restricted-bind-ip=0.0.0.0 --rpc-restricted-bind-port=18089 --no-igd --enable-dns-blocklist --p2p-bind-port=18080",
-      "ports": [
-        { "host": 18080, "container": 18080 },
-        { "host": 18089, "container": 18089 },
-        { "hostIP": "127.0.0.1", "host": 18081, "container": 18081 }
-      ],
-      "volumes": [{ "name": "monerod-data", "path": "/home/monero/.bitmonero" }],
-      "healthcheck": { "type": "http", "path": "/get_height", "port": 18081, "interval": "30s" }
-    }
-  },
+  "compose": "name: \"slashnode-monerod\"\nservices:\n  monerod:\n    image: \"sethsimmons/simple-monerod:latest\"\n    container_name: \"monerod\"\n    restart: \"unless-stopped\"\n    networks:\n      - slashnode\n    command: \"--rpc-bind-ip=0.0.0.0 --rpc-bind-port=18081 --confirm-external-bind --rpc-restricted-bind-ip=0.0.0.0 --rpc-restricted-bind-port=18089 --no-igd --enable-dns-blocklist --p2p-bind-port=18080\"\n    ports:\n      - \"18080:18080\"\n      - \"18089:18089\"\n      - \"127.0.0.1:18081:18081\"\n    volumes:\n      - \"monerod-data:/home/monero/.bitmonero\"\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  monerod-data:\n    name: \"slashnode-monerod_monerod_monerod-data\"\n",
   "exports": {
     "rpc.host": "monerod",
     "rpc.port": 18081,
     "rpc.restricted.port": 18089
   },
-  "probe": { "type": "http", "port": 18081, "path": "/get_height" },
+  "probe": {
+    "type": "http",
+    "port": 18081,
+    "path": "/get_height"
+  },
   "notes": "Restricted public RPC on 18089, full RPC on localhost:18081. Initial sync takes a while."
 }

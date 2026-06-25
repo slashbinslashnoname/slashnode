@@ -1,17 +1,12 @@
 # SlashNode application manifest
 
-> Status: **specification** (the registry/orchestration engine will arrive in a
-> later iteration). This document freezes the format so we don't lose the
-> decisions already made — in particular the `inputs` block (user entries →
-> environment variables) and the `exports`/`wiring` mechanism.
-
-A store app is a directory:
+A store app is a single JSON manifest. It carries a standard **docker-compose**
+document in its `compose` field, so any docker-compose-only project is
+compatible: paste its compose in, declare the user `inputs`, and you're done.
 
 ```
 bitcoind/
-  slashnode-app.json     # manifest (this document)
-  docker-compose.yml     # Docker services
-  templates/*.tmpl       # config templating (JSON values → bitcoin.conf…)
+  slashnode-app.json     # manifest (this document) — includes the compose doc
   icon.svg
 ```
 
@@ -22,21 +17,40 @@ bitcoind/
   "manifestVersion": 1,
   "id": "bitcoind",
   "name": "Bitcoin Core",
-  "version": "27.0",
+  "version": "28.1",
   "category": "bitcoin",
   "dependencies": [],
 
   // Entries requested from the user at install time.
   // The install form is generated from this list, and each
-  // value is injected as an ENVIRONMENT VARIABLE into the container(s).
+  // value can be referenced as ${input.KEY} / ${secret.KEY} in `compose`.
   "inputs": [ /* see below */ ],
 
-  "services": { /* … images, ports, volumes, healthchecks … */ },
+  // A standard docker-compose document (YAML). SlashNode templates the
+  // ${input.X}/${secret.X}/${app.exports.key} references into it, then runs it
+  // verbatim via `docker compose -f`. Any other ${VAR} is left untouched for
+  // compose's own interpolation. Per-service image tags are selectable in the
+  // UI (the version picker reads/overrides each service's `image:`), defaulting
+  // to the latest stable release.
+  "compose": "name: slashnode-bitcoind\nservices:\n  bitcoind:\n    image: \"bitcoin/bitcoin:28.1\"\n    …\n",
+
+  // Optional config files, templated and written next to the compose file so it
+  // can bind-mount them by relative path (e.g. ./config/lnd.conf:/path:ro).
+  "configs": [ /* { "path": "/root/.lnd/lnd.conf", "content": "…" } */ ],
 
   // Values published in the daemon's registry, consumable by other apps.
   "exports": { /* … */ }
 }
 ```
+
+### Conventions
+
+By convention each service joins the shared external network `slashnode` and
+sets `container_name` equal to its service name, so apps reach each other by DNS
+(e.g. an `exports` value of `"rpc.host": "bitcoind"`). Named volumes use stable
+explicit names so data survives upgrades; a service can mount another app's
+volume by referencing it as `external` (e.g. Electrs reading Bitcoin Core's
+blocks).
 
 ## The `inputs` block (entries → env variables)
 
@@ -115,11 +129,13 @@ environment variable (`key`) of the container.
 - Values not entered but with a `default` are injected as-is.
 - `required: true` blocks installation as long as the field is empty.
 
-## `exports` / `wiring` (automatic wiring)
+## `exports` + `dependencies` (automatic wiring)
 
-On installation, an app publishes its connection info in the daemon's
-registry (`exports`). A consuming app references them via `wiring`; the daemon
-resolves the references and injects them into the templating. Zero manual config.
+On installation, an app publishes its connection info in the daemon's registry
+(`exports`). Installing an app first auto-installs everything in its
+`dependencies` (post-order), so a consuming app can reference a dependency's
+exports directly anywhere in its `compose` (or `configs`) — no separate wiring
+block. The daemon resolves the references at install time. Zero manual config.
 
 ```jsonc
 // bitcoind: publishes
@@ -133,15 +149,11 @@ resolves the references and injects them into the templating. Zero manual config
 ```
 
 ```jsonc
-// lnd: consumes
+// lnd / mempool: consume directly inside their compose document
 "dependencies": ["bitcoind"],
-"wiring": {
-  "bitcoind.rpchost": "${bitcoind.exports.rpc.host}",
-  "bitcoind.rpcuser": "${bitcoind.exports.rpc.user}",
-  "bitcoind.rpcpass": "${bitcoind.exports.rpc.password}",
-  "bitcoind.zmqpubrawblock": "${bitcoind.exports.zmq.rawblock}"
-}
+"compose": "…\n    environment:\n      CORE_RPC_HOST: \"${bitcoind.exports.rpc.host}\"\n      CORE_RPC_USERNAME: \"${bitcoind.exports.rpc.user}\"\n      CORE_RPC_PASSWORD: \"${bitcoind.exports.rpc.password}\"\n…"
 ```
 
 References available in values: `${input.KEY}`, `${secret.KEY}`,
-`${<app>.exports.<key>}`.
+`${<app>.exports.<key>}`. Any other `${VAR}` in `compose` is left for docker
+compose's own interpolation.

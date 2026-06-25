@@ -12,14 +12,21 @@
       "key": "NETWORK",
       "label": "Network",
       "type": "select",
-      "options": ["mainnet", "sepolia", "holesky"],
+      "options": [
+        "mainnet",
+        "sepolia",
+        "holesky"
+      ],
       "default": "mainnet"
     },
     {
       "key": "SYNC_MODE",
       "label": "Sync mode",
       "type": "select",
-      "options": ["snap", "full"],
+      "options": [
+        "snap",
+        "full"
+      ],
       "default": "snap",
       "help": "snap: fast, recommended. full: complete archive."
     },
@@ -37,24 +44,17 @@
       "default": false
     }
   ],
-  "services": {
-    "geth": {
-      "image": "ethereum/client-go:v1.14.0",
-      "command": "--datadir /data/.ethereum --http --http.addr 0.0.0.0 --http.api eth,net,web3 --http.vhosts=* --syncmode ${input.SYNC_MODE}",
-      "ports": [
-        { "host": 30303, "container": 30303 },
-        { "host": 30303, "container": 30303, "protocol": "udp" },
-        { "hostIP": "127.0.0.1", "host": 8545, "container": 8545 }
-      ],
-      "volumes": [{ "name": "geth-data", "path": "/data/.ethereum" }],
-      "healthcheck": { "type": "rpc", "method": "eth_syncing", "interval": "30s" }
-    }
-  },
+  "compose": "name: \"slashnode-geth\"\nservices:\n  geth:\n    image: \"ethereum/client-go:v1.14.0\"\n    container_name: \"geth\"\n    restart: \"unless-stopped\"\n    networks:\n      - slashnode\n    command: \"--datadir /data/.ethereum --http --http.addr 0.0.0.0 --http.api eth,net,web3 --http.vhosts=* --syncmode ${input.SYNC_MODE}\"\n    ports:\n      - \"30303:30303\"\n      - \"30303:30303/udp\"\n      - \"127.0.0.1:8545:8545\"\n    volumes:\n      - \"geth-data:/data/.ethereum\"\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  geth-data:\n    name: \"slashnode-geth_geth_geth-data\"\n",
   "probe": {
     "type": "rpc",
     "port": 8545,
     "method": "eth_blockNumber",
-    "display": [{ "label": "Height", "hex": true }]
+    "display": [
+      {
+        "label": "Height",
+        "hex": true
+      }
+    ]
   },
   "exports": {
     "rpc.host": "geth",

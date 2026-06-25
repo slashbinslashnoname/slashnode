@@ -21,12 +21,14 @@ import (
 // first), renders a Compose file for each app, launches it via Docker and
 // records its exports in the service registry so consumers can wire to it.
 func Install(dir, id string, inputs map[string]string) error {
-	return InstallStream(dir, id, inputs, io.Discard)
+	return InstallStream(dir, id, inputs, nil, io.Discard)
 }
 
 // InstallStream is Install with the Docker pull/up output (and progress lines)
 // streamed live to out, so the UI can show install progress as it happens.
-func InstallStream(dir, id string, inputs map[string]string, out io.Writer) error {
+// imageTags optionally pins per-service image tags for the target app (chosen in
+// the install form); pass nil to use the manifest defaults.
+func InstallStream(dir, id string, inputs, imageTags map[string]string, out io.Writer) error {
 	plan, err := installPlan(dir, id)
 	if err != nil {
 		return err
@@ -40,12 +42,13 @@ func InstallStream(dir, id string, inputs map[string]string, out io.Writer) erro
 
 	for _, appID := range plan {
 		isTarget := appID == id
-		var provided map[string]string
+		var provided, tags map[string]string
 		if isTarget {
 			provided = inputs
+			tags = imageTags
 		}
 		fmt.Fprintf(out, "\n==> installing %s\n", appID)
-		if err := installOne(dir, appID, provided, isTarget, out); err != nil {
+		if err := installOne(dir, appID, provided, tags, isTarget, out); err != nil {
 			fmt.Fprintf(out, "error: %v\n", err)
 			return fmt.Errorf("installing %s: %w", appID, err)
 		}
@@ -100,7 +103,7 @@ func Reapply(dir string) error {
 		for k, v := range loadAppSecrets(id) {
 			provided[k] = v
 		}
-		if err := installOne(dir, id, provided, true, io.Discard); err != nil {
+		if err := installOne(dir, id, provided, nil, true, io.Discard); err != nil {
 			return fmt.Errorf("reapply %s: %w", id, err)
 		}
 	}
@@ -129,7 +132,7 @@ func ReapplyOne(dir, id string) error {
 	for k, v := range loadAppSecrets(id) {
 		provided[k] = v
 	}
-	if err := installOne(dir, id, provided, true, io.Discard); err != nil {
+	if err := installOne(dir, id, provided, nil, true, io.Discard); err != nil {
 		return err
 	}
 	_ = ReloadProxy()
@@ -170,15 +173,11 @@ func ResolvedImages(man *Manifest, id string) map[string]string {
 }
 
 // resolveImages returns each service's currently resolved image ref (the
-// manifest image with any stored per-service tag override applied).
+// compose image with any stored per-service tag override applied), parsed from
+// the app's compose document.
 func resolveImages(man *Manifest, tags map[string]string) (map[string]string, error) {
-	services, err := orchestrator.ParseServices(man.Services)
-	if err != nil {
-		return nil, err
-	}
 	out := map[string]string{}
-	for name, s := range services {
-		img := s.Image
+	for name, img := range orchestrator.ParseComposeImages(man.Compose) {
 		if t := tags[name]; t != "" {
 			img = replaceTag(img, t)
 		}
@@ -290,10 +289,13 @@ func installPlan(dir, id string) ([]string, error) {
 // an error; for auto-installed dependencies, required secrets are generated and
 // required non-secret fields must have a default (else we bail and ask the
 // operator to install the dependency manually).
-func installOne(dir, appID string, provided map[string]string, isTarget bool, out io.Writer) error {
+func installOne(dir, appID string, provided, imageTagOverride map[string]string, isTarget bool, out io.Writer) error {
 	man, err := Find(dir, appID)
 	if err != nil {
 		return err
+	}
+	if strings.TrimSpace(man.Compose) == "" {
+		return fmt.Errorf("app %s has no compose document", appID)
 	}
 
 	nonSecret := map[string]string{}
@@ -352,85 +354,49 @@ func installOne(dir, appID string, provided map[string]string, isTarget bool, ou
 		ensureExports(dir, dep, registry)
 	}
 
-	// Build the environment: inputs + wiring (dependency exports).
-	env := map[string]string{}
-	for k, v := range nonSecret {
-		env[k] = v
-	}
-	for k, v := range secret {
-		env[k] = v
-	}
-	for k, v := range man.Wiring {
-		rv, rerr := resolveValue(fmt.Sprint(v), nonSecret, secret, registry)
-		if rerr != nil {
-			return fmt.Errorf("wiring %s: %w", k, rerr)
+	// Per-service image tag overrides (chosen in the version picker / install
+	// form). Explicit override wins; otherwise reuse the stored choice so a
+	// reapply keeps the operator's pinned versions. Never auto-bumped.
+	imageTags := imageTagOverride
+	if len(imageTags) == 0 {
+		if inst, ok := LoadState().Installed[appID]; ok {
+			imageTags = inst.ImageTags
 		}
-		env[envName(k)] = rv
 	}
 
-	// Per-service image tag overrides (set via SetImageTag). Never auto-bumped.
-	var imageTags map[string]string
-	if inst, ok := LoadState().Installed[appID]; ok {
-		imageTags = inst.ImageTags
-	}
-
-	// Render and write the Compose file.
-	services, err := orchestrator.ParseServices(man.Services)
-	if err != nil {
-		return err
-	}
-	// Resolve ${input}/${secret}/${dep.exports.key} references inside each
-	// service's environment values (config templating).
-	for name, s := range services {
-		if t := imageTags[name]; t != "" {
-			s.Image = replaceTag(s.Image, t)
-		}
-		for k, v := range s.Environment {
-			if rv, rerr := resolveValue(v, nonSecret, secret, registry); rerr == nil {
-				s.Environment[k] = rv
-			}
-		}
-		if rv, rerr := resolveValue(s.Command, nonSecret, secret, registry); rerr == nil {
-			s.Command = rv
-		}
-		if rv, rerr := resolveValue(s.Entrypoint, nonSecret, secret, registry); rerr == nil {
-			s.Entrypoint = rv
-		}
-		services[name] = s
-	}
-
-	// Render config-file templates to host files and bind-mount them.
-	configMounts := map[string][]string{}
-	for i, c := range man.Configs {
-		content, rerr := resolveValue(c.Content, nonSecret, secret, registry)
-		if rerr != nil {
-			return fmt.Errorf("config %s: %w", c.Path, rerr)
-		}
+	// Render config-file templates next to the compose file so the compose can
+	// bind-mount them with a relative path (e.g. ./config/lnd.conf:/path:ro).
+	if len(man.Configs) > 0 {
 		if err := os.MkdirAll(paths.AppConfigDir(appID), 0o700); err != nil {
 			return err
 		}
-		hostFile := filepath.Join(paths.AppConfigDir(appID),
-			fmt.Sprintf("%d-%s", i, filepath.Base(c.Path)))
-		// 0644 so the (often non-root) container user can read the bind-mounted
-		// config. The file lives under root-owned /var/lib/slashnode.
-		if err := os.WriteFile(hostFile, []byte(content), 0o644); err != nil {
-			return err
+		for _, c := range man.Configs {
+			content, rerr := resolveValue(c.Content, nonSecret, secret, registry)
+			if rerr != nil {
+				return fmt.Errorf("config %s: %w", c.Path, rerr)
+			}
+			// 0644 so the (often non-root) container user can read the bind-mounted
+			// config. The file lives under root-owned /var/lib/slashnode.
+			hostFile := filepath.Join(paths.AppConfigDir(appID), filepath.Base(c.Path))
+			if err := os.WriteFile(hostFile, []byte(content), 0o644); err != nil {
+				return err
+			}
 		}
-		svc := c.Service
-		if svc == "" {
-			svc = appID
-		}
-		configMounts[svc] = append(configMounts[svc], hostFile+":"+c.Path+":ro")
 	}
 
-	compose, err := orchestrator.BuildCompose(appID, services, env, configMounts)
-	if err != nil {
-		return err
+	// Render the compose document: template ${input}/${secret}/${dep.exports.key}
+	// references (leaving any compose-native ${VAR} untouched), then apply the
+	// per-service image tag overrides by replacing each service's image ref.
+	content := templateRefs(man.Compose, nonSecret, secret, registry)
+	for svc, img := range orchestrator.ParseComposeImages(content) {
+		if t := imageTags[svc]; t != "" {
+			content = strings.Replace(content, img, replaceTag(img, t), 1)
+		}
 	}
 	if err := os.MkdirAll(paths.AppRuntimeDir(appID), 0o700); err != nil {
 		return err
 	}
-	if err := os.WriteFile(paths.AppComposeFile(appID), compose, 0o600); err != nil {
+	if err := os.WriteFile(paths.AppComposeFile(appID), []byte(content), 0o600); err != nil {
 		return err
 	}
 
@@ -533,18 +499,32 @@ func resolveValue(s string, inputs, secrets map[string]string, registry map[stri
 	return out, resErr
 }
 
-// envName converts a wiring key (e.g. "bitcoind.rpchost") into an environment
-// variable name (e.g. "BITCOIND_RPCHOST").
-func envName(k string) string {
-	var b strings.Builder
-	for _, r := range strings.ToUpper(k) {
-		if (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') {
-			b.WriteRune(r)
-		} else {
-			b.WriteRune('_')
+// templateRefs expands ${input.KEY}, ${secret.KEY} and ${app.exports.key}
+// references in s, leaving any other ${...} (e.g. a compose file's native
+// ${VARIABLE} interpolation) untouched. Used to render compose documents so
+// docker-compose-only projects stay compatible.
+func templateRefs(s string, inputs, secrets map[string]string, registry map[string]map[string]string) string {
+	return refRe.ReplaceAllStringFunc(s, func(m string) string {
+		inner := m[2 : len(m)-1]
+		switch {
+		case strings.HasPrefix(inner, "input."):
+			if v, ok := inputs[inner[len("input."):]]; ok {
+				return v
+			}
+		case strings.HasPrefix(inner, "secret."):
+			if v, ok := secrets[inner[len("secret."):]]; ok {
+				return v
+			}
+		case strings.Contains(inner, ".exports."):
+			parts := strings.SplitN(inner, ".exports.", 2)
+			if e, ok := registry[parts[0]]; ok {
+				if v, ok := e[parts[1]]; ok {
+					return v
+				}
+			}
 		}
-	}
-	return b.String()
+		return m // leave unknown refs untouched
+	})
 }
 
 func randomToken(n int) (string, error) {
