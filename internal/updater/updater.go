@@ -39,14 +39,14 @@ var httpClient = &http.Client{Timeout: 30 * time.Second}
 // Check queries the latest version, computes availability and persists the
 // state to update.json.
 func Check(current, channel string) (*Info, error) {
-	latest, err := latestVersion(channel)
+	_, version, err := latestRelease(channel)
 	if err != nil {
 		return nil, err
 	}
 	info := &Info{
 		Current:   normalize(current),
-		Latest:    normalize(latest),
-		Available: latest != "" && normalize(latest) != normalize(current),
+		Latest:    normalize(version),
+		Available: version != "" && normalize(version) != normalize(current),
 		CheckedAt: time.Now().UTC().Format(time.RFC3339),
 	}
 	if err := save(info); err != nil {
@@ -72,17 +72,20 @@ func LoadState(current string) *Info {
 // Apply downloads the target version (or the latest), verifies the checksum,
 // atomically replaces the current binary then restarts the service.
 func Apply(target, channel string) error {
+	// downloadTag is the release tag to fetch assets from; for the rolling
+	// release this is "latest" even though the displayed version differs.
+	downloadTag := target
 	if target == "" || target == "latest" {
-		v, err := latestVersion(channel)
+		tag, _, err := latestRelease(channel)
 		if err != nil {
 			return err
 		}
-		target = v
+		downloadTag = tag
 	}
 
 	osName, arch := runtime.GOOS, runtime.GOARCH
 	base := fmt.Sprintf("https://github.com/%s/releases/download/%s/slashnoded-%s-%s",
-		repo, target, osName, arch)
+		repo, downloadTag, osName, arch)
 
 	bin, err := download(base)
 	if err != nil {
@@ -109,11 +112,12 @@ func Apply(target, channel string) error {
 	return nil
 }
 
-// latestVersion returns the latest published version for the channel.
-// SLASHNODE_LATEST short-circuits the network (test hook).
-func latestVersion(channel string) (string, error) {
+// latestRelease returns the latest release's download tag and display version.
+// For the rolling release the tag is "latest" while the version is the release
+// name (e.g. 2026.06.25-ab12cd). SLASHNODE_LATEST short-circuits the network.
+func latestRelease(channel string) (tag, version string, err error) {
 	if v := os.Getenv("SLASHNODE_LATEST"); v != "" {
-		return v, nil
+		return v, v, nil
 	}
 	url := fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", repo)
 	if channel == "beta" {
@@ -121,35 +125,44 @@ func latestVersion(channel string) (string, error) {
 	}
 	resp, err := httpClient.Get(url)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("GitHub API: status %d", resp.StatusCode)
+		return "", "", fmt.Errorf("GitHub API: status %d", resp.StatusCode)
 	}
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", err
+		return "", "", err
+	}
+	type release struct {
+		TagName string `json:"tag_name"`
+		Name    string `json:"name"`
+	}
+	pick := func(r release) (string, string) {
+		v := r.Name
+		if v == "" {
+			v = r.TagName
+		}
+		return r.TagName, v
 	}
 	if channel == "beta" {
-		var rels []struct {
-			TagName string `json:"tag_name"`
-		}
+		var rels []release
 		if err := json.Unmarshal(body, &rels); err != nil {
-			return "", err
+			return "", "", err
 		}
 		if len(rels) == 0 {
-			return "", nil
+			return "", "", nil
 		}
-		return rels[0].TagName, nil
+		t, v := pick(rels[0])
+		return t, v, nil
 	}
-	var rel struct {
-		TagName string `json:"tag_name"`
-	}
+	var rel release
 	if err := json.Unmarshal(body, &rel); err != nil {
-		return "", err
+		return "", "", err
 	}
-	return rel.TagName, nil
+	t, v := pick(rel)
+	return t, v, nil
 }
 
 func download(url string) ([]byte, error) {

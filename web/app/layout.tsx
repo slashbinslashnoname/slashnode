@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { VersionBadge } from "@/components/VersionBadge";
+import { getStatus, getUpdate } from "@/lib/api";
 
 export const metadata: Metadata = {
   title: "SlashNode",
@@ -18,17 +20,26 @@ const themeScript = `
 })();
 `;
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const [status, update] = await Promise.all([getStatus(), getUpdate()]);
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className="min-h-screen antialiased">{children}</body>
+      <body className="min-h-screen antialiased">
+        {children}
+        <VersionBadge
+          version={status?.version ?? "—"}
+          available={!!update?.available}
+          latest={update?.latest ?? ""}
+        />
+      </body>
     </html>
   );
 }

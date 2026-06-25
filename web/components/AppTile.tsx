@@ -108,15 +108,17 @@ export function AppTile({ app }: { app: App }) {
 
 function ProbeLine({ probe }: { probe: ProbeResult }) {
   if (probe.type === "none") return null;
-  const r = probe.result ?? {};
-  const tip = r.blocks ?? r.headers;
+  const stats = probe.stats ?? [];
   return (
-    <div className="rounded-lg bg-bg px-3 py-2 text-xs text-muted">
-      {probe.type === "rpc" && tip != null ? (
-        <span>
-          tip: <span className="text-fg">{String(r.blocks ?? "?")}</span>
-          {r.headers != null && <> / {String(r.headers)} headers</>}
-        </span>
+    <div className="rounded-lg bg-bg px-3 py-2 text-xs">
+      {stats.length > 0 ? (
+        <div className="flex flex-wrap gap-x-4 gap-y-1">
+          {stats.map((s) => (
+            <span key={s.label} className="text-muted">
+              {s.label}: <span className="text-fg">{s.value}</span>
+            </span>
+          ))}
+        </div>
       ) : (
         <span className={probe.ok ? "text-primary" : "text-muted"}>
           {probe.ok ? "● reachable" : "○ unreachable"}

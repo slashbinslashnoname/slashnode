@@ -53,11 +53,13 @@ export type ServiceStatus = {
   health?: string;
 };
 
+export type ProbeStat = { label: string; value: string };
+
 export type ProbeResult = {
   type: string;
   ok: boolean;
   detail?: string;
-  result?: Record<string, unknown>;
+  stats?: ProbeStat[];
 };
 
 async function apiGet<T>(path: string): Promise<T | null> {

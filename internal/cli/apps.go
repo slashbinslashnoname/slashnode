@@ -129,8 +129,8 @@ func Apps(args []string) error {
 			return err
 		}
 		fmt.Printf("type=%s ok=%v %s\n", res.Type, res.OK, res.Detail)
-		for k, v := range res.Result {
-			fmt.Printf("  %s: %v\n", k, v)
+		for _, s := range res.Stats {
+			fmt.Printf("  %s: %s\n", s.Label, s.Value)
 		}
 		return nil
 

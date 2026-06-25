@@ -158,6 +158,12 @@ func installOne(dir, appID string, provided map[string]string, isTarget bool) er
 		exports[k] = rv
 	}
 
+	// Make sure each already-installed dependency has its exports in the
+	// registry (older installs predate the registry — backfill them).
+	for _, dep := range man.Dependencies {
+		ensureExports(dir, dep, registry)
+	}
+
 	// Build the environment: inputs + wiring (dependency exports).
 	env := map[string]string{}
 	for k, v := range nonSecret {
@@ -178,6 +184,16 @@ func installOne(dir, appID string, provided map[string]string, isTarget bool) er
 	services, err := orchestrator.ParseServices(man.Services)
 	if err != nil {
 		return err
+	}
+	// Resolve ${input}/${secret}/${dep.exports.key} references inside each
+	// service's environment values (config templating).
+	for name, s := range services {
+		for k, v := range s.Environment {
+			if rv, rerr := resolveValue(v, nonSecret, secret, registry); rerr == nil {
+				s.Environment[k] = rv
+			}
+		}
+		services[name] = s
 	}
 	compose, err := orchestrator.BuildCompose(appID, services, env)
 	if err != nil {
@@ -218,6 +234,34 @@ func installOne(dir, appID string, provided map[string]string, isTarget bool) er
 		WebPort:     webPort,
 	}
 	return saveState(state)
+}
+
+// ensureExports backfills a dependency's exports into the registry if missing,
+// by re-deriving them from the dependency's manifest and its stored
+// inputs/secrets (no container changes). Handles deps installed before the
+// registry existed.
+func ensureExports(dir, depID string, registry map[string]map[string]string) {
+	if _, ok := registry[depID]; ok {
+		return
+	}
+	dep, err := Find(dir, depID)
+	if err != nil {
+		return
+	}
+	inst, ok := LoadState().Installed[depID]
+	if !ok {
+		return
+	}
+	inputs := inst.Inputs
+	secrets := loadAppSecrets(depID)
+	exp := map[string]string{}
+	for k, v := range dep.Exports {
+		if rv, rerr := resolveValue(fmt.Sprint(v), inputs, secrets, registry); rerr == nil {
+			exp[k] = rv
+		}
+	}
+	registry[depID] = exp
+	_ = saveRegistry(registry)
 }
 
 var refRe = regexp.MustCompile(`\$\{([^}]+)\}`)

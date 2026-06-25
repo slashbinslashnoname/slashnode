@@ -9,27 +9,57 @@
   "dependencies": ["bitcoind", "electrs"],
   "inputs": [
     {
-      "key": "ADMIN_EMAIL",
-      "label": "Administrator email",
-      "type": "email",
-      "required": false,
-      "help": "For alerts (optional)."
+      "key": "DB_PASSWORD",
+      "label": "Database password",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Password for the bundled MariaDB."
     }
   ],
   "services": {
+    "mempool-db": {
+      "image": "mariadb:10.5",
+      "volumes": [{ "name": "mempool-db", "path": "/var/lib/mysql" }],
+      "environment": {
+        "MYSQL_DATABASE": "mempool",
+        "MYSQL_USER": "mempool",
+        "MYSQL_PASSWORD": "${secret.DB_PASSWORD}",
+        "MYSQL_ROOT_PASSWORD": "${secret.DB_PASSWORD}"
+      }
+    },
+    "mempool-api": {
+      "image": "mempool/backend:v3.0.0",
+      "volumes": [{ "name": "mempool-api", "path": "/backend/cache" }],
+      "environment": {
+        "MEMPOOL_BACKEND": "electrum",
+        "ELECTRUM_HOST": "${electrs.exports.electrum.host}",
+        "ELECTRUM_PORT": "${electrs.exports.electrum.port}",
+        "ELECTRUM_TLS_ENABLED": "false",
+        "CORE_RPC_HOST": "${bitcoind.exports.rpc.host}",
+        "CORE_RPC_PORT": "8332",
+        "CORE_RPC_USERNAME": "${bitcoind.exports.rpc.user}",
+        "CORE_RPC_PASSWORD": "${bitcoind.exports.rpc.password}",
+        "DATABASE_ENABLED": "true",
+        "DATABASE_HOST": "mempool-db",
+        "DATABASE_DATABASE": "mempool",
+        "DATABASE_USERNAME": "mempool",
+        "DATABASE_PASSWORD": "${secret.DB_PASSWORD}"
+      }
+    },
     "mempool-web": {
-      "image": "slashnode/mempool:3.0.0",
+      "image": "mempool/frontend:v3.0.0",
       "ports": [{ "host": 8999, "container": 8080 }],
-      "volumes": [{ "name": "mempool-data", "path": "/data/mempool" }],
-      "healthcheck": { "type": "http", "path": "/", "interval": "30s" }
+      "environment": {
+        "FRONTEND_HTTP_PORT": "8080",
+        "BACKEND_MAINNET_HTTP_HOST": "mempool-api"
+      }
     }
   },
   "wiring": {
     "bitcoind.rpchost": "${bitcoind.exports.rpc.host}",
-    "bitcoind.rpcuser": "${bitcoind.exports.rpc.user}",
-    "bitcoind.rpcpass": "${bitcoind.exports.rpc.password}",
-    "electrs.host": "${electrs.exports.electrum.host}",
-    "electrs.port": "${electrs.exports.electrum.port}"
+    "electrs.host": "${electrs.exports.electrum.host}"
   },
   "web": { "port": 8999, "path": "/" },
   "probe": { "type": "http", "port": 8999, "path": "/" }

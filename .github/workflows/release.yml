@@ -31,9 +31,13 @@ jobs:
         id: ver
         run: |
           if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
             echo "version=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
           else
-            echo "version=latest" >> "$GITHUB_OUTPUT"
+            # Rolling release: tag stays "latest" (stable bootstrap URL) but the
+            # embedded/display version is a real CalVer + short SHA.
+            echo "tag=latest" >> "$GITHUB_OUTPUT"
+            echo "version=$(date -u +%Y.%m.%d)-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Build artifacts
@@ -42,16 +46,20 @@ jobs:
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.ver.outputs.tag }}
           VERSION: ${{ steps.ver.outputs.version }}
         run: |
           # Keep the release/tag in place and clobber assets, so an install
           # caught mid-publish never sees a missing release (only briefly stale
-          # assets, which the bootstrap retries on a checksum mismatch).
-          if ! gh release view "$VERSION" >/dev/null 2>&1; then
-            gh release create "$VERSION" \
+          # assets, which the bootstrap retries on a checksum mismatch). The
+          # release name carries the real version for the updater.
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" \
               --title "$VERSION" --notes "Build ${GITHUB_SHA}" --target "$GITHUB_SHA"
+          else
+            gh release edit "$TAG" --title "$VERSION" --target "$GITHUB_SHA"
           fi
-          gh release upload "$VERSION" --clobber \
+          gh release upload "$TAG" --clobber \
             dist/slashnoded-* \
             dist/slashnode-web.tar.gz dist/slashnode-web.tar.gz.sha256 \
             dist/slashnode-apps.tar.gz dist/slashnode-apps.tar.gz.sha256

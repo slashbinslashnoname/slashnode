@@ -17,7 +17,7 @@
   ],
   "services": {
     "electrs": {
-      "image": "slashnode/electrs:0.10.0",
+      "image": "getumbrel/electrs:v0.10.0",
       "ports": [{ "host": 50001, "container": 50001 }],
       "volumes": [{ "name": "electrs-data", "path": "/data/electrs" }],
       "healthcheck": { "type": "tcp", "port": 50001, "interval": "30s" }
@@ -27,6 +27,11 @@
     "bitcoind.rpchost": "${bitcoind.exports.rpc.host}",
     "bitcoind.rpcuser": "${bitcoind.exports.rpc.user}",
     "bitcoind.rpcpass": "${bitcoind.exports.rpc.password}"
+  },
+  "probe": {
+    "type": "electrum",
+    "port": 50001,
+    "display": [{ "label": "Height", "field": "height" }]
   },
   "exports": {
     "electrum.host": "electrs",

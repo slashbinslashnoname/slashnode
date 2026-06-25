@@ -39,14 +39,21 @@
   ],
   "services": {
     "geth": {
-      "image": "slashnode/geth:1.14.0",
+      "image": "ethereum/client-go:v1.14.0",
       "ports": [
         { "host": 30303, "container": 30303 },
-        { "host": 30303, "container": 30303, "protocol": "udp" }
+        { "host": 30303, "container": 30303, "protocol": "udp" },
+        { "hostIP": "127.0.0.1", "host": 8545, "container": 8545 }
       ],
       "volumes": [{ "name": "geth-data", "path": "/data/.ethereum" }],
       "healthcheck": { "type": "rpc", "method": "eth_syncing", "interval": "30s" }
     }
+  },
+  "probe": {
+    "type": "rpc",
+    "port": 8545,
+    "method": "eth_blockNumber",
+    "display": [{ "label": "Height", "hex": true }]
   },
   "exports": {
     "rpc.host": "geth",

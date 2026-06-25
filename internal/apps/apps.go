@@ -41,16 +41,30 @@ type Web struct {
 	Path string `json:"path,omitempty"`
 }
 
-// Probe declares how to check what an app is doing. "http" does a GET on the
-// host port/path; "rpc" issues a Bitcoin-style JSON-RPC call (auth taken from
-// the named input/secret) and returns the result.
+// ProbeStat declares one display value: a Label, the result Field to read (empty
+// = the scalar result, e.g. geth eth_blockNumber), and whether it is Hex.
+type ProbeStat struct {
+	Label string `json:"label"`
+	Field string `json:"field,omitempty"`
+	Hex   bool   `json:"hex,omitempty"`
+}
+
+// Probe declares how to check what an app is doing:
+//   - "http"     : GET the host port/path, report reachability.
+//   - "rpc"      : Bitcoin/Ethereum-style JSON-RPC (optional basic auth).
+//   - "electrum" : Electrum protocol over TCP (blockchain.headers.subscribe).
+//   - "lnd"      : LND REST /v1/getinfo using the admin macaroon.
+//
+// Display declares which fields to surface and how to label them — the frontend
+// renders these generically rather than hardcoding per-app stats.
 type Probe struct {
-	Type       string `json:"type"`
-	Port       int    `json:"port"`
-	Path       string `json:"path,omitempty"`
-	Method     string `json:"method,omitempty"`
-	UserInput  string `json:"userInput,omitempty"`
-	PassSecret string `json:"passSecret,omitempty"`
+	Type       string      `json:"type"`
+	Port       int         `json:"port"`
+	Path       string      `json:"path,omitempty"`
+	Method     string      `json:"method,omitempty"`
+	UserInput  string      `json:"userInput,omitempty"`
+	PassSecret string      `json:"passSecret,omitempty"`
+	Display    []ProbeStat `json:"display,omitempty"`
 }
 
 // Manifest is an app manifest (slashnode-app.json).

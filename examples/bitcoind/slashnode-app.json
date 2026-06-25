@@ -42,7 +42,7 @@
   ],
   "services": {
     "bitcoind": {
-      "image": "slashnode/bitcoind:27.0",
+      "image": "lncm/bitcoind:v27.0",
       "ports": [
         { "host": 8333, "container": 8333 },
         { "hostIP": "127.0.0.1", "host": 8332, "container": 8332 }
@@ -56,7 +56,11 @@
     "port": 8332,
     "method": "getblockchaininfo",
     "userInput": "RPC_USER",
-    "passSecret": "RPC_PASSWORD"
+    "passSecret": "RPC_PASSWORD",
+    "display": [
+      { "label": "Height", "field": "blocks" },
+      { "label": "Headers", "field": "headers" }
+    ]
   },
   "exports": {
     "rpc.host": "bitcoind",

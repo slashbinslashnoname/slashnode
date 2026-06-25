@@ -26,8 +26,11 @@
   ],
   "services": {
     "lnd": {
-      "image": "slashnode/lnd:0.18.0",
-      "ports": [{ "host": 9735, "container": 9735 }],
+      "image": "lightninglabs/lnd:v0.18.0-beta",
+      "ports": [
+        { "host": 9735, "container": 9735 },
+        { "hostIP": "127.0.0.1", "host": 8085, "container": 8080 }
+      ],
       "volumes": [{ "name": "lnd-data", "path": "/data/.lnd" }],
       "healthcheck": { "type": "rpc", "method": "getinfo", "interval": "30s" }
     }
@@ -37,5 +40,13 @@
     "bitcoind.rpcuser": "${bitcoind.exports.rpc.user}",
     "bitcoind.rpcpass": "${bitcoind.exports.rpc.password}",
     "bitcoind.zmqpubrawblock": "${bitcoind.exports.zmq.rawblock}"
+  },
+  "probe": {
+    "type": "lnd",
+    "port": 8085,
+    "display": [
+      { "label": "Height", "field": "block_height" },
+      { "label": "Synced", "field": "synced_to_chain" }
+    ]
   }
 }
