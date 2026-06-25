@@ -124,12 +124,6 @@ export function AppTile({ app }: { app: App }) {
 
       {probe && <ProbeLine probe={probe} />}
 
-      {app.notes && (
-        <div className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-muted">
-          ℹ {app.notes}
-        </div>
-      )}
-
       <div className="flex flex-wrap gap-1.5">
         {hasUpdate && (
           <button
