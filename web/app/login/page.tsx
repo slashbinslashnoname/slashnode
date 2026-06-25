@@ -1,4 +1,4 @@
-import { Skull } from "@/components/Skull";
+import { Slash } from "@/components/Slash";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LoginForm } from "@/components/LoginForm";
 
@@ -14,7 +14,7 @@ export default async function Login({
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-4">
       <ThemeToggle />
-      <Skull />
+      <Slash />
       <div className="text-center">
         <h1 className="text-2xl font-bold tracking-widest">
           <span className="text-primary">/</span>SlashNode

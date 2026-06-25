@@ -19,8 +19,10 @@ import (
 // Network is the shared Docker network all app containers join.
 const Network = "slashnode"
 
-// Port maps a host port to a container port.
+// Port maps a host port to a container port. HostIP optionally binds the host
+// side to a specific address (e.g. 127.0.0.1 to keep an RPC port local-only).
 type Port struct {
+	HostIP    string `json:"hostIP,omitempty"`
 	Host      int    `json:"host"`
 	Container int    `json:"container"`
 	Protocol  string `json:"protocol,omitempty"`
@@ -77,6 +79,9 @@ func BuildCompose(appID string, services map[string]Service, env map[string]stri
 			ports := make([]string, 0, len(s.Ports))
 			for _, p := range s.Ports {
 				spec := fmt.Sprintf("%d:%d", p.Host, p.Container)
+				if p.HostIP != "" {
+					spec = fmt.Sprintf("%s:%d:%d", p.HostIP, p.Host, p.Container)
+				}
 				if p.Protocol != "" {
 					spec += "/" + p.Protocol
 				}

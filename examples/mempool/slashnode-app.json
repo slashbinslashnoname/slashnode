@@ -30,5 +30,7 @@
     "bitcoind.rpcpass": "${bitcoind.exports.rpc.password}",
     "electrs.host": "${electrs.exports.electrum.host}",
     "electrs.port": "${electrs.exports.electrum.port}"
-  }
+  },
+  "web": { "port": 8999, "path": "/" },
+  "probe": { "type": "http", "port": 8999, "path": "/" }
 }

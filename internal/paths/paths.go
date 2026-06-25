@@ -53,3 +53,4 @@ func SystemdUpdateService() string { return p("etc", "systemd", "system", "slash
 func SystemdUpdateTimer() string   { return p("etc", "systemd", "system", "slashnoded-update.timer") }
 func AvahiDir() string             { return p("etc", "avahi", "services") }
 func AvahiService() string         { return p("etc", "avahi", "services", "slashnode.service") }
+func CaddyfilePath() string        { return p("etc", "caddy", "Caddyfile") }

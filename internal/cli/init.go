@@ -6,6 +6,7 @@ import (
 	"os"
 	"runtime"
 
+	"github.com/slashbinslashnoname/slashnode/internal/apps"
 	"github.com/slashbinslashnoname/slashnode/internal/avahi"
 	"github.com/slashbinslashnoname/slashnode/internal/config"
 	"github.com/slashbinslashnoname/slashnode/internal/paths"
@@ -128,6 +129,12 @@ func Init(args []string) error {
 			return fmt.Errorf("writing update units: %w", err)
 		}
 		logf(*quiet, "→ update timer written (%s)", paths.SystemdUpdateTimer())
+
+		// Initial reverse-proxy config (root host → front end).
+		if err := apps.ReloadProxy(); err != nil {
+			return fmt.Errorf("writing Caddyfile: %w", err)
+		}
+		logf(*quiet, "→ Caddyfile written (%s)", paths.CaddyfilePath())
 	} else {
 		logf(*quiet, "→ %s detected: systemd/Avahi skipped (Linux only)", runtime.GOOS)
 	}

@@ -40,6 +40,7 @@ func Install(dir, id string, inputs map[string]string) error {
 			return fmt.Errorf("installing %s: %w", appID, err)
 		}
 	}
+	_ = ReloadProxy() // best-effort: refresh reverse-proxy routes
 	return nil
 }
 
@@ -64,6 +65,7 @@ func Uninstall(id string, purge bool) error {
 	if purge {
 		_ = os.RemoveAll(paths.AppRuntimeDir(id))
 	}
+	_ = ReloadProxy() // best-effort: refresh reverse-proxy routes
 	return nil
 }
 
@@ -203,12 +205,17 @@ func installOne(dir, appID string, provided map[string]string, isTarget bool) er
 	if err := mergeAppSecrets(appID, secret); err != nil {
 		return err
 	}
+	webPort := 0
+	if man.Web != nil {
+		webPort = man.Web.Port
+	}
 	state := LoadState()
 	state.Installed[appID] = InstalledApp{
 		ID:          appID,
 		Version:     man.Version,
 		InstalledAt: time.Now().UTC().Format(time.RFC3339),
 		Inputs:      nonSecret,
+		WebPort:     webPort,
 	}
 	return saveState(state)
 }

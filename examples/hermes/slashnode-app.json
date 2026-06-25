@@ -83,5 +83,7 @@
     "api.port": 8642,
     "api.key": "${secret.API_SERVER_KEY}",
     "dashboard.port": 9119
-  }
+  },
+  "web": { "port": 9119, "path": "/" },
+  "probe": { "type": "http", "port": 9119, "path": "/" }
 }

@@ -120,6 +120,20 @@ func Apps(args []string) error {
 		fmt.Print(logs)
 		return nil
 
+	case "probe":
+		if len(args) < 2 {
+			return fmt.Errorf("usage: slashnoded apps probe <id>")
+		}
+		res, err := apps.RunProbe(dir, args[1])
+		if err != nil {
+			return err
+		}
+		fmt.Printf("type=%s ok=%v %s\n", res.Type, res.OK, res.Detail)
+		for k, v := range res.Result {
+			fmt.Printf("  %s: %v\n", k, v)
+		}
+		return nil
+
 	default:
 		return fmt.Errorf("unknown apps subcommand: %q", args[0])
 	}

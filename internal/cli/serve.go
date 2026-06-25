@@ -131,6 +131,9 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return
 		}
+		for i := range cat {
+			cat[i].URL = apps.AppURL(cfg, &cat[i].Manifest)
+		}
 		writeJSON(w, http.StatusOK, map[string]any{"apps": cat})
 	}))
 
@@ -141,7 +144,11 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 			return
 		}
 		_, installed := apps.LoadState().Installed[man.ID]
-		writeJSON(w, http.StatusOK, apps.CatalogEntry{Manifest: *man, Installed: installed})
+		writeJSON(w, http.StatusOK, apps.CatalogEntry{
+			Manifest:  *man,
+			Installed: installed,
+			URL:       apps.AppURL(cfg, man),
+		})
 	}))
 
 	mux.Handle("POST /api/v1/apps/{id}/install", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
@@ -172,6 +179,15 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 			return
 		}
 		writeJSON(w, http.StatusOK, map[string]any{"docker": apps.DockerAvailable(), "services": st})
+	}))
+
+	mux.Handle("GET /api/v1/apps/{id}/probe", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
+		res, err := apps.RunProbe(appsDir, r.PathValue("id"))
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, res)
 	}))
 
 	mux.Handle("GET /api/v1/apps/{id}/logs", bearer(sec, func(w http.ResponseWriter, r *http.Request) {

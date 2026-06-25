@@ -31,6 +31,12 @@ INIT_ARGS=()
 
 red()  { printf '\033[1;31m%s\033[0m\n' "$*"; }
 dim()  { printf '\033[2m%s\033[0m\n' "$*"; }
+
+banner() {
+  printf '\033[1;31m      //\n     //\n    //\n   //\n  //\n //\033[0m\n'
+  printf '\033[1;31m/\033[0mSlashNode\n'
+  printf '\033[2myour node, your rules\033[0m\n\n'
+}
 info() { printf '→ %s\n' "$*"; }
 die()  { printf '\033[1;31m✗ %s\033[0m\n' "$*" >&2; exit 1; }
 
@@ -91,6 +97,24 @@ install_node() {
   info "Installing Node.js (NodeSource 22.x)…"
   curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
   apt-get install -y nodejs
+}
+
+install_caddy() {
+  # Caddy reverse-proxies each app under its own subdomain. avahi-utils lets us
+  # advertise *.slashnode.local on the LAN.
+  if ! command -v caddy >/dev/null; then
+    info "Installing Caddy…"
+    apt-get install -y debian-keyring debian-archive-keyring apt-transport-https curl
+    curl -fsSL "https://dl.cloudsmith.io/public/caddy/stable/gpg.key" \
+      | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+    curl -fsSL "https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt" \
+      > /etc/apt/sources.list.d/caddy-stable.list
+    apt-get update -y
+    apt-get install -y caddy
+  else
+    info "Caddy already present."
+  fi
+  command -v avahi-publish >/dev/null || apt-get install -y avahi-utils || true
 }
 
 # fetch_verify <name>: download /tmp/<name> and /tmp/<name>.sha256 and verify
@@ -205,10 +229,11 @@ install_binary() {
 
 main() {
   require_root "$@"
-  red "SlashNode — installation"
+  banner
   pre_checks
   install_docker
   install_node
+  install_caddy
 
   if needs_install "$SLASHNODE_VERSION"; then
     install_binary
@@ -217,13 +242,15 @@ main() {
   install_apps
 
   configure_access
-  info "Initializing (config, secrets, systemd, Avahi)…"
+  info "Initializing (config, secrets, systemd, Avahi, Caddy)…"
   slashnoded init --quiet "${INIT_ARGS[@]}"
 
   info "Enabling the service…"
   systemctl daemon-reload
   systemctl enable --now slashnoded
   systemctl enable --now slashnoded-update.timer
+  systemctl enable --now caddy 2>/dev/null || true
+  systemctl reload caddy 2>/dev/null || true
 
   echo
   slashnoded status --post-install

@@ -78,6 +78,7 @@ function Field({
   value: string;
   onChange: (key: string, v: string) => void;
 }) {
+  const [show, setShow] = useState(false);
   const base =
     "rounded-lg border border-border bg-bg px-3 py-2 outline-none focus:border-primary";
 
@@ -88,7 +89,27 @@ function Field({
         {input.required && <span className="text-primary"> *</span>}
       </span>
 
-      {input.type === "select" ? (
+      {input.type === "password" ? (
+        <div className="flex items-stretch gap-2">
+          <input
+            className={`${base} flex-1`}
+            type={show ? "text" : "password"}
+            value={value}
+            placeholder={input.placeholder}
+            minLength={input.minLength}
+            required={input.required}
+            onChange={(e) => onChange(input.key, e.target.value)}
+          />
+          <button
+            type="button"
+            onClick={() => setShow((s) => !s)}
+            aria-label={show ? "Hide" : "Show"}
+            className="rounded-lg border border-border px-3 text-sm hover:border-primary"
+          >
+            {show ? "🙈" : "👁"}
+          </button>
+        </div>
+      ) : input.type === "select" ? (
         <select
           className={base}
           value={value}
@@ -118,13 +139,11 @@ function Field({
         <input
           className={base}
           type={
-            input.type === "password"
-              ? "password"
-              : input.type === "email"
-                ? "email"
-                : input.type === "number"
-                  ? "number"
-                  : "text"
+            input.type === "email"
+              ? "email"
+              : input.type === "number"
+                ? "number"
+                : "text"
           }
           value={value}
           placeholder={input.placeholder}

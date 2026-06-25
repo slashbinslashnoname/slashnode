@@ -43,10 +43,20 @@
   "services": {
     "bitcoind": {
       "image": "slashnode/bitcoind:27.0",
-      "ports": [{ "host": 8333, "container": 8333 }],
+      "ports": [
+        { "host": 8333, "container": 8333 },
+        { "hostIP": "127.0.0.1", "host": 8332, "container": 8332 }
+      ],
       "volumes": [{ "name": "bitcoin-data", "path": "/data/.bitcoin" }],
       "healthcheck": { "type": "rpc", "method": "getblockchaininfo", "interval": "30s" }
     }
+  },
+  "probe": {
+    "type": "rpc",
+    "port": 8332,
+    "method": "getblockchaininfo",
+    "userInput": "RPC_USER",
+    "passSecret": "RPC_PASSWORD"
   },
   "exports": {
     "rpc.host": "bitcoind",

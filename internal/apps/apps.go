@@ -34,6 +34,25 @@ type Input struct {
 	Max         *float64 `json:"max,omitempty"`
 }
 
+// Web declares an app's primary web UI (host port + path), used by the
+// frontend to build an "Open" link.
+type Web struct {
+	Port int    `json:"port"`
+	Path string `json:"path,omitempty"`
+}
+
+// Probe declares how to check what an app is doing. "http" does a GET on the
+// host port/path; "rpc" issues a Bitcoin-style JSON-RPC call (auth taken from
+// the named input/secret) and returns the result.
+type Probe struct {
+	Type       string `json:"type"`
+	Port       int    `json:"port"`
+	Path       string `json:"path,omitempty"`
+	Method     string `json:"method,omitempty"`
+	UserInput  string `json:"userInput,omitempty"`
+	PassSecret string `json:"passSecret,omitempty"`
+}
+
 // Manifest is an app manifest (slashnode-app.json).
 type Manifest struct {
 	ManifestVersion int             `json:"manifestVersion"`
@@ -48,12 +67,15 @@ type Manifest struct {
 	Services        json.RawMessage `json:"services,omitempty"`
 	Exports         map[string]any  `json:"exports,omitempty"`
 	Wiring          map[string]any  `json:"wiring,omitempty"`
+	Web             *Web            `json:"web,omitempty"`
+	Probe           *Probe          `json:"probe,omitempty"`
 }
 
 // CatalogEntry enriches a manifest with its installation state for the UI.
 type CatalogEntry struct {
 	Manifest
-	Installed bool `json:"installed"`
+	Installed bool   `json:"installed"`
+	URL       string `json:"url,omitempty"` // reverse-proxy URL (set by the API layer)
 }
 
 // LoadCatalog reads all manifests dir/*/slashnode-app.json, sorted by name.
@@ -98,6 +120,7 @@ type InstalledApp struct {
 	Version     string            `json:"version"`
 	InstalledAt string            `json:"installed_at"`
 	Inputs      map[string]string `json:"inputs"`
+	WebPort     int               `json:"web_port,omitempty"` // host port of the app's web UI (for the reverse proxy)
 }
 
 // State is the installation state (var/lib/slashnode/apps.json).
@@ -140,6 +163,18 @@ func saveState(s *State) error {
 	}
 	b, _ := json.MarshalIndent(s, "", "  ")
 	return os.WriteFile(paths.AppsStateFile(), append(b, '\n'), 0o644)
+}
+
+// loadAppSecrets returns the stored secret inputs for an app (empty if none).
+func loadAppSecrets(id string) map[string]string {
+	all := map[string]map[string]string{}
+	if b, err := os.ReadFile(paths.AppSecretsFile()); err == nil {
+		_ = json.Unmarshal(b, &all)
+	}
+	if s, ok := all[id]; ok {
+		return s
+	}
+	return map[string]string{}
 }
 
 // mergeAppSecrets merges (or purges if values==nil) an app's secrets into

@@ -41,6 +41,23 @@ export type App = {
   dependencies?: string[];
   inputs?: AppInput[];
   installed: boolean;
+  url?: string;
+  web?: { port: number; path?: string };
+  probe?: { type: string };
+};
+
+export type ServiceStatus = {
+  service: string;
+  state: string;
+  status: string;
+  health?: string;
+};
+
+export type ProbeResult = {
+  type: string;
+  ok: boolean;
+  detail?: string;
+  result?: Record<string, unknown>;
 };
 
 async function apiGet<T>(path: string): Promise<T | null> {

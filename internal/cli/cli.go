@@ -23,20 +23,19 @@ func colorize(s, color string) string {
 	return color + s + ansiReset
 }
 
-// asciiSkull is the red skull — the SlashNode mascot.
-const asciiSkull = `     .-------.
-    /         \
-   |  ()   ()  |
-   |     ^     |
-   |  '-----'  |
-    \  |||||  /
-     '-------'`
+// asciiSlash is the red slash — the SlashNode logo.
+const asciiSlash = `      //
+     //
+    //
+   //
+  //
+ //`
 
-// Banner prints the red skull and wordmark on stdout.
+// Banner prints the red slash logo and wordmark on stdout.
 func Banner() {
-	fmt.Println(colorize(asciiSkull, ansiRed))
-	fmt.Printf("   %s%s\n", colorize("/", ansiRed), "SlashNode")
-	fmt.Println(colorize("   your node, your rules\n", ansiDim))
+	fmt.Println(colorize(asciiSlash, ansiRed))
+	fmt.Printf("%s%s\n", colorize("/", ansiRed), "SlashNode")
+	fmt.Println(colorize("your node, your rules\n", ansiDim))
 }
 
 // Usage prints the general help.
