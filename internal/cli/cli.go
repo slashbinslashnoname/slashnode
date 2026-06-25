@@ -48,6 +48,7 @@ Commands:
   init         Generate config + secrets + systemd unit + Avahi service (idempotent)
   serve        Start the daemon (Go API + supervised Next.js front end)
   status       Show node status (--post-install for URL + credentials)
+  apps         Manage apps (list | install <id> [K=V…] | uninstall <id> [--purge])
   update       Apply the latest binary update (--to <tag>)
   check-update Check whether an update is available (notify-only)
   uninstall    Remove the service and binary (--purge also removes data)

@@ -14,7 +14,6 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"time"
 
 	"github.com/slashbinslashnoname/slashnode/internal/paths"
 )
@@ -133,55 +132,6 @@ func Catalog(dir string) ([]CatalogEntry, error) {
 		out = append(out, CatalogEntry{Manifest: m, Installed: installed})
 	}
 	return out, nil
-}
-
-// Install validates the inputs, separates secrets/non-secrets and persists the state.
-func Install(dir, id string, inputs map[string]string) error {
-	man, err := Find(dir, id)
-	if err != nil {
-		return err
-	}
-
-	nonSecret := map[string]string{}
-	secret := map[string]string{}
-	for _, in := range man.Inputs {
-		val, ok := inputs[in.Key]
-		if (!ok || val == "") && in.Required {
-			return fmt.Errorf("missing required field: %s", in.Key)
-		}
-		if !ok {
-			continue
-		}
-		if in.MinLength > 0 && len(val) < in.MinLength {
-			return fmt.Errorf("%s: %d characters minimum", in.Key, in.MinLength)
-		}
-		if in.Secret || in.Type == "password" {
-			secret[in.Key] = val
-		} else {
-			nonSecret[in.Key] = val
-		}
-	}
-
-	if err := mergeAppSecrets(id, secret); err != nil {
-		return err
-	}
-
-	state := LoadState()
-	state.Installed[id] = InstalledApp{
-		ID:          id,
-		Version:     man.Version,
-		InstalledAt: time.Now().UTC().Format(time.RFC3339),
-		Inputs:      nonSecret,
-	}
-	return saveState(state)
-}
-
-// Uninstall removes an app from the state (and its secrets).
-func Uninstall(id string) error {
-	state := LoadState()
-	delete(state.Installed, id)
-	_ = mergeAppSecrets(id, nil) // purge the app's secrets
-	return saveState(state)
 }
 
 func saveState(s *State) error {

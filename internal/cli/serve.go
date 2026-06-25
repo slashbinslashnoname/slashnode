@@ -157,7 +157,8 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 	}))
 
 	mux.Handle("POST /api/v1/apps/{id}/uninstall", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
-		if err := apps.Uninstall(r.PathValue("id")); err != nil {
+		purge := r.URL.Query().Get("purge") == "true"
+		if err := apps.Uninstall(r.PathValue("id"), purge); err != nil {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}

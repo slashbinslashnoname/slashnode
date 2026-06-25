@@ -189,19 +189,22 @@ install_binary() {
   tag="$SLASHNODE_VERSION"
   [ "$tag" = "latest" ] && tag="latest"
 
-  local url="${BASE_URL}/${tag}/slashnoded-linux-${arch}"
+  # Download under the original artifact name so the checksum file (which
+  # references that name) verifies with `sha256sum -c`.
+  local name="slashnoded-linux-${arch}"
+  local url="${BASE_URL}/${tag}/${name}"
   info "Downloading slashnoded (linux/${arch}, ${tag})…"
-  curl -fsSL -o /tmp/slashnoded "$url" \
+  curl -fsSL -o "/tmp/${name}" "$url" \
     || die "download failed: $url"
-  curl -fsSL -o /tmp/slashnoded.sha256 "${url}.sha256" \
+  curl -fsSL -o "/tmp/${name}.sha256" "${url}.sha256" \
     || die "checksum not found: ${url}.sha256"
 
   info "Verifying checksum…"
-  ( cd /tmp && sha256sum -c slashnoded.sha256 >/dev/null 2>&1 ) \
+  ( cd /tmp && sha256sum -c "${name}.sha256" >/dev/null 2>&1 ) \
     || die "invalid checksum — installation aborted."
 
-  install -m 0755 /tmp/slashnoded "${INSTALL_DIR}/slashnoded"
-  rm -f /tmp/slashnoded /tmp/slashnoded.sha256
+  install -m 0755 "/tmp/${name}" "${INSTALL_DIR}/slashnoded"
+  rm -f "/tmp/${name}" "/tmp/${name}.sha256"
   info "Binary installed: ${INSTALL_DIR}/slashnoded"
 }
 

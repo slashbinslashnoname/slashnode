@@ -37,6 +37,8 @@ func main() {
 		err = cli.Serve(args)
 	case "status":
 		err = cli.Status(args)
+	case "apps":
+		err = cli.Apps(args)
 	case "update":
 		err = cli.Update(args)
 	case "check-update":

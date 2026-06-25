@@ -32,6 +32,13 @@ func InitialPasswordFile() string { return p("var", "lib", "slashnode", "initial
 func UpdateStateFile() string     { return p("var", "lib", "slashnode", "update.json") }
 func AppsStateFile() string       { return p("var", "lib", "slashnode", "apps.json") }
 func AppSecretsFile() string      { return p("var", "lib", "slashnode", "app-secrets.json") }
+func RegistryFile() string        { return p("var", "lib", "slashnode", "registry.json") }
+
+// Per-app runtime directory (generated compose file, etc.).
+func AppRuntimeDir(id string) string { return p("var", "lib", "slashnode", "apps", id) }
+func AppComposeFile(id string) string {
+	return p("var", "lib", "slashnode", "apps", id, "docker-compose.yml")
+}
 
 // Next.js front deployed on the device (served/launched by the daemon).
 func WebDir() string { return p("usr", "share", "slashnode", "web") }
