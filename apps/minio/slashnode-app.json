@@ -1,0 +1,49 @@
+{
+  "manifestVersion": 1,
+  "id": "minio",
+  "name": "MinIO",
+  "version": "latest",
+  "category": "storage",
+  "description": "S3-compatible object storage with a web console.",
+  "icon": "🪣",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "MINIO_ROOT_USER",
+      "label": "Root user",
+      "type": "text",
+      "required": true,
+      "default": "admin"
+    },
+    {
+      "key": "MINIO_ROOT_PASSWORD",
+      "label": "Root password",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 8
+    }
+  ],
+  "services": {
+    "minio": {
+      "image": "minio/minio:latest",
+      "command": "server /data --console-address :9001",
+      "ports": [
+        { "host": 9000, "container": 9000 },
+        { "host": 9001, "container": 9001 }
+      ],
+      "volumes": [{ "name": "minio-data", "path": "/data" }],
+      "environment": {
+        "MINIO_ROOT_USER": "${input.MINIO_ROOT_USER}",
+        "MINIO_ROOT_PASSWORD": "${secret.MINIO_ROOT_PASSWORD}"
+      },
+      "healthcheck": { "type": "http", "path": "/minio/health/live", "port": 9000, "interval": "30s" }
+    }
+  },
+  "exports": {
+    "s3.host": "minio",
+    "s3.port": 9000
+  },
+  "web": { "port": 9001, "path": "/" },
+  "probe": { "type": "http", "port": 9001, "path": "/" }
+}

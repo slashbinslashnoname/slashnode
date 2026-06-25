@@ -51,6 +51,8 @@ func RunProbe(dir, id string) (*ProbeResult, error) {
 	switch p.Type {
 	case "http":
 		ok, detail = httpProbe(p)
+	case "tcp":
+		ok, detail = tcpProbe(p)
 	case "rpc":
 		data, ok, detail = rpcProbe(id, p)
 	case "electrum":
@@ -83,6 +85,15 @@ func buildStats(display []ProbeStat, data map[string]any) []Stat {
 		stats = append(stats, Stat{Label: d.Label, Value: formatVal(v, d.Hex)})
 	}
 	return stats
+}
+
+func tcpProbe(p *Probe) (bool, string) {
+	conn, err := net.DialTimeout("tcp", fmt.Sprintf("127.0.0.1:%d", p.Port), 4*time.Second)
+	if err != nil {
+		return false, err.Error()
+	}
+	_ = conn.Close()
+	return true, "reachable"
 }
 
 func httpProbe(p *Probe) (bool, string) {

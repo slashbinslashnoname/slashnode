@@ -282,10 +282,11 @@ function ProbeLine({ probe }: { probe: ProbeResult }) {
             </span>
           ))}
         </div>
+      ) : probe.ok ? (
+        <span className="text-primary">● reachable</span>
       ) : (
-        <span className={probe.ok ? "text-primary" : "text-muted"}>
-          {probe.ok ? "● reachable" : "○ unreachable"}
-          {probe.detail ? ` — ${probe.detail}` : ""}
+        <span className="text-muted" title={probe.detail}>
+          ○ not synced or unavailable yet
         </span>
       )}
     </div>

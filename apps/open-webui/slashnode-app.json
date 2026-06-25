@@ -1,0 +1,22 @@
+{
+  "manifestVersion": 1,
+  "id": "open-webui",
+  "name": "Open WebUI",
+  "version": "latest",
+  "category": "ai",
+  "description": "ChatGPT-style web UI for local and remote LLMs.",
+  "icon": "💬",
+  "dependencies": [],
+  "inputs": [],
+  "services": {
+    "open-webui": {
+      "image": "ghcr.io/open-webui/open-webui:main",
+      "ports": [{ "host": 3010, "container": 8080 }],
+      "volumes": [{ "name": "open-webui-data", "path": "/app/backend/data" }],
+      "healthcheck": { "type": "http", "path": "/", "port": 8080, "interval": "30s" }
+    }
+  },
+  "web": { "port": 3010, "path": "/" },
+  "probe": { "type": "http", "port": 3010, "path": "/" },
+  "notes": "On first launch, create the admin account. Add an Ollama URL or an OpenAI API key under Settings → Connections."
+}

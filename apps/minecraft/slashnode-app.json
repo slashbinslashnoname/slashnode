@@ -1,0 +1,40 @@
+{
+  "manifestVersion": 1,
+  "id": "minecraft",
+  "name": "Minecraft Server",
+  "version": "latest",
+  "category": "games",
+  "description": "Java Edition Minecraft server (itzg/minecraft-server).",
+  "icon": "⛏️",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "VERSION",
+      "label": "Minecraft version",
+      "type": "text",
+      "default": "LATEST"
+    },
+    {
+      "key": "MEMORY",
+      "label": "Memory",
+      "type": "text",
+      "default": "2G",
+      "help": "JVM heap, e.g. 2G."
+    }
+  ],
+  "services": {
+    "minecraft": {
+      "image": "itzg/minecraft-server:latest",
+      "ports": [{ "host": 25565, "container": 25565 }],
+      "volumes": [{ "name": "minecraft-data", "path": "/data" }],
+      "environment": {
+        "EULA": "TRUE",
+        "VERSION": "${input.VERSION}",
+        "MEMORY": "${input.MEMORY}"
+      },
+      "healthcheck": { "type": "tcp", "port": 25565, "interval": "30s" }
+    }
+  },
+  "probe": { "type": "tcp", "port": 25565 },
+  "notes": "Connect from Minecraft Java Edition to <your-host>:25565. By installing you accept the Minecraft EULA."
+}
