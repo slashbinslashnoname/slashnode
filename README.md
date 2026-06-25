@@ -85,11 +85,20 @@ slashnoded uninstall      # remove service + binary (--purge: data too)
 
 ## Updates
 
-**Notify-only** policy by default: the systemd timer checks the latest release
-daily and persists the state (`/var/lib/slashnode/update.json`). The UI then
-shows a banner with an **"Apply"** button that triggers
-`slashnoded update` (download + checksum verification + atomic
-replacement of the binary + restart). Configurable in `config.json`
+**Notify-only** policy by default. The UI shows the current version (bottom
+right) and, when a newer release exists, an **Update** button that updates the
+**binary + web bundle + app catalog** and restarts. You can also update from the
+shell:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/slashbinslashnoname/slashnode/master/update.sh | bash
+# or, with the binary already installed:
+slashnoded update
+```
+
+The systemd timer also checks daily and records availability in
+`/var/lib/slashnode/update.json`; the API additionally does a short-cached live
+check so the UI reflects new releases promptly. Configurable in `config.json`
 (`update.policy`, `update.channel`).
 
 ## Development

@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/slashbinslashnoname/slashnode/internal/paths"
@@ -53,6 +54,32 @@ func Check(current, channel string) (*Info, error) {
 		return nil, err
 	}
 	return info, nil
+}
+
+var (
+	cacheMu   sync.Mutex
+	cacheInfo *Info
+	cacheAt   time.Time
+)
+
+// CheckCached returns a live availability check, cached for a few minutes so the
+// UI reflects reality without hammering the GitHub API on every page load. Falls
+// back to the last persisted state on error.
+func CheckCached(current, channel string) *Info {
+	cacheMu.Lock()
+	defer cacheMu.Unlock()
+	if cacheInfo != nil && time.Since(cacheAt) < 10*time.Minute {
+		return cacheInfo
+	}
+	info, err := Check(current, channel)
+	if err != nil {
+		if cacheInfo != nil {
+			return cacheInfo
+		}
+		return LoadState(current)
+	}
+	cacheInfo, cacheAt = info, time.Now()
+	return info
 }
 
 // LoadState reads the last known state. Returns a "not available" Info if the
@@ -107,9 +134,50 @@ func Apply(target, channel string) error {
 		return err
 	}
 
-	// Best-effort restart (systemd will relaunch with the new binary).
+	// Also refresh the web bundle and app catalog so the whole node updates,
+	// not just the binary (best-effort: missing on dev/test machines).
+	_ = updateBundle(downloadTag, "slashnode-web.tar.gz", paths.WebDir())
+	_ = updateBundle(downloadTag, "slashnode-apps.tar.gz", paths.AppsDir())
+
+	// Best-effort restart (systemd will relaunch with the new binary + web).
 	restart()
 	return nil
+}
+
+// updateBundle downloads a release tarball, verifies its checksum and extracts
+// it into dest (replacing the previous contents).
+func updateBundle(tag, name, dest string) error {
+	base := fmt.Sprintf("https://github.com/%s/releases/download/%s/%s", repo, tag, name)
+	data, err := download(base)
+	if err != nil {
+		return err
+	}
+	sumFile, err := download(base + ".sha256")
+	if err != nil {
+		return err
+	}
+	if err := verifySHA256(data, sumFile); err != nil {
+		return err
+	}
+
+	tmp, err := os.CreateTemp("", "slashnode-bundle-*.tgz")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(tmp.Name())
+	if _, err := tmp.Write(data); err != nil {
+		tmp.Close()
+		return err
+	}
+	tmp.Close()
+
+	if err := os.RemoveAll(dest); err != nil {
+		return err
+	}
+	if err := os.MkdirAll(dest, 0o755); err != nil {
+		return err
+	}
+	return exec.Command("tar", "-xzf", tmp.Name(), "-C", dest).Run()
 }
 
 // latestRelease returns the latest release's download tag and display version.

@@ -127,7 +127,7 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 	}))
 
 	mux.Handle("/api/v1/update", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, http.StatusOK, updater.LoadState(Version))
+		writeJSON(w, http.StatusOK, updater.CheckCached(Version, cfg.Update.Channel))
 	}))
 
 	mux.Handle("POST /api/v1/update/apply", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
