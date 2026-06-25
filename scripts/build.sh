@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 #
-# Compile slashnoded pour toutes les plateformes cibles et génère les sommes
-# SHA-256 attendues par bootstrap.sh.
+# Builds slashnoded for all target platforms and generates the SHA-256
+# checksums expected by bootstrap.sh.
 #
 #   ./scripts/build.sh [version]
 #
-# Sortie dans dist/ :
+# Output in dist/:
 #   slashnoded-linux-amd64(.sha256)
 #   slashnoded-linux-arm64(.sha256)
 #   slashnoded-darwin-amd64(.sha256)   # Apple Intel
@@ -20,7 +20,7 @@ OUT="dist"
 PKG="github.com/slashbinslashnoname/slashnode/cmd/slashnoded"
 LDFLAGS="-s -w -X main.Version=${VERSION}"
 
-# os/arch à produire.
+# os/arch to produce.
 TARGETS=(
   "linux/amd64"
   "linux/arm64"
@@ -31,25 +31,25 @@ TARGETS=(
 mkdir -p "$OUT"
 echo "Build slashnoded ${VERSION}"
 
-# --- Binaires Go (multi-arch) ---
+# --- Go binaries (multi-arch) ---
 for t in "${TARGETS[@]}"; do
   os="${t%/*}"; arch="${t#*/}"
   bin="${OUT}/slashnoded-${os}-${arch}"
   echo "→ ${os}/${arch}"
   CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" \
     go build -trimpath -ldflags "$LDFLAGS" -o "$bin" "$PKG"
-  # Somme de contrôle (nom de fichier relatif pour `sha256sum -c`).
+  # Checksum (relative file name for `sha256sum -c`).
   ( cd "$OUT" && sha256sum "$(basename "$bin")" > "$(basename "$bin").sha256" )
 done
 
-# --- Front Next.js (bundle autonome) ---
-echo "→ front Next.js"
+# --- Next.js front end (standalone bundle) ---
+echo "→ Next.js front end"
 (
   cd web
   [ -d node_modules ] || npm ci
   npm run build
 )
-# Assemble le build standalone : server.js + node_modules minimal + assets.
+# Assemble the standalone build: server.js + minimal node_modules + assets.
 rm -rf "${OUT}/web"
 mkdir -p "${OUT}/web"
 cp -r web/.next/standalone/. "${OUT}/web/"
@@ -59,6 +59,14 @@ cp -r web/.next/static "${OUT}/web/.next/static"
 tar -czf "${OUT}/slashnode-web.tar.gz" -C "${OUT}/web" .
 ( cd "$OUT" && sha256sum slashnode-web.tar.gz > slashnode-web.tar.gz.sha256 )
 
+# --- App catalog (manifests) ---
+echo "→ app catalog"
+rm -rf "${OUT}/apps"
+mkdir -p "${OUT}/apps"
+cp -r examples/. "${OUT}/apps/"
+tar -czf "${OUT}/slashnode-apps.tar.gz" -C "${OUT}/apps" .
+( cd "$OUT" && sha256sum slashnode-apps.tar.gz > slashnode-apps.tar.gz.sha256 )
+
 echo
-echo "Artefacts :"
+echo "Artifacts:"
 ls -1 "$OUT"

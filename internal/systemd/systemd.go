@@ -1,4 +1,4 @@
-// Package systemd génère l'unit systemd de slashnoded.
+// Package systemd generates the systemd unit of slashnoded.
 package systemd
 
 import (
@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 )
 
-// UnitContent rend le contenu de l'unit systemd. binPath est le chemin absolu
-// du binaire (ExecStart).
+// UnitContent renders the content of the systemd unit. binPath is the absolute
+// path of the binary (ExecStart).
 func UnitContent(binPath string) string {
 	return fmt.Sprintf(`[Unit]
 Description=SlashNode daemon
@@ -30,16 +30,16 @@ WantedBy=multi-user.target
 `, binPath)
 }
 
-// WriteUnit écrit l'unit à path (mode 0644).
+// WriteUnit writes the unit to path (mode 0644).
 func WriteUnit(path, binPath string) error {
 	return write(path, UnitContent(binPath))
 }
 
-// UpdateServiceContent rend le service oneshot qui vérifie les mises à jour
-// (politique notify : il signale, il n'applique pas).
+// UpdateServiceContent renders the oneshot service that checks for updates
+// (notify policy: it signals, it does not apply).
 func UpdateServiceContent(binPath string) string {
 	return fmt.Sprintf(`[Unit]
-Description=SlashNode — vérification des mises à jour
+Description=SlashNode — update check
 After=network-online.target
 Wants=network-online.target
 
@@ -49,11 +49,11 @@ ExecStart=%s check-update
 `, binPath)
 }
 
-// UpdateTimerContent rend le timer quotidien (avec un délai aléatoire pour
-// lisser la charge sur l'infra de release).
+// UpdateTimerContent renders the daily timer (with a random delay to smooth out
+// the load on the release infrastructure).
 func UpdateTimerContent() string {
 	return `[Unit]
-Description=SlashNode — vérification quotidienne des mises à jour
+Description=SlashNode — daily update check
 
 [Timer]
 OnCalendar=daily
@@ -65,7 +65,7 @@ WantedBy=timers.target
 `
 }
 
-// WriteUpdateUnits écrit le service et le timer de vérification des MAJ.
+// WriteUpdateUnits writes the update-check service and timer.
 func WriteUpdateUnits(servicePath, timerPath, binPath string) error {
 	if err := write(servicePath, UpdateServiceContent(binPath)); err != nil {
 		return err

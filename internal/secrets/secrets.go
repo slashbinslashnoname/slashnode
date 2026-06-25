@@ -1,11 +1,10 @@
-// Package secrets gère la génération et le stockage des secrets de SlashNode
-// (mot de passe admin, jeton d'API, secret de session) dans un fichier JSON en
-// mode 0600.
+// Package secrets manages the generation and storage of SlashNode's secrets
+// (admin password, API token, session secret) in a JSON file with mode 0600.
 //
-// NOTE sécurité : le hachage du mot de passe utilise pour l'instant PBKDF2-like
-// via SHA-256 salé sur plusieurs itérations, en stdlib uniquement (zéro
-// dépendance). Pour un public crypto-conscient, on migrera vers argon2id /
-// bcrypt (golang.org/x/crypto) — voir TODO et la question ouverte au mainteneur.
+// SECURITY NOTE: the password hashing currently uses a PBKDF2-like approach
+// via salted SHA-256 over several iterations, in stdlib only (zero
+// dependencies). For a crypto-conscious audience, we will migrate to argon2id /
+// bcrypt (golang.org/x/crypto) — see TODO and the open question to the maintainer.
 package secrets
 
 import (
@@ -21,7 +20,7 @@ import (
 
 const hashIterations = 200_000
 
-// Secrets contient les secrets persistés du nœud.
+// Secrets contains the persisted secrets of the node.
 type Secrets struct {
 	AdminPasswordHash string `json:"admin_password_hash"`
 	AdminPasswordSalt string `json:"admin_password_salt"`
@@ -29,9 +28,9 @@ type Secrets struct {
 	APIToken          string `json:"api_token"`
 }
 
-// Generate produit un nouveau jeu de secrets ainsi que le mot de passe admin
-// initial en clair (à afficher une seule fois, jamais persisté en clair côté
-// secrets.json).
+// Generate produces a new set of secrets along with the initial admin password
+// in clear text (to be displayed only once, never persisted in clear text on
+// the secrets.json side).
 func Generate() (s *Secrets, initialPassword string, err error) {
 	initialPassword, err = randomToken(12)
 	if err != nil {
@@ -57,14 +56,25 @@ func Generate() (s *Secrets, initialPassword string, err error) {
 	}, initialPassword, nil
 }
 
-// Verify compare un mot de passe candidat au hash stocké (temps constant).
+// SetPassword sets the admin password to pw (fresh salt + hash).
+func (s *Secrets) SetPassword(pw string) error {
+	salt, err := randomToken(16)
+	if err != nil {
+		return err
+	}
+	s.AdminPasswordSalt = salt
+	s.AdminPasswordHash = hashPassword(pw, salt)
+	return nil
+}
+
+// Verify compares a candidate password against the stored hash (constant time).
 func (s *Secrets) Verify(password string) bool {
 	want, _ := hex.DecodeString(s.AdminPasswordHash)
 	got, _ := hex.DecodeString(hashPassword(password, s.AdminPasswordSalt))
 	return subtle.ConstantTimeCompare(want, got) == 1
 }
 
-// Load lit les secrets depuis path.
+// Load reads the secrets from path.
 func Load(path string) (*Secrets, error) {
 	b, err := os.ReadFile(path)
 	if err != nil {
@@ -72,12 +82,12 @@ func Load(path string) (*Secrets, error) {
 	}
 	var s Secrets
 	if err := json.Unmarshal(b, &s); err != nil {
-		return nil, fmt.Errorf("secrets invalides (%s) : %w", path, err)
+		return nil, fmt.Errorf("invalid secrets (%s): %w", path, err)
 	}
 	return &s, nil
 }
 
-// Save écrit les secrets en mode 0600.
+// Save writes the secrets in mode 0600.
 func (s *Secrets) Save(path string) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return err
@@ -90,8 +100,8 @@ func (s *Secrets) Save(path string) error {
 	return os.WriteFile(path, b, 0o600)
 }
 
-// hashPassword applique SHA-256 salé sur hashIterations tours (stretching
-// basique, stdlib uniquement). TODO: migrer vers argon2id.
+// hashPassword applies salted SHA-256 over hashIterations rounds (basic
+// stretching, stdlib only). TODO: migrate to argon2id.
 func hashPassword(password, salt string) string {
 	data := []byte(salt + password)
 	for i := 0; i < hashIterations; i++ {

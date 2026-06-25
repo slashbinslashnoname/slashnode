@@ -1,4 +1,5 @@
-import { Bonhomme } from "@/components/Bonhomme";
+import Link from "next/link";
+import { Skull } from "@/components/Skull";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { UpdateBanner } from "@/components/UpdateBanner";
 import { getStatus, getUpdate } from "@/lib/api";
@@ -15,7 +16,7 @@ export default async function Home() {
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-4">
       <ThemeToggle />
 
-      <Bonhomme />
+      <Skull />
 
       <div className="text-center">
         <h1 className="text-2xl font-bold tracking-widest">
@@ -32,15 +33,22 @@ export default async function Home() {
         <Row k="node" v={nodeId} />
         <Row k="version" v={version} />
         <Row
-          k="statut"
+          k="status"
           v={
             <span>
               <span className="text-primary">●</span>{" "}
-              {status ? "online" : "démon injoignable"}
+              {status ? "online" : "daemon unreachable"}
             </span>
           }
         />
       </div>
+
+      <Link
+        href="/store"
+        className="rounded-lg bg-primary px-5 py-2.5 font-semibold text-white hover:opacity-90 transition-opacity"
+      >
+        Browse the App Store →
+      </Link>
     </main>
   );
 }

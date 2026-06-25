@@ -1,9 +1,9 @@
-// Package updater gère la vérification et l'application des mises à jour du
-// binaire slashnoded.
+// Package updater manages the checking and application of updates to the
+// slashnoded binary.
 //
-// Politique par défaut : "notify". Le timer systemd appelle Check() qui écrit
-// l'état dans update.json ; l'UI affiche une bannière et l'opérateur déclenche
-// Apply() via le bouton « Appliquer » (ou `slashnoded update`).
+// Default policy: "notify". The systemd timer calls Check() which writes the
+// state to update.json; the UI displays a banner and the operator triggers
+// Apply() via the "Apply" button (or `slashnoded update`).
 package updater
 
 import (
@@ -25,8 +25,8 @@ import (
 
 const repo = "slashbinslashnoname/slashnode"
 
-// Info décrit l'état des mises à jour (sérialisé dans update.json et exposé à
-// l'UI via l'API Go).
+// Info describes the update state (serialized into update.json and exposed to
+// the UI via the Go API).
 type Info struct {
 	Current   string `json:"current"`
 	Latest    string `json:"latest"`
@@ -36,8 +36,8 @@ type Info struct {
 
 var httpClient = &http.Client{Timeout: 30 * time.Second}
 
-// Check interroge la dernière version, calcule la disponibilité et persiste
-// l'état dans update.json.
+// Check queries the latest version, computes availability and persists the
+// state to update.json.
 func Check(current, channel string) (*Info, error) {
 	latest, err := latestVersion(channel)
 	if err != nil {
@@ -55,8 +55,8 @@ func Check(current, channel string) (*Info, error) {
 	return info, nil
 }
 
-// LoadState lit le dernier état connu. Renvoie un Info "non disponible" si le
-// fichier n'existe pas encore.
+// LoadState reads the last known state. Returns a "not available" Info if the
+// file does not exist yet.
 func LoadState(current string) *Info {
 	b, err := os.ReadFile(paths.UpdateStateFile())
 	if err != nil {
@@ -69,8 +69,8 @@ func LoadState(current string) *Info {
 	return &info
 }
 
-// Apply télécharge la version cible (ou la dernière), vérifie le checksum,
-// remplace le binaire courant de façon atomique puis redémarre le service.
+// Apply downloads the target version (or the latest), verifies the checksum,
+// atomically replaces the current binary then restarts the service.
 func Apply(target, channel string) error {
 	if target == "" || target == "latest" {
 		v, err := latestVersion(channel)
@@ -86,11 +86,11 @@ func Apply(target, channel string) error {
 
 	bin, err := download(base)
 	if err != nil {
-		return fmt.Errorf("téléchargement binaire : %w", err)
+		return fmt.Errorf("binary download: %w", err)
 	}
 	sumFile, err := download(base + ".sha256")
 	if err != nil {
-		return fmt.Errorf("téléchargement checksum : %w", err)
+		return fmt.Errorf("checksum download: %w", err)
 	}
 	if err := verifySHA256(bin, sumFile); err != nil {
 		return err
@@ -104,13 +104,13 @@ func Apply(target, channel string) error {
 		return err
 	}
 
-	// Redémarrage best-effort (systemd relancera avec le nouveau binaire).
+	// Best-effort restart (systemd will relaunch with the new binary).
 	restart()
 	return nil
 }
 
-// latestVersion renvoie la dernière version publiée pour le canal.
-// SLASHNODE_LATEST court-circuite le réseau (hook de test).
+// latestVersion returns the latest published version for the channel.
+// SLASHNODE_LATEST short-circuits the network (test hook).
 func latestVersion(channel string) (string, error) {
 	if v := os.Getenv("SLASHNODE_LATEST"); v != "" {
 		return v, nil
@@ -125,7 +125,7 @@ func latestVersion(channel string) (string, error) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("API GitHub : statut %d", resp.StatusCode)
+		return "", fmt.Errorf("GitHub API: status %d", resp.StatusCode)
 	}
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -159,28 +159,28 @@ func download(url string) ([]byte, error) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("statut %d pour %s", resp.StatusCode, url)
+		return nil, fmt.Errorf("status %d for %s", resp.StatusCode, url)
 	}
 	return io.ReadAll(resp.Body)
 }
 
-// verifySHA256 vérifie que sha256(bin) correspond à la somme du fichier
-// .sha256 (format `<hex>  <nom>`).
+// verifySHA256 verifies that sha256(bin) matches the sum from the .sha256 file
+// (format `<hex>  <name>`).
 func verifySHA256(bin, sumFile []byte) error {
 	want := strings.Fields(string(sumFile))
 	if len(want) == 0 {
-		return fmt.Errorf("fichier checksum vide")
+		return fmt.Errorf("empty checksum file")
 	}
 	sum := sha256.Sum256(bin)
 	got := hex.EncodeToString(sum[:])
 	if !strings.EqualFold(got, want[0]) {
-		return fmt.Errorf("checksum invalide : attendu %s, obtenu %s", want[0], got)
+		return fmt.Errorf("invalid checksum: expected %s, got %s", want[0], got)
 	}
 	return nil
 }
 
-// replaceBinary remplace self par newBin de façon atomique (write+rename dans le
-// même répertoire).
+// replaceBinary atomically replaces self with newBin (write+rename in the same
+// directory).
 func replaceBinary(self string, newBin []byte) error {
 	dir := filepath.Dir(self)
 	tmp, err := os.CreateTemp(dir, ".slashnoded-*")
@@ -212,8 +212,8 @@ func save(info *Info) error {
 
 func normalize(v string) string { return strings.TrimPrefix(v, "v") }
 
-// restart relance le service via systemd (best-effort). En --root de test ou
-// hors Linux, c'est un no-op.
+// restart relaunches the service via systemd (best-effort). In test --root mode
+// or outside Linux, it is a no-op.
 func restart() {
 	if runtime.GOOS != "linux" || os.Getenv("SLASHNODE_ROOT") != "" {
 		return

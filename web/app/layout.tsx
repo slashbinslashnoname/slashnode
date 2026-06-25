@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   description: "your node, your rules",
 };
 
-// Script anti-flash : applique le thème avant le premier rendu.
+// Anti-flash script: applies the theme before the first paint.
 const themeScript = `
 (function () {
   try {
@@ -24,7 +24,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="fr" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>

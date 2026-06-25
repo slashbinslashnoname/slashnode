@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
 #
-# SlashNode bootstrap — installe (ou met à jour) slashnoded sur un
-# Debian/Ubuntu existant.
+# SlashNode bootstrap — installs (or updates) slashnoded on an
+# existing Debian/Ubuntu.
 #
-#   curl -fsSL https://get.slashnode.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/slashbinslashnoname/slashnode/main/bootstrap.sh | bash
 #
-# Audit recommandé avant exécution (public crypto-conscient) :
+# Recommended audit before running (crypto-conscious audience):
 #
-#   curl -fsSL https://get.slashnode.sh -o slashnode.sh
+#   curl -fsSL https://raw.githubusercontent.com/slashbinslashnoname/slashnode/main/bootstrap.sh -o slashnode.sh
 #   less slashnode.sh
 #   bash slashnode.sh
 #
-# Le script reste minimal : il amène le binaire sur la machine et délègue toute
-# la logique d'amorçage à `slashnoded init` (config, secrets, systemd, Avahi),
-# versionné et testé dans le binaire Go.
+# The script stays minimal: it gets the binary onto the machine and delegates all
+# bootstrap logic to `slashnoded init` (config, secrets, systemd, Avahi),
+# versioned and tested inside the Go binary.
 
 set -euo pipefail
 
@@ -22,9 +22,12 @@ INSTALL_DIR="${INSTALL_DIR:-/usr/local/bin}"
 REPO="slashbinslashnoname/slashnode"
 BASE_URL="https://github.com/${REPO}/releases/download"
 
-# Pré-requis minimaux.
+# Minimal prerequisites.
 MIN_RAM_MB=1024
 MIN_DISK_GB=10
+
+# Extra arguments passed to `slashnoded init` (filled by configure_access).
+INIT_ARGS=()
 
 red()  { printf '\033[1;31m%s\033[0m\n' "$*"; }
 dim()  { printf '\033[2m%s\033[0m\n' "$*"; }
@@ -33,7 +36,7 @@ die()  { printf '\033[1;31m✗ %s\033[0m\n' "$*" >&2; exit 1; }
 
 require_root() {
   if [ "${EUID:-$(id -u)}" -ne 0 ]; then
-    command -v sudo >/dev/null || die "root requis et sudo absent."
+    command -v sudo >/dev/null || die "root required and sudo missing."
     exec sudo -E bash "$0" "$@"
   fi
 }
@@ -42,50 +45,50 @@ detect_arch() {
   case "$(uname -m)" in
     x86_64)  echo amd64 ;;
     aarch64|arm64) echo arm64 ;;
-    *) die "architecture non supportée : $(uname -m) (amd64/arm64 uniquement)" ;;
+    *) die "unsupported architecture: $(uname -m) (amd64/arm64 only)" ;;
   esac
 }
 
 pre_checks() {
-  info "Vérifications préalables…"
-  [ "$(uname -s)" = "Linux" ] || die "OS non supporté : $(uname -s) (Linux uniquement)."
+  info "Running pre-checks…"
+  [ "$(uname -s)" = "Linux" ] || die "unsupported OS: $(uname -s) (Linux only)."
   if [ -r /etc/os-release ]; then
     . /etc/os-release
     case "${ID:-} ${ID_LIKE:-}" in
       *debian*|*ubuntu*) : ;;
-      *) red "⚠ distribution non testée (${ID:-inconnue}) — on continue quand même." ;;
+      *) red "⚠ untested distribution (${ID:-unknown}) — continuing anyway." ;;
     esac
   fi
 
   local ram_mb
   ram_mb=$(awk '/MemTotal/ {print int($2/1024)}' /proc/meminfo 2>/dev/null || echo 0)
-  [ "$ram_mb" -ge "$MIN_RAM_MB" ] || red "⚠ RAM faible : ${ram_mb}MB (recommandé ≥ ${MIN_RAM_MB}MB)."
+  [ "$ram_mb" -ge "$MIN_RAM_MB" ] || red "⚠ low RAM: ${ram_mb}MB (recommended ≥ ${MIN_RAM_MB}MB)."
 
   local disk_gb
   disk_gb=$(df -BG --output=avail / 2>/dev/null | tail -1 | tr -dc '0-9' || echo 0)
-  [ "${disk_gb:-0}" -ge "$MIN_DISK_GB" ] || red "⚠ disque faible : ${disk_gb}GB libre (recommandé ≥ ${MIN_DISK_GB}GB)."
+  [ "${disk_gb:-0}" -ge "$MIN_DISK_GB" ] || red "⚠ low disk: ${disk_gb}GB free (recommended ≥ ${MIN_DISK_GB}GB)."
 
   for c in curl install; do
-    command -v "$c" >/dev/null || die "commande requise absente : $c"
+    command -v "$c" >/dev/null || die "required command missing: $c"
   done
 }
 
 install_docker() {
   if command -v docker >/dev/null; then
-    info "Docker déjà présent."
+    info "Docker already present."
     return
   fi
-  info "Installation de Docker (script officiel)…"
+  info "Installing Docker (official script)…"
   curl -fsSL https://get.docker.com | sh
 }
 
 install_node() {
-  # Node est requis pour le front Next.js lancé par le démon.
+  # Node is required for the Next.js front end launched by the daemon.
   if command -v node >/dev/null; then
-    info "Node déjà présent ($(node -v))."
+    info "Node already present ($(node -v))."
     return
   fi
-  info "Installation de Node.js (NodeSource 22.x)…"
+  info "Installing Node.js (NodeSource 22.x)…"
   curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
   apt-get install -y nodejs
 }
@@ -93,33 +96,90 @@ install_node() {
 install_web() {
   local tag="$SLASHNODE_VERSION"
   local url="${BASE_URL}/${tag}/slashnode-web.tar.gz"
-  info "Téléchargement du front Next.js…"
+  info "Downloading the Next.js front end…"
   curl -fsSL -o /tmp/slashnode-web.tar.gz "$url" \
-    || die "téléchargement du front échoué : $url"
+    || die "front end download failed: $url"
   curl -fsSL -o /tmp/slashnode-web.tar.gz.sha256 "${url}.sha256" \
-    || die "checksum front introuvable : ${url}.sha256"
+    || die "front end checksum not found: ${url}.sha256"
   ( cd /tmp && sha256sum -c slashnode-web.tar.gz.sha256 >/dev/null 2>&1 ) \
-    || die "checksum du front invalide — installation interrompue."
+    || die "invalid front end checksum — installation aborted."
   rm -rf /usr/share/slashnode/web
   mkdir -p /usr/share/slashnode/web
   tar -xzf /tmp/slashnode-web.tar.gz -C /usr/share/slashnode/web
   rm -f /tmp/slashnode-web.tar.gz /tmp/slashnode-web.tar.gz.sha256
-  info "Front installé : /usr/share/slashnode/web"
+  info "Front end installed: /usr/share/slashnode/web"
 }
 
-# Compare la version installée à la cible. Renvoie 0 si une (ré)installation est
-# nécessaire, 1 si déjà à jour.
+install_apps() {
+  local tag="$SLASHNODE_VERSION"
+  local url="${BASE_URL}/${tag}/slashnode-apps.tar.gz"
+  info "Downloading the app catalog…"
+  curl -fsSL -o /tmp/slashnode-apps.tar.gz "$url" \
+    || die "app catalog download failed: $url"
+  curl -fsSL -o /tmp/slashnode-apps.tar.gz.sha256 "${url}.sha256" \
+    || die "app catalog checksum not found: ${url}.sha256"
+  ( cd /tmp && sha256sum -c slashnode-apps.tar.gz.sha256 >/dev/null 2>&1 ) \
+    || die "invalid app catalog checksum — installation aborted."
+  rm -rf /usr/share/slashnode/apps
+  mkdir -p /usr/share/slashnode/apps
+  tar -xzf /tmp/slashnode-apps.tar.gz -C /usr/share/slashnode/apps
+  rm -f /tmp/slashnode-apps.tar.gz /tmp/slashnode-apps.tar.gz.sha256
+  info "App catalog installed: /usr/share/slashnode/apps"
+}
+
+# Interactively choose the access mode and (optional) password protection.
+# Reads from /dev/tty so it works even under `curl | bash`. Falls back to local
+# mode with no password when no terminal is available.
+configure_access() {
+  if [ ! -r /dev/tty ]; then
+    info "No terminal: defaulting to local mode (no password)."
+    INIT_ARGS=(--access local)
+    return
+  fi
+
+  printf '\nAccess mode:\n' >/dev/tty
+  printf '  1) local  — reachable on your LAN as slashnode.local (default)\n' >/dev/tty
+  printf '  2) server — public address, password protected\n' >/dev/tty
+  printf '> ' >/dev/tty
+  local mode; read -r mode </dev/tty
+
+  if [ "$mode" = "2" ]; then
+    local addr pass
+    printf 'Public address (e.g. node.example.com): ' >/dev/tty
+    read -r addr </dev/tty
+    printf 'Set admin password: ' >/dev/tty
+    read -rs pass </dev/tty; printf '\n' >/dev/tty
+    INIT_ARGS=(--access server --address "$addr" --password "$pass" --password-protect)
+  else
+    local yn pass
+    printf 'Protect the local UI with a password? [y/N] ' >/dev/tty
+    read -r yn </dev/tty
+    case "$yn" in
+      y|Y)
+        printf 'Set admin password: ' >/dev/tty
+        read -rs pass </dev/tty; printf '\n' >/dev/tty
+        INIT_ARGS=(--access local --password "$pass" --password-protect)
+        ;;
+      *)
+        INIT_ARGS=(--access local)
+        ;;
+    esac
+  fi
+}
+
+# Compares the installed version to the target. Returns 0 if a (re)install is
+# needed, 1 if already up to date.
 needs_install() {
   local target="$1"
   command -v slashnoded >/dev/null || return 0
-  [ "$target" = "latest" ] && return 0   # on ne sait pas comparer "latest" : on (re)pose.
+  [ "$target" = "latest" ] && return 0   # can't compare against "latest": (re)install.
   local current
   current="$(slashnoded version 2>/dev/null | awk '{print $2}')" || return 0
   if [ "$current" = "$target" ]; then
-    info "slashnoded ${current} déjà à jour."
+    info "slashnoded ${current} already up to date."
     return 1
   fi
-  info "mise à jour ${current} → ${target}."
+  info "updating ${current} → ${target}."
   return 0
 }
 
@@ -130,19 +190,19 @@ install_binary() {
   [ "$tag" = "latest" ] && tag="latest"
 
   local url="${BASE_URL}/${tag}/slashnoded-linux-${arch}"
-  info "Téléchargement de slashnoded (linux/${arch}, ${tag})…"
+  info "Downloading slashnoded (linux/${arch}, ${tag})…"
   curl -fsSL -o /tmp/slashnoded "$url" \
-    || die "téléchargement échoué : $url"
+    || die "download failed: $url"
   curl -fsSL -o /tmp/slashnoded.sha256 "${url}.sha256" \
-    || die "checksum introuvable : ${url}.sha256"
+    || die "checksum not found: ${url}.sha256"
 
-  info "Vérification du checksum…"
+  info "Verifying checksum…"
   ( cd /tmp && sha256sum -c slashnoded.sha256 >/dev/null 2>&1 ) \
-    || die "checksum invalide — installation interrompue."
+    || die "invalid checksum — installation aborted."
 
   install -m 0755 /tmp/slashnoded "${INSTALL_DIR}/slashnoded"
   rm -f /tmp/slashnoded /tmp/slashnoded.sha256
-  info "Binaire installé : ${INSTALL_DIR}/slashnoded"
+  info "Binary installed: ${INSTALL_DIR}/slashnoded"
 }
 
 main() {
@@ -156,11 +216,13 @@ main() {
     install_binary
   fi
   install_web
+  install_apps
 
-  info "Initialisation (config, secrets, systemd, Avahi)…"
-  slashnoded init --quiet
+  configure_access
+  info "Initializing (config, secrets, systemd, Avahi)…"
+  slashnoded init --quiet "${INIT_ARGS[@]}"
 
-  info "Activation du service…"
+  info "Enabling the service…"
   systemctl daemon-reload
   systemctl enable --now slashnoded
   systemctl enable --now slashnoded-update.timer

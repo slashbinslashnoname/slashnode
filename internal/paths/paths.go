@@ -1,7 +1,7 @@
-// Package paths centralise tous les chemins du système de fichiers utilisés
-// par SlashNode. Tous les chemins peuvent être préfixés via la variable
-// d'environnement SLASHNODE_ROOT, ce qui permet de tester init/uninstall sans
-// privilèges root et sans toucher au vrai système.
+// Package paths centralizes all the filesystem paths used by SlashNode. All
+// paths can be prefixed via the SLASHNODE_ROOT environment variable, which
+// allows testing init/uninstall without root privileges and without touching
+// the real system.
 package paths
 
 import (
@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 )
 
-// root renvoie le préfixe racine (vide => "/").
+// root returns the root prefix (empty => "/").
 func root() string {
 	if r := os.Getenv("SLASHNODE_ROOT"); r != "" {
 		return r
@@ -21,20 +21,25 @@ func p(parts ...string) string {
 	return filepath.Join(append([]string{root()}, parts...)...)
 }
 
-// Répertoires et fichiers de configuration.
+// Configuration directories and files.
 func ConfigDir() string  { return p("etc", "slashnode") }
 func ConfigFile() string { return p("etc", "slashnode", "config.json") }
 
-// Données et secrets (mode 0700).
+// Data and secrets (mode 0700).
 func DataDir() string             { return p("var", "lib", "slashnode") }
 func SecretsFile() string         { return p("var", "lib", "slashnode", "secrets.json") }
 func InitialPasswordFile() string { return p("var", "lib", "slashnode", "initial-password") }
 func UpdateStateFile() string     { return p("var", "lib", "slashnode", "update.json") }
+func AppsStateFile() string       { return p("var", "lib", "slashnode", "apps.json") }
+func AppSecretsFile() string      { return p("var", "lib", "slashnode", "app-secrets.json") }
 
-// Front Next.js déployé sur le device (servi/lancé par le démon).
+// Next.js front deployed on the device (served/launched by the daemon).
 func WebDir() string { return p("usr", "share", "slashnode", "web") }
 
-// Binaire et intégration système.
+// App catalog (JSON manifests) deployed on the device.
+func AppsDir() string { return p("usr", "share", "slashnode", "apps") }
+
+// Binary and system integration.
 func BinPath() string              { return p("usr", "local", "bin", "slashnoded") }
 func SystemdUnit() string          { return p("etc", "systemd", "system", "slashnoded.service") }
 func SystemdUpdateService() string { return p("etc", "systemd", "system", "slashnoded-update.service") }

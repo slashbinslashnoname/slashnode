@@ -1,4 +1,4 @@
-// Package cli implémente les sous-commandes de slashnoded.
+// Package cli implements the slashnoded subcommands.
 package cli
 
 import (
@@ -6,11 +6,10 @@ import (
 	"os"
 )
 
-// Version est renseignée depuis main au démarrage.
+// Version is populated from main at startup.
 var Version = "dev"
 
-// ANSI : rouge gras / reset. Désactivé si NO_COLOR est défini ou si la sortie
-// n'est pas un terminal interactif.
+// ANSI: bold red / dim / reset. Disabled when NO_COLOR is set.
 const (
 	ansiRed   = "\x1b[1;31m"
 	ansiDim   = "\x1b[2m"
@@ -24,37 +23,39 @@ func colorize(s, color string) string {
 	return color + s + ansiReset
 }
 
-// asciiBonhomme est le bonhomme rouge emblématique de SlashNode.
-const asciiBonhomme = `   ___
-  / o o\     ___ _         _ _  _         _
-  \  ^  /   / __| |__ _ __| | \| |___  __| |___
-   |||||    \__ \ / _` + "`" + ` (_-< | .` + "`" + ` / _ \/ _` + "`" + ` / -_)
-  / ||| \   |___/_\__,_/__/_|_|\_\___/\__,_\___|
-   /   \`
+// asciiSkull is the red skull — the SlashNode mascot.
+const asciiSkull = `     .-------.
+    /         \
+   |  ()   ()  |
+   |     ^     |
+   |  '-----'  |
+    \  |||||  /
+     '-------'`
 
-// Banner imprime le logo + bonhomme rouge sur stdout.
+// Banner prints the red skull and wordmark on stdout.
 func Banner() {
-	fmt.Println(colorize(asciiBonhomme, ansiRed))
-	fmt.Println(colorize("        // your node, your rules\n", ansiDim))
+	fmt.Println(colorize(asciiSkull, ansiRed))
+	fmt.Printf("   %s%s\n", colorize("/", ansiRed), "SlashNode")
+	fmt.Println(colorize("   your node, your rules\n", ansiDim))
 }
 
-// Usage affiche l'aide générale.
+// Usage prints the general help.
 func Usage() {
 	Banner()
-	fmt.Print(`Usage : slashnoded <commande> [options]
+	fmt.Print(`Usage: slashnoded <command> [options]
 
-Commandes :
-  init         Génère config + secrets + unit systemd + service Avahi (idempotent)
-  serve        Démarre le démon (API Go + front Next.js supervisé)
-  status       Affiche l'état du nœud (--post-install pour l'URL + identifiants)
-  update       Applique la dernière mise à jour du binaire (--to <tag>)
-  check-update Vérifie la disponibilité d'une mise à jour (notify-only)
-  uninstall    Retire le service et le binaire (--purge supprime aussi les données)
-  version     Affiche la version
-  help        Affiche cette aide
+Commands:
+  init         Generate config + secrets + systemd unit + Avahi service (idempotent)
+  serve        Start the daemon (Go API + supervised Next.js front end)
+  status       Show node status (--post-install for URL + credentials)
+  update       Apply the latest binary update (--to <tag>)
+  check-update Check whether an update is available (notify-only)
+  uninstall    Remove the service and binary (--purge also removes data)
+  version      Print the version
+  help         Show this help
 
-Variables d'environnement :
-  SLASHNODE_ROOT   Préfixe racine pour tous les chemins (tests sans root)
-  NO_COLOR         Désactive la sortie colorée
+Environment variables:
+  SLASHNODE_ROOT   Root prefix for all paths (testing without root)
+  NO_COLOR         Disable colored output
 `)
 }

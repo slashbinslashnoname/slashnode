@@ -4,18 +4,20 @@
   "name": "LND",
   "version": "0.18.0",
   "category": "lightning",
+  "description": "Lightning Network implementation. Wires automatically to Bitcoin Core.",
+  "icon": "⚡",
   "dependencies": ["bitcoind"],
   "inputs": [
     {
       "key": "ALIAS",
-      "label": "Alias du nœud",
+      "label": "Node alias",
       "type": "text",
       "required": true,
-      "placeholder": "mon-nœud-lightning"
+      "placeholder": "my-lightning-node"
     },
     {
       "key": "WALLET_PASSWORD",
-      "label": "Mot de passe du wallet",
+      "label": "Wallet password",
       "type": "password",
       "required": true,
       "secret": true,

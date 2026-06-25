@@ -1,12 +1,12 @@
-// Command slashnoded est le binaire unique de SlashNode.
+// Command slashnoded is the single binary of SlashNode.
 //
-// Sous-commandes :
+// Subcommands:
 //
-//	init       génère config + secrets + unit systemd + service Avahi (idempotent)
-//	serve      démarre le démon HTTP
-//	status     affiche l'état (et l'URL + creds avec --post-install)
-//	uninstall  retire le service et le binaire (--purge supprime aussi les données)
-//	version    affiche la version
+//	init       generates config + secrets + systemd unit + Avahi service (idempotent)
+//	serve      starts the HTTP daemon
+//	status     displays the state (and the URL + creds with --post-install)
+//	uninstall  removes the service and the binary (--purge also deletes data)
+//	version    displays the version
 package main
 
 import (
@@ -16,7 +16,7 @@ import (
 	"github.com/slashbinslashnoname/slashnode/internal/cli"
 )
 
-// Version est injectée au build via -ldflags "-X main.Version=...".
+// Version is injected at build time via -ldflags "-X main.Version=...".
 var Version = "dev"
 
 func main() {
@@ -48,13 +48,13 @@ func main() {
 	case "help", "-h", "--help":
 		cli.Usage()
 	default:
-		fmt.Fprintf(os.Stderr, "commande inconnue : %q\n\n", os.Args[1])
+		fmt.Fprintf(os.Stderr, "unknown command: %q\n\n", os.Args[1])
 		cli.Usage()
 		os.Exit(2)
 	}
 
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "erreur :", err)
+		fmt.Fprintln(os.Stderr, "error:", err)
 		os.Exit(1)
 	}
 }

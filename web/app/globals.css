@@ -1,9 +1,9 @@
 @import "tailwindcss";
 
-/* Mode sombre piloté par la classe .dark sur <html>. */
+/* Dark mode driven by the .dark class on <html>. */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Expose les variables de thème comme couleurs Tailwind (bg-bg, text-fg, …). */
+/* Expose theme variables as Tailwind colors (bg-bg, text-fg, …). */
 @theme inline {
   --color-primary: var(--primary);
   --color-bg: var(--bg);
@@ -15,7 +15,7 @@
 }
 
 :root {
-  --primary: #e5484d; /* rouge SlashNode */
+  --primary: #e5484d; /* SlashNode red */
   --bg: #ffffff;
   --fg: #1a1a1a;
   --muted: #6b7280;

@@ -1,21 +1,21 @@
-# Manifeste d'application SlashNode
+# SlashNode application manifest
 
-> Statut : **spécification** (le moteur de registre/orchestration arrive dans une
-> itération ultérieure). Ce document fige le format pour ne pas perdre les
-> décisions déjà prises — notamment le bloc `inputs` (saisies utilisateur →
-> variables d'environnement) et le mécanisme `exports`/`wiring`.
+> Status: **specification** (the registry/orchestration engine will arrive in a
+> later iteration). This document freezes the format so we don't lose the
+> decisions already made — in particular the `inputs` block (user entries →
+> environment variables) and the `exports`/`wiring` mechanism.
 
-Une app du store, c'est un dossier :
+A store app is a directory:
 
 ```
 bitcoind/
-  slashnode-app.json     # manifeste (ce document)
-  docker-compose.yml     # services Docker
-  templates/*.tmpl       # templating de config (valeurs JSON → bitcoin.conf…)
+  slashnode-app.json     # manifest (this document)
+  docker-compose.yml     # Docker services
+  templates/*.tmpl       # config templating (JSON values → bitcoin.conf…)
   icon.svg
 ```
 
-## Structure du manifeste
+## Manifest structure
 
 ```jsonc
 {
@@ -26,103 +26,103 @@ bitcoind/
   "category": "bitcoin",
   "dependencies": [],
 
-  // Saisies demandées à l'utilisateur au moment de l'installation.
-  // Le formulaire d'install est généré à partir de cette liste, et chaque
-  // valeur est injectée comme VARIABLE D'ENVIRONNEMENT dans le(s) conteneur(s).
-  "inputs": [ /* voir ci-dessous */ ],
+  // Entries requested from the user at install time.
+  // The install form is generated from this list, and each
+  // value is injected as an ENVIRONMENT VARIABLE into the container(s).
+  "inputs": [ /* see below */ ],
 
   "services": { /* … images, ports, volumes, healthchecks … */ },
 
-  // Valeurs publiées dans le registre du démon, consommables par d'autres apps.
+  // Values published in the daemon's registry, consumable by other apps.
   "exports": { /* … */ }
 }
 ```
 
-## Le bloc `inputs` (saisies → variables d'env)
+## The `inputs` block (entries → env variables)
 
-Chaque entrée décrit un champ de formulaire. La valeur saisie devient une
-variable d'environnement (`key`) du conteneur.
+Each entry describes a form field. The entered value becomes an
+environment variable (`key`) of the container.
 
 ```jsonc
 "inputs": [
   {
-    "key": "RPC_USER",            // nom EXACT de la variable d'env injectée
-    "label": "Utilisateur RPC",
-    "type": "text",               // type de champ (voir tableau)
+    "key": "RPC_USER",            // EXACT name of the injected env variable
+    "label": "RPC user",
+    "type": "text",               // field type (see table)
     "required": true,
     "default": "satoshi",
-    "placeholder": "ex. satoshi",
-    "help": "Nom d'utilisateur pour l'API RPC.",
-    "secret": false               // true => stocké chiffré, masqué dans l'UI
+    "placeholder": "e.g. satoshi",
+    "help": "Username for the RPC API.",
+    "secret": false               // true => stored encrypted, masked in the UI
   },
   {
     "key": "ADMIN_EMAIL",
-    "label": "Email administrateur",
-    "type": "email",              // validation email côté formulaire
+    "label": "Administrator email",
+    "type": "email",              // email validation on the form side
     "required": true,
-    "help": "Pour les notifications du nœud."
+    "help": "For node notifications."
   },
   {
     "key": "WALLET_PASSWORD",
-    "label": "Mot de passe du wallet",
-    "type": "password",           // champ masqué
+    "label": "Wallet password",
+    "type": "password",           // masked field
     "required": true,
-    "secret": true,               // n'est jamais réaffiché ni loggé
+    "secret": true,               // never displayed again nor logged
     "minLength": 12
   },
   {
     "key": "PRUNE_GB",
-    "label": "Taille de prune (Go)",
+    "label": "Prune size (GB)",
     "type": "number",
     "default": 0,
     "min": 0
   },
   {
     "key": "NETWORK",
-    "label": "Réseau",
+    "label": "Network",
     "type": "select",
     "options": ["mainnet", "testnet", "signet"],
     "default": "mainnet"
   },
   {
     "key": "ENABLE_TOR",
-    "label": "Activer Tor",
+    "label": "Enable Tor",
     "type": "boolean",
     "default": true
   }
 ]
 ```
 
-### Types de champ supportés
+### Supported field types
 
-| `type`     | Rendu                      | Validation                     |
+| `type`     | Rendering                  | Validation                     |
 |------------|----------------------------|--------------------------------|
-| `text`     | input texte                | `minLength`, `maxLength`, `pattern` |
-| `email`    | input email                | format email                   |
-| `password` | input masqué               | `minLength` ; impose `secret: true` |
-| `number`   | input numérique            | `min`, `max`, `step`           |
-| `textarea` | zone de texte multiligne   | `minLength`, `maxLength`        |
-| `select`   | liste déroulante           | valeur ∈ `options`             |
-| `boolean`  | interrupteur               | `true`/`false` → `"true"`/`"false"` |
+| `text`     | text input                 | `minLength`, `maxLength`, `pattern` |
+| `email`    | email input                | email format                   |
+| `password` | masked input               | `minLength`; enforces `secret: true` |
+| `number`   | numeric input              | `min`, `max`, `step`           |
+| `textarea` | multiline text area        | `minLength`, `maxLength`        |
+| `select`   | dropdown list              | value ∈ `options`             |
+| `boolean`  | toggle                     | `true`/`false` → `"true"`/`"false"` |
 
-### Règles d'injection
+### Injection rules
 
-- La valeur est exposée au conteneur via `environment:` (la variable porte le
-  nom `key`).
-- `secret: true` (obligatoire pour `password`) → la valeur est stockée chiffrée
-  dans `/var/lib/slashnode` et n'est jamais renvoyée à l'UI ni écrite dans les
+- The value is exposed to the container via `environment:` (the variable bears
+  the name `key`).
+- `secret: true` (mandatory for `password`) → the value is stored encrypted
+  in `/var/lib/slashnode` and is never returned to the UI nor written to the
   logs.
-- Les valeurs non saisies mais avec `default` sont injectées telles quelles.
-- `required: true` bloque l'installation tant que le champ est vide.
+- Values not entered but with a `default` are injected as-is.
+- `required: true` blocks installation as long as the field is empty.
 
-## `exports` / `wiring` (branchement automatique)
+## `exports` / `wiring` (automatic wiring)
 
-À l'installation, une app publie ses infos de connexion dans le registre du
-démon (`exports`). Une app consommatrice les référence via `wiring` ; le démon
-résout les références et les injecte au templating. Zéro config manuelle.
+On installation, an app publishes its connection info in the daemon's
+registry (`exports`). A consuming app references them via `wiring`; the daemon
+resolves the references and injects them into the templating. Zero manual config.
 
 ```jsonc
-// bitcoind : publie
+// bitcoind: publishes
 "exports": {
   "rpc.host": "bitcoind",
   "rpc.port": 8332,
@@ -133,7 +133,7 @@ résout les références et les injecte au templating. Zéro config manuelle.
 ```
 
 ```jsonc
-// lnd : consomme
+// lnd: consumes
 "dependencies": ["bitcoind"],
 "wiring": {
   "bitcoind.rpchost": "${bitcoind.exports.rpc.host}",
@@ -143,5 +143,5 @@ résout les références et les injecte au templating. Zéro config manuelle.
 }
 ```
 
-Références disponibles dans les valeurs : `${input.KEY}`, `${secret.KEY}`,
-`${<app>.exports.<clé>}`.
+References available in values: `${input.KEY}`, `${secret.KEY}`,
+`${<app>.exports.<key>}`.

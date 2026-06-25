@@ -9,42 +9,42 @@ import (
 	"github.com/slashbinslashnoname/slashnode/internal/updater"
 )
 
-// CheckUpdate implémente `slashnoded check-update` (appelé par le timer
-// systemd). Politique notify : il vérifie et persiste l'état, sans appliquer.
+// CheckUpdate implements `slashnoded check-update` (called by the systemd
+// timer). Notify policy: it checks and persists the state, without applying.
 func CheckUpdate(args []string) error {
 	cfg := loadCfgOrDefaultChannel()
 	info, err := updater.Check(Version, cfg.Update.Channel)
 	if err != nil {
-		return fmt.Errorf("vérification des mises à jour : %w", err)
+		return fmt.Errorf("update check: %w", err)
 	}
 	if info.Available {
-		fmt.Printf("mise à jour disponible : %s → %s\n", info.Current, colorize(info.Latest, ansiRed))
+		fmt.Printf("update available: %s → %s\n", info.Current, colorize(info.Latest, ansiRed))
 	} else {
-		fmt.Printf("à jour (%s)\n", info.Current)
+		fmt.Printf("up to date (%s)\n", info.Current)
 	}
 	return nil
 }
 
-// Update implémente `slashnoded update` : applique la dernière version (ou
-// --to). Remplace le binaire et redémarre le service.
+// Update implements `slashnoded update`: applies the latest version (or --to).
+// Replaces the binary and restarts the service.
 func Update(args []string) error {
 	fs := flag.NewFlagSet("update", flag.ContinueOnError)
-	to := fs.String("to", "latest", "version cible (tag) ou 'latest'")
+	to := fs.String("to", "latest", "target version (tag) or 'latest'")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	cfg := loadCfgOrDefaultChannel()
 
-	fmt.Printf("→ application de la mise à jour (%s)…\n", *to)
+	fmt.Printf("→ applying the update (%s)…\n", *to)
 	if err := updater.Apply(*to, cfg.Update.Channel); err != nil {
-		return fmt.Errorf("mise à jour : %w", err)
+		return fmt.Errorf("update: %w", err)
 	}
-	fmt.Println(colorize("✓ binaire mis à jour, redémarrage du service.", ansiRed))
+	fmt.Println(colorize("✓ binary updated, restarting the service.", ansiRed))
 	return nil
 }
 
-// loadCfgOrDefaultChannel charge la config, ou renvoie des valeurs par défaut
-// si le nœud n'est pas (encore) initialisé.
+// loadCfgOrDefaultChannel loads the config, or returns default values if the
+// node is not (yet) initialized.
 func loadCfgOrDefaultChannel() *config.Config {
 	if cfg, err := config.Load(paths.ConfigFile()); err == nil {
 		if cfg.Update.Channel == "" {

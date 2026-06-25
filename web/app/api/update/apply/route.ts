@@ -1,7 +1,7 @@
 import { apiBase } from "@/lib/api";
 
-// Proxy l'action "Appliquer la mise à jour" du navigateur vers l'API Go locale,
-// en ajoutant le token côté serveur (jamais exposé au client).
+// Proxies the browser's "apply update" action to the local Go API, adding the
+// token server-side (never exposed to the client).
 export async function POST() {
   const { url, token } = apiBase();
   try {
@@ -16,7 +16,7 @@ export async function POST() {
     });
   } catch {
     return Response.json(
-      { error: "démon injoignable" },
+      { error: "daemon unreachable" },
       { status: 502 },
     );
   }

@@ -10,27 +10,27 @@ import (
 	"github.com/slashbinslashnoname/slashnode/internal/paths"
 )
 
-// Uninstall implémente `slashnoded uninstall`. Retire l'unit systemd, le
-// service Avahi et le binaire. Avec --purge, supprime aussi config + données
-// (confirmation requise sauf --yes).
+// Uninstall implements `slashnoded uninstall`. Removes the systemd unit, the
+// Avahi service and the binary. With --purge, also deletes config + data
+// (confirmation required unless --yes).
 func Uninstall(args []string) error {
 	fs := flag.NewFlagSet("uninstall", flag.ContinueOnError)
-	purge := fs.Bool("purge", false, "supprime aussi /etc/slashnode et /var/lib/slashnode")
-	yes := fs.Bool("yes", false, "ne pas demander de confirmation")
+	purge := fs.Bool("purge", false, "also delete /etc/slashnode and /var/lib/slashnode")
+	yes := fs.Bool("yes", false, "do not ask for confirmation")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 
 	if *purge && !*yes {
-		fmt.Print("⚠ --purge supprime config + secrets + données. Confirmer ? [o/N] ")
+		fmt.Print("⚠ --purge deletes config + secrets + data. Confirm? [y/N] ")
 		var resp string
 		fmt.Scanln(&resp)
 		if resp != "o" && resp != "O" && resp != "y" && resp != "Y" {
-			return fmt.Errorf("annulé")
+			return fmt.Errorf("cancelled")
 		}
 	}
 
-	// Arrêt + désactivation des services (best effort, Linux).
+	// Stop + disable the services (best effort, Linux).
 	if runtime.GOOS == "linux" {
 		runBestEffort("systemctl", "disable", "--now", "slashnoded")
 		runBestEffort("systemctl", "disable", "--now", "slashnoded-update.timer")
@@ -51,22 +51,22 @@ func Uninstall(args []string) error {
 		removeAll(paths.DataDir())
 	}
 
-	fmt.Println(colorize("✓ SlashNode désinstallé.", ansiRed))
+	fmt.Println(colorize("✓ SlashNode uninstalled.", ansiRed))
 	if !*purge {
-		fmt.Println(colorize("  (config + données conservées ; --purge pour tout supprimer)", ansiDim))
+		fmt.Println(colorize("  (config + data kept; --purge to delete everything)", ansiDim))
 	}
 	return nil
 }
 
 func remove(path string) {
 	if err := os.Remove(path); err == nil {
-		fmt.Printf("→ supprimé %s\n", path)
+		fmt.Printf("→ removed %s\n", path)
 	}
 }
 
 func removeAll(path string) {
 	if err := os.RemoveAll(path); err == nil {
-		fmt.Printf("→ supprimé %s\n", path)
+		fmt.Printf("→ removed %s\n", path)
 	}
 }
 

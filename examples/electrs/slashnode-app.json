@@ -1,0 +1,35 @@
+{
+  "manifestVersion": 1,
+  "id": "electrs",
+  "name": "Electrs",
+  "version": "0.10.0",
+  "category": "bitcoin",
+  "description": "High-performance Electrum server. Indexes the blockchain for wallets.",
+  "icon": "🔍",
+  "dependencies": ["bitcoind"],
+  "inputs": [
+    {
+      "key": "TXINDEX",
+      "label": "Full transaction index",
+      "type": "boolean",
+      "default": true
+    }
+  ],
+  "services": {
+    "electrs": {
+      "image": "slashnode/electrs:0.10.0",
+      "ports": [{ "host": 50001, "container": 50001 }],
+      "volumes": [{ "name": "electrs-data", "path": "/data/electrs" }],
+      "healthcheck": { "type": "tcp", "port": 50001, "interval": "30s" }
+    }
+  },
+  "wiring": {
+    "bitcoind.rpchost": "${bitcoind.exports.rpc.host}",
+    "bitcoind.rpcuser": "${bitcoind.exports.rpc.user}",
+    "bitcoind.rpcpass": "${bitcoind.exports.rpc.password}"
+  },
+  "exports": {
+    "electrum.host": "electrs",
+    "electrum.port": 50001
+  }
+}

@@ -1,0 +1,212 @@
+// Package apps loads the catalog of application manifests and manages the
+// installation state.
+//
+// NOTE: the actual Docker orchestration (docker compose up, templating,
+// exports/wiring resolution) arrives with the registry engine. For now,
+// Install validates the inputs, separates the secrets and persists the
+// "installed" state so that the App Store is fully browsable and the install
+// form (generated from `inputs`) works end to end.
+package apps
+
+import (
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
+	"sort"
+	"time"
+
+	"github.com/slashbinslashnoname/slashnode/internal/paths"
+)
+
+// Input describes a user input (→ container environment variable).
+type Input struct {
+	Key         string   `json:"key"`
+	Label       string   `json:"label"`
+	Type        string   `json:"type"`
+	Required    bool     `json:"required,omitempty"`
+	Default     any      `json:"default,omitempty"`
+	Placeholder string   `json:"placeholder,omitempty"`
+	Help        string   `json:"help,omitempty"`
+	Secret      bool     `json:"secret,omitempty"`
+	Options     []string `json:"options,omitempty"`
+	MinLength   int      `json:"minLength,omitempty"`
+	Min         *float64 `json:"min,omitempty"`
+	Max         *float64 `json:"max,omitempty"`
+}
+
+// Manifest is an app manifest (slashnode-app.json).
+type Manifest struct {
+	ManifestVersion int             `json:"manifestVersion"`
+	ID              string          `json:"id"`
+	Name            string          `json:"name"`
+	Version         string          `json:"version"`
+	Category        string          `json:"category"`
+	Description     string          `json:"description"`
+	Icon            string          `json:"icon"`
+	Dependencies    []string        `json:"dependencies"`
+	Inputs          []Input         `json:"inputs"`
+	Services        json.RawMessage `json:"services,omitempty"`
+	Exports         map[string]any  `json:"exports,omitempty"`
+	Wiring          map[string]any  `json:"wiring,omitempty"`
+}
+
+// CatalogEntry enriches a manifest with its installation state for the UI.
+type CatalogEntry struct {
+	Manifest
+	Installed bool `json:"installed"`
+}
+
+// LoadCatalog reads all manifests dir/*/slashnode-app.json, sorted by name.
+func LoadCatalog(dir string) ([]Manifest, error) {
+	matches, err := filepath.Glob(filepath.Join(dir, "*", "slashnode-app.json"))
+	if err != nil {
+		return nil, err
+	}
+	var out []Manifest
+	for _, m := range matches {
+		b, err := os.ReadFile(m)
+		if err != nil {
+			return nil, err
+		}
+		var man Manifest
+		if err := json.Unmarshal(b, &man); err != nil {
+			return nil, fmt.Errorf("invalid manifest (%s): %w", m, err)
+		}
+		out = append(out, man)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
+	return out, nil
+}
+
+// Find returns the manifest with the given id.
+func Find(dir, id string) (*Manifest, error) {
+	cat, err := LoadCatalog(dir)
+	if err != nil {
+		return nil, err
+	}
+	for i := range cat {
+		if cat[i].ID == id {
+			return &cat[i], nil
+		}
+	}
+	return nil, fmt.Errorf("unknown app: %s", id)
+}
+
+// InstalledApp is the persisted state of an installed app (secrets excluded).
+type InstalledApp struct {
+	ID          string            `json:"id"`
+	Version     string            `json:"version"`
+	InstalledAt string            `json:"installed_at"`
+	Inputs      map[string]string `json:"inputs"`
+}
+
+// State is the installation state (var/lib/slashnode/apps.json).
+type State struct {
+	Installed map[string]InstalledApp `json:"installed"`
+}
+
+// LoadState reads the installation state (empty if absent).
+func LoadState() *State {
+	st := &State{Installed: map[string]InstalledApp{}}
+	b, err := os.ReadFile(paths.AppsStateFile())
+	if err != nil {
+		return st
+	}
+	_ = json.Unmarshal(b, st)
+	if st.Installed == nil {
+		st.Installed = map[string]InstalledApp{}
+	}
+	return st
+}
+
+// Catalog returns the catalog annotated with the installation state.
+func Catalog(dir string) ([]CatalogEntry, error) {
+	cat, err := LoadCatalog(dir)
+	if err != nil {
+		return nil, err
+	}
+	state := LoadState()
+	out := make([]CatalogEntry, 0, len(cat))
+	for _, m := range cat {
+		_, installed := state.Installed[m.ID]
+		out = append(out, CatalogEntry{Manifest: m, Installed: installed})
+	}
+	return out, nil
+}
+
+// Install validates the inputs, separates secrets/non-secrets and persists the state.
+func Install(dir, id string, inputs map[string]string) error {
+	man, err := Find(dir, id)
+	if err != nil {
+		return err
+	}
+
+	nonSecret := map[string]string{}
+	secret := map[string]string{}
+	for _, in := range man.Inputs {
+		val, ok := inputs[in.Key]
+		if (!ok || val == "") && in.Required {
+			return fmt.Errorf("missing required field: %s", in.Key)
+		}
+		if !ok {
+			continue
+		}
+		if in.MinLength > 0 && len(val) < in.MinLength {
+			return fmt.Errorf("%s: %d characters minimum", in.Key, in.MinLength)
+		}
+		if in.Secret || in.Type == "password" {
+			secret[in.Key] = val
+		} else {
+			nonSecret[in.Key] = val
+		}
+	}
+
+	if err := mergeAppSecrets(id, secret); err != nil {
+		return err
+	}
+
+	state := LoadState()
+	state.Installed[id] = InstalledApp{
+		ID:          id,
+		Version:     man.Version,
+		InstalledAt: time.Now().UTC().Format(time.RFC3339),
+		Inputs:      nonSecret,
+	}
+	return saveState(state)
+}
+
+// Uninstall removes an app from the state (and its secrets).
+func Uninstall(id string) error {
+	state := LoadState()
+	delete(state.Installed, id)
+	_ = mergeAppSecrets(id, nil) // purge the app's secrets
+	return saveState(state)
+}
+
+func saveState(s *State) error {
+	if err := os.MkdirAll(filepath.Dir(paths.AppsStateFile()), 0o700); err != nil {
+		return err
+	}
+	b, _ := json.MarshalIndent(s, "", "  ")
+	return os.WriteFile(paths.AppsStateFile(), append(b, '\n'), 0o644)
+}
+
+// mergeAppSecrets merges (or purges if values==nil) an app's secrets into
+// app-secrets.json (mode 0600).
+func mergeAppSecrets(id string, values map[string]string) error {
+	all := map[string]map[string]string{}
+	if b, err := os.ReadFile(paths.AppSecretsFile()); err == nil {
+		_ = json.Unmarshal(b, &all)
+	}
+	if values == nil {
+		delete(all, id)
+	} else if len(values) > 0 {
+		all[id] = values
+	}
+	if err := os.MkdirAll(filepath.Dir(paths.AppSecretsFile()), 0o700); err != nil {
+		return err
+	}
+	b, _ := json.MarshalIndent(all, "", "  ")
+	return os.WriteFile(paths.AppSecretsFile(), append(b, '\n'), 0o600)
+}

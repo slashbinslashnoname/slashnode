@@ -27,9 +27,7 @@ export function UpdateBanner({
     <div className="w-full max-w-md rounded-xl border border-primary/40 bg-primary/10 px-4 py-3">
       <div className="flex items-center justify-between gap-4">
         <div className="text-sm">
-          <span className="font-semibold text-primary">
-            Mise à jour disponible
-          </span>
+          <span className="font-semibold text-primary">Update available</span>
           <div className="text-muted">
             {current} → {latest}
           </div>
@@ -39,10 +37,10 @@ export function UpdateBanner({
           disabled={state === "applying" || state === "done"}
           className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-60"
         >
-          {state === "idle" && "Appliquer"}
-          {state === "applying" && "Mise à jour…"}
-          {state === "done" && "Redémarrage…"}
-          {state === "error" && "Échec — réessayer"}
+          {state === "idle" && "Apply"}
+          {state === "applying" && "Updating…"}
+          {state === "done" && "Restarting…"}
+          {state === "error" && "Failed — retry"}
         </button>
       </div>
     </div>

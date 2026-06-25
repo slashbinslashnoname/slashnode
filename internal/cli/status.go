@@ -12,19 +12,19 @@ import (
 	"github.com/slashbinslashnoname/slashnode/internal/paths"
 )
 
-// Status implémente `slashnoded status`. Avec --post-install, affiche la
-// bannière, l'URL d'accès et les identifiants initiaux.
+// Status implements `slashnoded status`. With --post-install, displays the
+// banner, the access URL and the initial credentials.
 func Status(args []string) error {
 	fs := flag.NewFlagSet("status", flag.ContinueOnError)
-	postInstall := fs.Bool("post-install", false, "affiche URL + identifiants après installation")
-	asJSON := fs.Bool("json", false, "sortie JSON")
+	postInstall := fs.Bool("post-install", false, "display URL + credentials after installation")
+	asJSON := fs.Bool("json", false, "JSON output")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 
 	cfg, err := config.Load(paths.ConfigFile())
 	if err != nil {
-		return fmt.Errorf("nœud non initialisé (lance `slashnoded init`) : %w", err)
+		return fmt.Errorf("node not initialized (run `slashnoded init`): %w", err)
 	}
 
 	urls := accessURLs(cfg)
@@ -48,7 +48,9 @@ func Status(args []string) error {
 
 	fmt.Printf("Node ID  : %s\n", cfg.NodeID)
 	fmt.Printf("Version  : %s\n", cfg.Version)
-	fmt.Println("Accès    :")
+	fmt.Printf("Mode     : %s\n", cfg.Access.Mode)
+	fmt.Printf("Auth     : %s\n", authLabel(cfg))
+	fmt.Println("Access   :")
 	for _, u := range urls {
 		fmt.Printf("  %s\n", colorize(u, ansiRed))
 	}
@@ -62,20 +64,32 @@ func Status(args []string) error {
 func printInitialCredentials() {
 	pw, err := os.ReadFile(paths.InitialPasswordFile())
 	if err != nil {
-		// Plus de fichier => mot de passe déjà récupéré / changé.
-		fmt.Println(colorize("\nMot de passe initial déjà consommé (fichier absent).", ansiDim))
+		// No more file => password already retrieved / changed.
+		fmt.Println(colorize("\nInitial password already consumed (file absent).", ansiDim))
 		return
 	}
 	fmt.Println()
-	fmt.Println(colorize("Identifiants initiaux :", ansiRed))
-	fmt.Printf("  utilisateur : %s\n", "admin")
-	fmt.Printf("  mot de passe: %s\n", strings.TrimSpace(string(pw)))
-	fmt.Println(colorize("  ⚠ change-le après la première connexion.", ansiDim))
+	fmt.Println(colorize("Initial credentials:", ansiRed))
+	fmt.Printf("  username: %s\n", "admin")
+	fmt.Printf("  password: %s\n", strings.TrimSpace(string(pw)))
+	fmt.Println(colorize("  ⚠ change it after the first login.", ansiDim))
 }
 
-// accessURLs construit la liste des URL d'accès (mDNS + IP locales).
+// authLabel describes whether the web UI requires a login.
+func authLabel(cfg *config.Config) string {
+	if cfg.Access.PasswordProtected {
+		return "password-protected"
+	}
+	return "open (LAN)"
+}
+
+// accessURLs builds the list of access URLs (server address + mDNS + local IPs).
 func accessURLs(cfg *config.Config) []string {
-	urls := []string{fmt.Sprintf("http://%s:%d", cfg.Hostname, cfg.HTTP.Port)}
+	var urls []string
+	if cfg.Access.Mode == "server" && cfg.Access.Address != "" {
+		urls = append(urls, fmt.Sprintf("http://%s:%d", cfg.Access.Address, cfg.HTTP.Port))
+	}
+	urls = append(urls, fmt.Sprintf("http://%s:%d", cfg.Hostname, cfg.HTTP.Port))
 	for _, ip := range localIPs() {
 		urls = append(urls, fmt.Sprintf("http://%s:%d", ip, cfg.HTTP.Port))
 	}

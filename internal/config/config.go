@@ -1,5 +1,5 @@
-// Package config définit la structure de configuration de SlashNode et son
-// chargement/sauvegarde au format JSON (/etc/slashnode/config.json).
+// Package config defines the configuration structure of SlashNode and its
+// loading/saving in JSON format (/etc/slashnode/config.json).
 package config
 
 import (
@@ -12,46 +12,59 @@ import (
 	"time"
 )
 
-// HTTP regroupe les paramètres réseau.
+// HTTP groups the network parameters.
 //
-//	Port    : port public du front Next.js (servi/lancé par le démon).
-//	APIPort : port de l'API Go locale (liée à 127.0.0.1, consommée par le front).
+//	Port    : public port of the Next.js front (served/launched by the daemon).
+//	APIPort : port of the local Go API (bound to 127.0.0.1, consumed by the front).
 type HTTP struct {
 	Bind    string `json:"bind"`
 	Port    int    `json:"port"`
 	APIPort int    `json:"api_port"`
 }
 
-// Update contrôle la politique de mise à jour du démon.
+// Update controls the daemon's update policy.
 //
-//	Policy  : "notify" (signale, l'opérateur applique) ou "auto".
-//	Channel : "stable" (par défaut) ou "beta".
+//	Policy  : "notify" (signals, the operator applies) or "auto".
+//	Channel : "stable" (default) or "beta".
 type Update struct {
 	Policy  string `json:"policy"`
 	Channel string `json:"channel"`
 }
 
-// Theme contrôle l'apparence de l'UI.
+// Access controls how the node is reached and whether the UI is protected.
+//
+//	Mode              : "local" (LAN, slashnode.local) or "server" (public address).
+//	Address           : public host/domain used in server mode (e.g. node.example.com).
+//	PasswordProtected : when true, the web UI requires a login (admin password).
+//	                    Optional in local mode, always on in server mode.
+type Access struct {
+	Mode              string `json:"mode"`
+	Address           string `json:"address"`
+	PasswordProtected bool   `json:"password_protected"`
+}
+
+// Theme controls the appearance of the UI.
 type Theme struct {
-	// Mode : "system", "light" ou "dark".
+	// Mode : "system", "light" or "dark".
 	Mode string `json:"mode"`
-	// Primary : couleur d'accent (hex). Rouge par défaut.
+	// Primary : accent color (hex). Red by default.
 	Primary string `json:"primary"`
 }
 
-// Config est la configuration persistée du nœud.
+// Config is the persisted configuration of the node.
 type Config struct {
 	Version   string `json:"version"`
 	NodeID    string `json:"node_id"`
 	Hostname  string `json:"hostname"`
 	DataDir   string `json:"data_dir"`
 	HTTP      HTTP   `json:"http"`
+	Access    Access `json:"access"`
 	Theme     Theme  `json:"theme"`
 	Update    Update `json:"update"`
 	CreatedAt string `json:"created_at"`
 }
 
-// Default construit une configuration par défaut, avec un NodeID aléatoire.
+// Default builds a default configuration, with a random NodeID.
 func Default(version, dataDir string) (*Config, error) {
 	id, err := randomHex(8)
 	if err != nil {
@@ -63,13 +76,14 @@ func Default(version, dataDir string) (*Config, error) {
 		Hostname:  "slashnode.local",
 		DataDir:   dataDir,
 		HTTP:      HTTP{Bind: "0.0.0.0", Port: 8080, APIPort: 8081},
-		Theme:     Theme{Mode: "system", Primary: "#e5484d"}, // rouge
+		Access:    Access{Mode: "local", Address: "", PasswordProtected: false},
+		Theme:     Theme{Mode: "system", Primary: "#e5484d"}, // red
 		Update:    Update{Policy: "notify", Channel: "stable"},
 		CreatedAt: time.Now().UTC().Format(time.RFC3339),
 	}, nil
 }
 
-// Load lit et décode la configuration depuis path.
+// Load reads and decodes the configuration from path.
 func Load(path string) (*Config, error) {
 	b, err := os.ReadFile(path)
 	if err != nil {
@@ -77,12 +91,12 @@ func Load(path string) (*Config, error) {
 	}
 	var c Config
 	if err := json.Unmarshal(b, &c); err != nil {
-		return nil, fmt.Errorf("config invalide (%s) : %w", path, err)
+		return nil, fmt.Errorf("invalid config (%s): %w", path, err)
 	}
 	return &c, nil
 }
 
-// Save écrit la configuration en JSON indenté (mode 0644).
+// Save writes the configuration as indented JSON (mode 0644).
 func (c *Config) Save(path string) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err

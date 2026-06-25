@@ -1,0 +1,34 @@
+{
+  "manifestVersion": 1,
+  "id": "mempool",
+  "name": "Mempool",
+  "version": "3.0.0",
+  "category": "bitcoin",
+  "description": "Self-hosted blockchain explorer and mempool visualizer.",
+  "icon": "📊",
+  "dependencies": ["bitcoind", "electrs"],
+  "inputs": [
+    {
+      "key": "ADMIN_EMAIL",
+      "label": "Administrator email",
+      "type": "email",
+      "required": false,
+      "help": "For alerts (optional)."
+    }
+  ],
+  "services": {
+    "mempool-web": {
+      "image": "slashnode/mempool:3.0.0",
+      "ports": [{ "host": 8999, "container": 8080 }],
+      "volumes": [{ "name": "mempool-data", "path": "/data/mempool" }],
+      "healthcheck": { "type": "http", "path": "/", "interval": "30s" }
+    }
+  },
+  "wiring": {
+    "bitcoind.rpchost": "${bitcoind.exports.rpc.host}",
+    "bitcoind.rpcuser": "${bitcoind.exports.rpc.user}",
+    "bitcoind.rpcpass": "${bitcoind.exports.rpc.password}",
+    "electrs.host": "${electrs.exports.electrum.host}",
+    "electrs.port": "${electrs.exports.electrum.port}"
+  }
+}
