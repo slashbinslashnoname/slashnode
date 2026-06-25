@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { App, ServiceStatus, ProbeResult, CredField } from "@/lib/api";
-import { Console } from "@/components/Console";
+import { useConsole } from "@/components/console/ConsoleProvider";
 
 export function AppTile({ app }: { app: App }) {
   const router = useRouter();
@@ -12,8 +12,8 @@ export function AppTile({ app }: { app: App }) {
   const [probe, setProbe] = useState<ProbeResult | null>(null);
   const [logs, setLogs] = useState<string | null>(null);
   const [busy, setBusy] = useState("");
-  const [consoleFor, setConsoleFor] = useState<string | null>(null);
   const [creds, setCreds] = useState<CredField[] | null>(null);
+  const consoles = useConsole();
 
   const refresh = useCallback(async () => {
     try {
@@ -103,7 +103,7 @@ export function AppTile({ app }: { app: App }) {
         <Btn onClick={toggleLogs}>{logs !== null ? "hide logs" : "logs"}</Btn>
         <Btn onClick={toggleCreds}>{creds !== null ? "hide config" : "config"}</Btn>
         {(services ?? []).map((s) => (
-          <Btn key={s.service} onClick={() => setConsoleFor(s.service)}>
+          <Btn key={s.service} onClick={() => consoles.open(s.service)}>
             {`console${(services ?? []).length > 1 ? `:${s.service}` : ""}`}
           </Btn>
         ))}
@@ -119,9 +119,6 @@ export function AppTile({ app }: { app: App }) {
         )}
       </div>
 
-      {consoleFor && (
-        <Console container={consoleFor} onClose={() => setConsoleFor(null)} />
-      )}
 
       {creds !== null && creds.length > 0 && (
         <div className="flex flex-col gap-1 rounded-lg bg-bg p-3 text-xs">

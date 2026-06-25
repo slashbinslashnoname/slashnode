@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"crypto/subtle"
+	"encoding/json"
 	"net/http"
 	"os/exec"
 
@@ -82,11 +83,24 @@ func runConsole(conn *websocket.Conn, container string) {
 		}
 	}()
 
-	// browser input → container
+	// browser input → container. Binary messages are stdin; text messages are
+	// control (terminal resize).
 	for {
-		_, data, rerr := conn.Read(ctx)
+		typ, data, rerr := conn.Read(ctx)
 		if rerr != nil {
 			return
+		}
+		if typ == websocket.MessageText {
+			var ctrl struct {
+				Resize *struct {
+					Cols uint16 `json:"cols"`
+					Rows uint16 `json:"rows"`
+				} `json:"resize"`
+			}
+			if json.Unmarshal(data, &ctrl) == nil && ctrl.Resize != nil && ctrl.Resize.Cols > 0 {
+				_ = pty.Setsize(ptmx, &pty.Winsize{Rows: ctrl.Resize.Rows, Cols: ctrl.Resize.Cols})
+			}
+			continue
 		}
 		if _, werr := ptmx.Write(data); werr != nil {
 			return
