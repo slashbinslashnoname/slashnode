@@ -1,0 +1,56 @@
+{
+  "manifestVersion": 1,
+  "id": "bitcoind",
+  "name": "Bitcoin Core",
+  "version": "27.0",
+  "category": "bitcoin",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "RPC_USER",
+      "label": "Utilisateur RPC",
+      "type": "text",
+      "required": true,
+      "default": "slashnode",
+      "help": "Nom d'utilisateur pour l'API RPC de bitcoind."
+    },
+    {
+      "key": "RPC_PASSWORD",
+      "label": "Mot de passe RPC",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Mot de passe de l'API RPC. Stocké chiffré."
+    },
+    {
+      "key": "NETWORK",
+      "label": "Réseau",
+      "type": "select",
+      "options": ["mainnet", "testnet", "signet"],
+      "default": "mainnet"
+    },
+    {
+      "key": "PRUNE_GB",
+      "label": "Prune (Go, 0 = nœud complet)",
+      "type": "number",
+      "default": 0,
+      "min": 0
+    }
+  ],
+  "services": {
+    "bitcoind": {
+      "image": "slashnode/bitcoind:27.0",
+      "ports": [{ "host": 8333, "container": 8333 }],
+      "volumes": [{ "name": "bitcoin-data", "path": "/data/.bitcoin" }],
+      "healthcheck": { "type": "rpc", "method": "getblockchaininfo", "interval": "30s" }
+    }
+  },
+  "exports": {
+    "rpc.host": "bitcoind",
+    "rpc.port": 8332,
+    "rpc.user": "${input.RPC_USER}",
+    "rpc.password": "${secret.RPC_PASSWORD}",
+    "zmq.rawblock": "tcp://bitcoind:28332"
+  }
+}

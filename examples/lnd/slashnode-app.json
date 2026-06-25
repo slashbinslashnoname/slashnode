@@ -1,0 +1,39 @@
+{
+  "manifestVersion": 1,
+  "id": "lnd",
+  "name": "LND",
+  "version": "0.18.0",
+  "category": "lightning",
+  "dependencies": ["bitcoind"],
+  "inputs": [
+    {
+      "key": "ALIAS",
+      "label": "Alias du nœud",
+      "type": "text",
+      "required": true,
+      "placeholder": "mon-nœud-lightning"
+    },
+    {
+      "key": "WALLET_PASSWORD",
+      "label": "Mot de passe du wallet",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12
+    }
+  ],
+  "services": {
+    "lnd": {
+      "image": "slashnode/lnd:0.18.0",
+      "ports": [{ "host": 9735, "container": 9735 }],
+      "volumes": [{ "name": "lnd-data", "path": "/data/.lnd" }],
+      "healthcheck": { "type": "rpc", "method": "getinfo", "interval": "30s" }
+    }
+  },
+  "wiring": {
+    "bitcoind.rpchost": "${bitcoind.exports.rpc.host}",
+    "bitcoind.rpcuser": "${bitcoind.exports.rpc.user}",
+    "bitcoind.rpcpass": "${bitcoind.exports.rpc.password}",
+    "bitcoind.zmqpubrawblock": "${bitcoind.exports.zmq.rawblock}"
+  }
+}

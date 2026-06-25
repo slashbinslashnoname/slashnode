@@ -1,0 +1,57 @@
+{
+  "manifestVersion": 1,
+  "id": "geth",
+  "name": "Go Ethereum (geth)",
+  "version": "1.14.0",
+  "category": "ethereum",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "NETWORK",
+      "label": "Réseau",
+      "type": "select",
+      "options": ["mainnet", "sepolia", "holesky"],
+      "default": "mainnet"
+    },
+    {
+      "key": "SYNC_MODE",
+      "label": "Mode de synchronisation",
+      "type": "select",
+      "options": ["snap", "full"],
+      "default": "snap",
+      "help": "snap : rapide, recommandé. full : archive complète."
+    },
+    {
+      "key": "HTTP_API",
+      "label": "Modules API HTTP exposés",
+      "type": "text",
+      "default": "eth,net,web3",
+      "help": "Liste de modules JSON-RPC séparés par des virgules."
+    },
+    {
+      "key": "ENABLE_TOR",
+      "label": "Activer Tor",
+      "type": "boolean",
+      "default": false
+    }
+  ],
+  "services": {
+    "geth": {
+      "image": "slashnode/geth:1.14.0",
+      "ports": [
+        { "host": 30303, "container": 30303 },
+        { "host": 30303, "container": 30303, "protocol": "udp" }
+      ],
+      "volumes": [{ "name": "geth-data", "path": "/data/.ethereum" }],
+      "healthcheck": { "type": "rpc", "method": "eth_syncing", "interval": "30s" }
+    }
+  },
+  "exports": {
+    "rpc.host": "geth",
+    "rpc.http.port": 8545,
+    "rpc.ws.port": 8546,
+    "engine.host": "geth",
+    "engine.port": 8551,
+    "engine.jwt": "${secret.JWT_SECRET}"
+  }
+}

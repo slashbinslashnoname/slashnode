@@ -1,0 +1,38 @@
+@import "tailwindcss";
+
+/* Mode sombre piloté par la classe .dark sur <html>. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Expose les variables de thème comme couleurs Tailwind (bg-bg, text-fg, …). */
+@theme inline {
+  --color-primary: var(--primary);
+  --color-bg: var(--bg);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-card: var(--card);
+  --color-border: var(--border);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+:root {
+  --primary: #e5484d; /* rouge SlashNode */
+  --bg: #ffffff;
+  --fg: #1a1a1a;
+  --muted: #6b7280;
+  --card: #f5f5f5;
+  --border: #e5e7eb;
+}
+
+.dark {
+  --bg: #0e0e10;
+  --fg: #f5f5f5;
+  --muted: #9ca3af;
+  --card: #1a1a1d;
+  --border: #2a2a2e;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-mono);
+}

@@ -1,0 +1,13 @@
+# Artefacts de build
+/dist/
+/slashnoded
+*.img
+*.img.xz
+
+# Données / secrets locaux (jamais committés)
+/etc/slashnode/
+/var/lib/slashnode/
+
+# Divers
+*.log
+.DS_Store
