@@ -17,6 +17,19 @@ export function AppTile({ app }: { app: App }) {
     exports: Record<string, string>;
   } | null>(null);
   const consoles = useConsole();
+  const [openUrl, setOpenUrl] = useState<string | null>(null);
+
+  // Build the "open" URL on the client from the host actually being used: the
+  // app's published port (works by IP or slashnode.local), or the HTTPS
+  // subdomain when browsing over TLS via Caddy.
+  useEffect(() => {
+    if (!app.web) return;
+    if (location.protocol === "https:" && app.url) {
+      setOpenUrl(app.url);
+    } else {
+      setOpenUrl(`http://${location.hostname}:${app.web.port}`);
+    }
+  }, []);
 
   const refresh = useCallback(async () => {
     try {
@@ -120,9 +133,9 @@ export function AppTile({ app }: { app: App }) {
             {`console${(services ?? []).length > 1 ? `:${s.service}` : ""}`}
           </Btn>
         ))}
-        {app.url && (
+        {openUrl && (
           <a
-            href={app.url}
+            href={openUrl}
             target="_blank"
             rel="noreferrer"
             className="rounded-md border border-border px-2 py-1 text-xs hover:border-primary"
