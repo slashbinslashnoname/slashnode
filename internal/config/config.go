@@ -43,6 +43,11 @@ type Access struct {
 	PasswordProtected bool   `json:"password_protected"`
 }
 
+// Tor controls Tor hidden-service exposure for the UI and apps.
+type Tor struct {
+	Enabled bool `json:"enabled"`
+}
+
 // Theme controls the appearance of the UI.
 type Theme struct {
 	// Mode : "system", "light" or "dark".
@@ -59,6 +64,7 @@ type Config struct {
 	DataDir   string `json:"data_dir"`
 	HTTP      HTTP   `json:"http"`
 	Access    Access `json:"access"`
+	Tor       Tor    `json:"tor"`
 	Theme     Theme  `json:"theme"`
 	Update    Update `json:"update"`
 	CreatedAt string `json:"created_at"`
@@ -77,6 +83,7 @@ func Default(version, dataDir string) (*Config, error) {
 		DataDir:   dataDir,
 		HTTP:      HTTP{Bind: "0.0.0.0", Port: 8080, APIPort: 8081},
 		Access:    Access{Mode: "local", Address: "", PasswordProtected: false},
+		Tor:       Tor{Enabled: false},
 		Theme:     Theme{Mode: "system", Primary: "#e5484d"}, // red
 		Update:    Update{Policy: "notify", Channel: "stable"},
 		CreatedAt: time.Now().UTC().Format(time.RFC3339),

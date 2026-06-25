@@ -49,6 +49,7 @@ func Uninstall(args []string) error {
 	if *purge {
 		removeAll(paths.ConfigDir())
 		removeAll(paths.DataDir())
+		removeAll(paths.TorDataDir()) // generated hidden-service keys
 	}
 
 	fmt.Println(colorize("✓ SlashNode uninstalled.", ansiRed))

@@ -28,6 +28,8 @@ MIN_DISK_GB=10
 
 # Extra arguments passed to `slashnoded init` (filled by configure_access).
 INIT_ARGS=()
+# Whether the operator opted into Tor hidden services (set by configure_access).
+ENABLE_TOR=0
 
 red()  { printf '\033[1;31m%s\033[0m\n' "$*"; }
 dim()  { printf '\033[2m%s\033[0m\n' "$*"; }
@@ -117,6 +119,18 @@ install_caddy() {
   command -v avahi-publish >/dev/null || apt-get install -y avahi-utils || true
 }
 
+install_tor() {
+  # Tor exposes the UI and apps as .onion hidden services. Only installed when
+  # the operator opts in (see configure_access).
+  if command -v tor >/dev/null; then
+    info "Tor already present."
+  else
+    info "Installing Tor…"
+    apt-get install -y tor
+  fi
+  systemctl enable tor >/dev/null 2>&1 || true
+}
+
 # fetch_verify <name>: download /tmp/<name> and /tmp/<name>.sha256 and verify
 # the checksum, retrying on any failure. The rolling "latest" release is
 # refreshed by CI, so a download caught mid-publish is retried rather than fatal.
@@ -194,6 +208,13 @@ configure_access() {
         ;;
     esac
   fi
+
+  local tor
+  printf 'Expose the UI and apps as Tor hidden services (.onion)? [y/N] ' >/dev/tty
+  read -r tor </dev/tty
+  case "$tor" in
+    y|Y) ENABLE_TOR=1; INIT_ARGS+=(--tor) ;;
+  esac
 }
 
 # Compares the installed version to the target. Returns 0 if a (re)install is
@@ -242,6 +263,9 @@ main() {
   install_apps
 
   configure_access
+  if [ "$ENABLE_TOR" = "1" ]; then
+    install_tor
+  fi
   info "Initializing (config, secrets, systemd, Avahi, Caddy)…"
   slashnoded init --quiet "${INIT_ARGS[@]}"
 

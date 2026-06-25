@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { InstallForm } from "@/components/InstallForm";
-import { CredsPanel } from "@/components/CredsPanel";
+import { AppTabs } from "@/components/AppTabs";
 import { UpdateAppButton } from "@/components/UpdateAppButton";
 import { UninstallButton } from "@/components/UninstallButton";
 import { getApp } from "@/lib/api";
@@ -59,12 +58,6 @@ export default async function AppDetail({
         />
       )}
 
-      {app.installed && (
-        <div className="mb-6">
-          <CredsPanel id={app.id} />
-        </div>
-      )}
-
       {app.dependencies && app.dependencies.length > 0 && (
         <div className="mb-6 rounded-lg border border-border bg-card p-4 text-sm">
           <span className="text-muted">Requires: </span>
@@ -72,7 +65,7 @@ export default async function AppDetail({
         </div>
       )}
 
-      <InstallForm app={app} />
+      <AppTabs app={app} />
 
       {app.installed && (
         <div className="mt-8 border-t border-border pt-6">

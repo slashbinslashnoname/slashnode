@@ -9,6 +9,7 @@ export type Status = {
   version: string;
   hostname: string;
   port: number;
+  onion?: string;
 };
 
 export type UpdateInfo = {
@@ -44,6 +45,7 @@ export type App = {
   installed_version?: string;
   update_available?: boolean;
   url?: string;
+  onion_url?: string;
   web?: { port: number; path?: string };
   probe?: { type: string };
   notes?: string;

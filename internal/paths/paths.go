@@ -55,3 +55,8 @@ func SystemdUpdateTimer() string   { return p("etc", "systemd", "system", "slash
 func AvahiDir() string             { return p("etc", "avahi", "services") }
 func AvahiService() string         { return p("etc", "avahi", "services", "slashnode.service") }
 func CaddyfilePath() string        { return p("etc", "caddy", "Caddyfile") }
+func TorrcPath() string            { return p("etc", "tor", "torrc") }
+func TorDataDir() string           { return p("var", "lib", "tor", "slashnode") }
+func TorHostnameFile(name string) string {
+	return p("var", "lib", "tor", "slashnode", name, "hostname")
+}

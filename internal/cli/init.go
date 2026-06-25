@@ -25,6 +25,7 @@ func Init(args []string) error {
 	address := fs.String("address", "", "public address for server mode (e.g. node.example.com)")
 	passwordProtect := fs.Bool("password-protect", false, "require a login for the web UI")
 	password := fs.String("password", "", "set the admin password (otherwise a random one is generated)")
+	enableTor := fs.Bool("tor", false, "expose the UI and apps as Tor hidden services (.onion)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -73,6 +74,15 @@ func Init(args []string) error {
 			return fmt.Errorf("writing config: %w", err)
 		}
 		logf(*quiet, "→ access set (mode=%s, password=%v)", cfg.Access.Mode, cfg.Access.PasswordProtected)
+	}
+
+	// 2c. Tor exposure (applied when --tor is provided).
+	if *enableTor && !cfg.Tor.Enabled {
+		cfg.Tor.Enabled = true
+		if err := cfg.Save(paths.ConfigFile()); err != nil {
+			return fmt.Errorf("writing config: %w", err)
+		}
+		logf(*quiet, "→ Tor hidden services enabled")
 	}
 
 	// 3. Secrets (idempotent: regenerated only if absent or --force).
@@ -135,6 +145,13 @@ func Init(args []string) error {
 			return fmt.Errorf("writing Caddyfile: %w", err)
 		}
 		logf(*quiet, "→ Caddyfile written (%s)", paths.CaddyfilePath())
+
+		// Tor hidden services (best-effort; no-op unless enabled + tor present).
+		if err := apps.ReloadTor(); err != nil {
+			logf(*quiet, "→ Tor reload skipped (%v)", err)
+		} else if cfg.Tor.Enabled {
+			logf(*quiet, "→ Tor hidden services written (%s)", paths.TorrcPath())
+		}
 	} else {
 		logf(*quiet, "→ %s detected: systemd/Avahi skipped (Linux only)", runtime.GOOS)
 	}

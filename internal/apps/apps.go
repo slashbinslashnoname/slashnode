@@ -102,7 +102,8 @@ type CatalogEntry struct {
 	Installed        bool   `json:"installed"`
 	InstalledVersion string `json:"installed_version,omitempty"`
 	UpdateAvailable  bool   `json:"update_available"`
-	URL              string `json:"url,omitempty"` // reverse-proxy URL (set by the API layer)
+	URL              string `json:"url,omitempty"`       // reverse-proxy URL (set by the API layer)
+	OnionURL         string `json:"onion_url,omitempty"` // Tor hidden-service URL (set by the API layer)
 }
 
 // LoadCatalog reads all manifests dir/*/slashnode-app.json, sorted by name.

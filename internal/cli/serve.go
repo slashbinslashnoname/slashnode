@@ -123,6 +123,7 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 			"version":  Version,
 			"hostname": cfg.Hostname,
 			"port":     cfg.HTTP.Port,
+			"onion":    apps.NodeOnion(),
 		})
 	}))
 
@@ -166,6 +167,11 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 		}
 		for i := range cat {
 			cat[i].URL = apps.AppURL(cfg, &cat[i].Manifest)
+			if cat[i].Installed && cat[i].Web != nil {
+				if onion := apps.AppOnion(cat[i].ID); onion != "" {
+					cat[i].OnionURL = "http://" + onion
+				}
+			}
 		}
 		writeJSON(w, http.StatusOK, map[string]any{"apps": cat})
 	}))
@@ -181,6 +187,11 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 		if installed {
 			entry.InstalledVersion = inst.Version
 			entry.UpdateAvailable = inst.Version != man.Version
+			if man.Web != nil {
+				if onion := apps.AppOnion(man.ID); onion != "" {
+					entry.OnionURL = "http://" + onion
+				}
+			}
 		}
 		writeJSON(w, http.StatusOK, entry)
 	}))

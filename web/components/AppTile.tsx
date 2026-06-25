@@ -156,6 +156,17 @@ export function AppTile({ app }: { app: App }) {
             open ↗
           </a>
         )}
+        {app.onion_url && (
+          <a
+            href={app.onion_url}
+            target="_blank"
+            rel="noreferrer"
+            title={app.onion_url}
+            className="rounded-md border border-border px-2 py-1 text-xs hover:border-primary"
+          >
+            open .onion ↗
+          </a>
+        )}
       </div>
 
       {showConfig && <CredsPanel id={app.id} />}

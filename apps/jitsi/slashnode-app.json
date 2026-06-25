@@ -1,0 +1,121 @@
+{
+  "manifestVersion": 1,
+  "id": "jitsi",
+  "name": "Jitsi Meet",
+  "version": "stable-9646",
+  "category": "communication",
+  "description": "Self-hosted, end-to-end secure video conferencing — no account required.",
+  "icon": "🎥",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "PUBLIC_URL",
+      "label": "Public URL",
+      "type": "text",
+      "required": true,
+      "placeholder": "https://meet.example.com",
+      "help": "The URL participants use to join (the address Jitsi advertises)."
+    },
+    {
+      "key": "JICOFO_AUTH_PASSWORD",
+      "label": "Jicofo auth password",
+      "type": "password",
+      "secret": true,
+      "generate": true
+    },
+    {
+      "key": "JVB_AUTH_PASSWORD",
+      "label": "JVB auth password",
+      "type": "password",
+      "secret": true,
+      "generate": true
+    },
+    {
+      "key": "JICOFO_COMPONENT_SECRET",
+      "label": "Jicofo component secret",
+      "type": "password",
+      "secret": true,
+      "generate": true
+    }
+  ],
+  "services": {
+    "jitsi-web": {
+      "image": "jitsi/web:stable-9646",
+      "ports": [{ "host": 8442, "container": 80 }],
+      "volumes": [{ "name": "jitsi-web-config", "path": "/config" }],
+      "environment": {
+        "PUBLIC_URL": "${input.PUBLIC_URL}",
+        "TZ": "UTC",
+        "ENABLE_LETSENCRYPT": "0",
+        "ENABLE_HTTP_REDIRECT": "0",
+        "ENABLE_XMPP_WEBSOCKET": "1",
+        "XMPP_DOMAIN": "meet.jitsi",
+        "XMPP_AUTH_DOMAIN": "auth.meet.jitsi",
+        "XMPP_BOSH_URL_BASE": "http://prosody:5280",
+        "XMPP_GUEST_DOMAIN": "guest.meet.jitsi",
+        "XMPP_MUC_DOMAIN": "muc.meet.jitsi",
+        "XMPP_RECORDER_DOMAIN": "recorder.meet.jitsi",
+        "JICOFO_AUTH_USER": "focus"
+      }
+    },
+    "prosody": {
+      "image": "jitsi/prosody:stable-9646",
+      "volumes": [{ "name": "jitsi-prosody-config", "path": "/config" }],
+      "environment": {
+        "TZ": "UTC",
+        "AUTH_TYPE": "internal",
+        "ENABLE_AUTH": "0",
+        "ENABLE_GUESTS": "1",
+        "XMPP_DOMAIN": "meet.jitsi",
+        "XMPP_AUTH_DOMAIN": "auth.meet.jitsi",
+        "XMPP_GUEST_DOMAIN": "guest.meet.jitsi",
+        "XMPP_MUC_DOMAIN": "muc.meet.jitsi",
+        "XMPP_INTERNAL_MUC_DOMAIN": "internal-muc.meet.jitsi",
+        "XMPP_RECORDER_DOMAIN": "recorder.meet.jitsi",
+        "JICOFO_COMPONENT_SECRET": "${secret.JICOFO_COMPONENT_SECRET}",
+        "JICOFO_AUTH_USER": "focus",
+        "JICOFO_AUTH_PASSWORD": "${secret.JICOFO_AUTH_PASSWORD}",
+        "JVB_AUTH_USER": "jvb",
+        "JVB_AUTH_PASSWORD": "${secret.JVB_AUTH_PASSWORD}",
+        "JVB_BREWERY_MUC": "jvbbrewery"
+      }
+    },
+    "jicofo": {
+      "image": "jitsi/jicofo:stable-9646",
+      "volumes": [{ "name": "jitsi-jicofo-config", "path": "/config" }],
+      "environment": {
+        "TZ": "UTC",
+        "ENABLE_AUTH": "0",
+        "XMPP_SERVER": "prosody",
+        "XMPP_DOMAIN": "meet.jitsi",
+        "XMPP_AUTH_DOMAIN": "auth.meet.jitsi",
+        "XMPP_INTERNAL_MUC_DOMAIN": "internal-muc.meet.jitsi",
+        "XMPP_MUC_DOMAIN": "muc.meet.jitsi",
+        "JICOFO_COMPONENT_SECRET": "${secret.JICOFO_COMPONENT_SECRET}",
+        "JICOFO_AUTH_USER": "focus",
+        "JICOFO_AUTH_PASSWORD": "${secret.JICOFO_AUTH_PASSWORD}",
+        "JVB_BREWERY_MUC": "jvbbrewery"
+      }
+    },
+    "jvb": {
+      "image": "jitsi/jvb:stable-9646",
+      "ports": [
+        { "host": 10000, "container": 10000, "protocol": "udp" }
+      ],
+      "volumes": [{ "name": "jitsi-jvb-config", "path": "/config" }],
+      "environment": {
+        "TZ": "UTC",
+        "XMPP_SERVER": "prosody",
+        "XMPP_AUTH_DOMAIN": "auth.meet.jitsi",
+        "XMPP_INTERNAL_MUC_DOMAIN": "internal-muc.meet.jitsi",
+        "JVB_AUTH_USER": "jvb",
+        "JVB_AUTH_PASSWORD": "${secret.JVB_AUTH_PASSWORD}",
+        "JVB_BREWERY_MUC": "jvbbrewery",
+        "JVB_PORT": "10000"
+      }
+    }
+  },
+  "web": { "port": 8442, "path": "/" },
+  "probe": { "type": "http", "port": 8442, "path": "/" },
+  "notes": "Jitsi needs the JVB UDP port 10000 reachable from participants — open it in your firewall/NAT. Set the Public URL to the address users will join from (e.g. https://jitsi.<your-host>). Anonymous meetings are enabled by default; to require login, reconfigure prosody auth."
+}

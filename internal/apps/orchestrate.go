@@ -42,6 +42,7 @@ func Install(dir, id string, inputs map[string]string) error {
 		}
 	}
 	_ = ReloadProxy() // best-effort: refresh reverse-proxy routes
+	_ = ReloadTor()   // best-effort: refresh Tor hidden services
 	return nil
 }
 
@@ -93,6 +94,7 @@ func Reapply(dir string) error {
 		}
 	}
 	_ = ReloadProxy()
+	_ = ReloadTor()
 	return nil
 }
 
@@ -166,6 +168,7 @@ func Uninstall(dir, id string, purge bool) error {
 		_ = os.RemoveAll(paths.AppRuntimeDir(id))
 	}
 	_ = ReloadProxy() // best-effort: refresh reverse-proxy routes
+	_ = ReloadTor()   // best-effort: refresh Tor hidden services
 	return nil
 }
 
