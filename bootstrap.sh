@@ -247,10 +247,13 @@ main() {
 
   info "Enabling the service…"
   systemctl daemon-reload
-  systemctl enable --now slashnoded
+  systemctl enable slashnoded
+  # restart (not just enable --now) so a reinstall picks up the new binary AND
+  # the new web build — otherwise the old node process serves stale asset names.
+  systemctl restart slashnoded
   systemctl enable --now slashnoded-update.timer
   systemctl enable --now caddy 2>/dev/null || true
-  systemctl reload caddy 2>/dev/null || true
+  systemctl reload caddy 2>/dev/null || systemctl restart caddy 2>/dev/null || true
 
   echo
   slashnoded status --post-install
