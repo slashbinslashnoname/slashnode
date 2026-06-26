@@ -97,8 +97,22 @@ async function apiGet<T>(path: string): Promise<T | null> {
   }
 }
 
+export type Config = {
+  version: string;
+  node_id: string;
+  hostname: string;
+  data_dir: string;
+  http: { bind: string; port: number; api_port: number };
+  access: { mode: string; address: string; password_protected: boolean };
+  tor: { enabled: boolean };
+  theme: { mode: string; primary: string };
+  update: { policy: string; channel: string };
+  created_at: string;
+};
+
 export const getStatus = () => apiGet<Status>("/api/v1/status");
 export const getUpdate = () => apiGet<UpdateInfo>("/api/v1/update");
+export const getConfig = () => apiGet<Config>("/api/v1/config");
 
 export const getApps = () => apiGet<{ apps: App[] }>("/api/v1/apps");
 export const getApp = (id: string) => apiGet<App>(`/api/v1/apps/${id}`);

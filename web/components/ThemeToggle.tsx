@@ -4,10 +4,10 @@ import { useEffect, useState } from "react";
 
 type Mode = "system" | "light" | "dark";
 const MODES: Mode[] = ["system", "light", "dark"];
-const LABELS: Record<Mode, string> = {
-  system: "◐ system",
-  light: "☀ light",
-  dark: "☾ dark",
+const ICONS: Record<Mode, string> = {
+  system: "◐",
+  light: "☀",
+  dark: "☾",
 };
 
 function apply(mode: Mode) {
@@ -36,10 +36,11 @@ export function ThemeToggle() {
   return (
     <button
       onClick={cycle}
-      aria-label="Toggle theme"
+      aria-label={`Theme: ${mode}`}
+      title={`Theme: ${mode}`}
       className="cursor-pointer rounded-lg border border-border bg-card px-3 py-1.5 text-sm hover:border-primary transition-colors"
     >
-      {LABELS[mode]}
+      {ICONS[mode]}
     </button>
   );
 }
