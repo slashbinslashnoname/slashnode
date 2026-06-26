@@ -505,6 +505,23 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 		writeJSON(w, http.StatusOK, map[string]string{"status": "version-set"})
 	}))
 
+	// Change the reverse-proxy subdomain an app is served under.
+	mux.Handle("POST /api/v1/apps/{id}/domain", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
+		sub := r.URL.Query().Get("subdomain")
+		if sub == "" {
+			var body struct {
+				Subdomain string `json:"subdomain"`
+			}
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			sub = body.Subdomain
+		}
+		if err := apps.SetSubdomain(appsDir, r.PathValue("id"), sub); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]string{"status": "domain-set"})
+	}))
+
 	mux.Handle("POST /api/v1/apps/{id}/start", bearer(sec, lifecycle(apps.Start, "started")))
 	mux.Handle("POST /api/v1/apps/{id}/stop", bearer(sec, lifecycle(apps.Stop, "stopped")))
 	mux.Handle("POST /api/v1/apps/{id}/restart", bearer(sec, lifecycle(apps.Restart, "restarted")))

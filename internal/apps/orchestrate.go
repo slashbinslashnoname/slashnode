@@ -250,6 +250,41 @@ func SetImageTag(dir, id, service, tag string) error {
 	return ReapplyOne(dir, id)
 }
 
+var subdomainRe = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$`)
+
+// appSubdomain returns the reverse-proxy subdomain label for an installed app:
+// the operator's override, or the app id by default.
+func appSubdomain(id string) string {
+	if inst, ok := LoadState().Installed[id]; ok && inst.Subdomain != "" {
+		return inst.Subdomain
+	}
+	return id
+}
+
+// SetSubdomain changes the reverse-proxy subdomain an app is served under
+// (https://<sub>.<host>) and reloads Caddy. An empty value (or the app id)
+// resets to the default. Validated as a DNS label.
+func SetSubdomain(dir, id, sub string) error {
+	sub = strings.ToLower(strings.TrimSpace(sub))
+	state := LoadState()
+	inst, ok := state.Installed[id]
+	if !ok {
+		return fmt.Errorf("app not installed: %s", id)
+	}
+	if sub == id {
+		sub = ""
+	}
+	if sub != "" && !subdomainRe.MatchString(sub) {
+		return fmt.Errorf("invalid subdomain: use lowercase letters, digits and hyphens")
+	}
+	inst.Subdomain = sub
+	state.Installed[id] = inst
+	if err := saveState(state); err != nil {
+		return err
+	}
+	return ReloadProxy()
+}
+
 // ResolvedImages returns an installed app's per-service image refs (with any
 // stored tag overrides applied), for display in the version picker.
 func ResolvedImages(man *Manifest, id string) map[string]string {

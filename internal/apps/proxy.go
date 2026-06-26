@@ -33,7 +33,7 @@ func ReloadProxy() error {
 	for _, a := range LoadState().Installed {
 		if a.WebPort > 0 {
 			routes = append(routes, caddy.Route{
-				Host:         a.ID + "." + host,
+				Host:         appSubdomain(a.ID) + "." + host,
 				UpstreamPort: a.WebPort,
 			})
 		}
@@ -55,5 +55,5 @@ func AppURL(cfg *config.Config, m *Manifest) string {
 		return ""
 	}
 	host, _ := baseHost(cfg)
-	return fmt.Sprintf("https://%s.%s", m.ID, host)
+	return fmt.Sprintf("https://%s.%s", appSubdomain(m.ID), host)
 }

@@ -164,6 +164,7 @@ type InstalledApp struct {
 	ID          string            `json:"id"`
 	Version     string            `json:"version"`
 	ImageTags   map[string]string `json:"image_tags,omitempty"` // service → chosen image tag override
+	Subdomain   string            `json:"subdomain,omitempty"`  // reverse-proxy subdomain override (default: id)
 	InstalledAt string            `json:"installed_at"`
 	Inputs      map[string]string `json:"inputs"`
 	WebPort     int               `json:"web_port,omitempty"` // host port of the app's web UI (for the reverse proxy)

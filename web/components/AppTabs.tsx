@@ -7,6 +7,7 @@ import { InstallForm } from "@/components/InstallForm";
 import { CredsPanel } from "@/components/CredsPanel";
 import { EndpointsPanel } from "@/components/EndpointsPanel";
 import { VersionSelector } from "@/components/VersionSelector";
+import { DomainTab } from "@/components/DomainTab";
 
 // AppTabs splits an installed app's detail into three tabs:
 //   - "Config"  : the editable form (rpc user/password, …) → reconfigure & launch.
@@ -14,7 +15,7 @@ import { VersionSelector } from "@/components/VersionSelector";
 //   - "View"    : connection endpoints (clearnet + .onion) + stored credentials.
 // For an app that isn't installed yet, only the install form is shown.
 export function AppTabs({ app }: { app: App }) {
-  const [tab, setTab] = useState<"config" | "version" | "view">("config");
+  const [tab, setTab] = useState<"config" | "version" | "domain" | "view">("config");
 
   if (!app.installed) return <InstallForm app={app} />;
 
@@ -29,6 +30,11 @@ export function AppTabs({ app }: { app: App }) {
         <Tab active={tab === "version"} onClick={() => setTab("version")}>
           Version
         </Tab>
+        {app.web && (
+          <Tab active={tab === "domain"} onClick={() => setTab("domain")}>
+            Domain
+          </Tab>
+        )}
         <Tab active={tab === "view"} onClick={() => setTab("view")}>
           View
         </Tab>
@@ -47,6 +53,8 @@ export function AppTabs({ app }: { app: App }) {
           <RepullButton id={app.id} />
         </div>
       )}
+
+      {tab === "domain" && app.web && <DomainTab app={app} />}
 
       {tab === "view" && (
         <div className="flex flex-col gap-4">
