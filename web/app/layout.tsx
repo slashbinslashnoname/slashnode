@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { VersionBadge } from "@/components/VersionBadge";
+import { Background } from "@/components/Background";
 import { ConsoleProvider } from "@/components/console/ConsoleProvider";
 import { getStatus, getUpdate } from "@/lib/api";
 
@@ -34,6 +35,7 @@ export default async function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="min-h-screen antialiased">
+        <Background />
         <ConsoleProvider>{children}</ConsoleProvider>
         <VersionBadge
           version={status?.version ?? "—"}

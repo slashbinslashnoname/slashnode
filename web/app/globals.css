@@ -31,8 +31,15 @@
   --border: #2a2a2e;
 }
 
-body {
+/* The base colour lives on <html> so a fixed background layer (-z-10) can show
+   through a transparent <body>. With no background selected it's identical to a
+   solid body background. */
+html {
   background: var(--bg);
+}
+
+body {
+  background: transparent;
   color: var(--fg);
   font-family: var(--font-mono);
 }

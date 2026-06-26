@@ -26,7 +26,7 @@ func Init(args []string) error {
 	address := fs.String("address", "", "public address for server mode (e.g. node.example.com)")
 	passwordProtect := fs.Bool("password-protect", false, "require a login for the web UI")
 	password := fs.String("password", "", "set the admin password (otherwise a random one is generated)")
-	enableTor := fs.Bool("tor", false, "expose the UI and apps as Tor hidden services (.onion)")
+	enableTor := fs.Bool("tor", true, "expose the UI and apps as Tor hidden services (.onion); --tor=false to opt out")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -77,13 +77,21 @@ func Init(args []string) error {
 		logf(*quiet, "→ access set (mode=%s, password=%v)", cfg.Access.Mode, cfg.Access.PasswordProtected)
 	}
 
-	// 2c. Tor exposure (applied when --tor is provided).
-	if *enableTor && !cfg.Tor.Enabled {
-		cfg.Tor.Enabled = true
+	// 2c. Tor exposure. On by default (config.Default); --tor / --tor=false
+	// overrides it, applied only when the flag was explicitly passed so a plain
+	// idempotent re-init keeps the operator's choice.
+	torSet := false
+	fs.Visit(func(f *flag.Flag) {
+		if f.Name == "tor" {
+			torSet = true
+		}
+	})
+	if torSet && cfg.Tor.Enabled != *enableTor {
+		cfg.Tor.Enabled = *enableTor
 		if err := cfg.Save(paths.ConfigFile()); err != nil {
 			return fmt.Errorf("writing config: %w", err)
 		}
-		logf(*quiet, "→ Tor hidden services enabled")
+		logf(*quiet, "→ Tor hidden services %s", map[bool]string{true: "enabled", false: "disabled"}[*enableTor])
 	}
 
 	// 3. Secrets (idempotent: regenerated only if absent or --force).

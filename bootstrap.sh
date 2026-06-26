@@ -209,12 +209,14 @@ configure_access() {
     esac
   fi
 
-  local tor
-  printf 'Expose the UI and apps as Tor hidden services (.onion)? [y/N] ' >/dev/tty
-  read -r tor </dev/tty
-  case "$tor" in
-    y|Y) ENABLE_TOR=1; INIT_ARGS+=(--tor) ;;
-  esac
+  # Tor is on by default: the UI and every app get a .onion address. Opt out by
+  # setting SLASHNODE_NO_TOR=1 before running the bootstrap.
+  if [ "${SLASHNODE_NO_TOR:-}" = "1" ]; then
+    INIT_ARGS+=(--tor=false)
+  else
+    ENABLE_TOR=1
+    INIT_ARGS+=(--tor)
+  fi
 }
 
 # Compares the installed version to the target. Returns 0 if a (re)install is
