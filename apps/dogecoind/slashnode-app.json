@@ -1,0 +1,66 @@
+{
+  "manifestVersion": 1,
+  "id": "dogecoind",
+  "name": "Dogecoin Core",
+  "version": "1.14.9",
+  "category": "dogecoin",
+  "description": "A Dogecoin full node. Validates the Dogecoin blockchain and exposes the RPC API.",
+  "icon": "Ð",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "RPC_USER",
+      "label": "RPC user",
+      "type": "text",
+      "required": true,
+      "default": "slashnode",
+      "help": "Username for the dogecoind RPC API."
+    },
+    {
+      "key": "RPC_PASSWORD",
+      "label": "RPC password",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Password for the RPC API. Stored encrypted."
+    }
+  ],
+  "compose": "name: \"slashnode-dogecoind\"\nservices:\n  dogecoind:\n    image: \"ghcr.io/slashbinslashnoname/dogecoind:1.14.9\"\n    container_name: \"dogecoind\"\n    restart: \"unless-stopped\"\n    networks:\n      - slashnode\n    command:\n      - \"-printtoconsole\"\n      - \"-server=1\"\n      - \"-txindex=1\"\n      - \"-rpcbind=0.0.0.0\"\n      - \"-rpcallowip=0.0.0.0/0\"\n      - \"-rpcport=22555\"\n      - \"-port=22556\"\n      - \"-rpcuser=${input.RPC_USER}\"\n      - \"-rpcpassword=${secret.RPC_PASSWORD}\"\n    ports:\n      - \"22556:22556\"\n      - \"127.0.0.1:22555:22555\"\n    volumes:\n      - \"dogecoin-data:/home/dogecoin/.dogecoin\"\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  dogecoin-data:\n    name: \"slashnode-dogecoind_dogecoind_dogecoin-data\"\n",
+  "probe": {
+    "type": "rpc",
+    "port": 22555,
+    "method": "getblockchaininfo",
+    "userInput": "RPC_USER",
+    "passSecret": "RPC_PASSWORD",
+    "display": [
+      {
+        "label": "Height",
+        "field": "blocks"
+      },
+      {
+        "label": "Headers",
+        "field": "headers"
+      }
+    ]
+  },
+  "exports": {
+    "rpc.host": "dogecoind",
+    "rpc.port": 22555,
+    "rpc.user": "${input.RPC_USER}",
+    "rpc.password": "${secret.RPC_PASSWORD}"
+  },
+  "endpoints": [
+    {
+      "label": "RPC",
+      "scheme": "http",
+      "port": 22555,
+      "path": "/"
+    },
+    {
+      "label": "P2P",
+      "port": 22556
+    }
+  ],
+  "notes": "Mainnet Dogecoin node with txindex. RPC is published on 127.0.0.1:22555 (reach it via the .onion or an SSH tunnel); P2P is public on 22556."
+}
