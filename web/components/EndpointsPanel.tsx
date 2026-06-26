@@ -92,6 +92,14 @@ function Row({
   );
 }
 
+// shorten keeps a long address on a single line by collapsing the middle, while
+// preserving the recognizable head and the tail (…:port). The full value stays
+// available via copy and the title tooltip.
+function shorten(v: string, head = 16, tail = 18): string {
+  if (v.length <= head + tail + 1) return v;
+  return `${v.slice(0, head)}…${v.slice(-tail)}`;
+}
+
 function Addr({
   value,
   open,
@@ -101,10 +109,12 @@ function Addr({
 }) {
   return (
     <span className="flex items-center gap-2">
-      <code className="break-all text-fg">{value}</code>
+      <code className="whitespace-nowrap text-fg" title={value}>
+        {shorten(value)}
+      </code>
       <button
         onClick={() => navigator.clipboard?.writeText(value)}
-        className="text-muted hover:text-primary"
+        className="shrink-0 text-muted hover:text-primary"
         aria-label="Copy"
       >
         ⧉
@@ -114,7 +124,7 @@ function Addr({
           href={value}
           target="_blank"
           rel="noreferrer"
-          className="text-muted hover:text-primary"
+          className="shrink-0 text-muted hover:text-primary"
           aria-label="Open"
         >
           ↗
