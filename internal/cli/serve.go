@@ -207,14 +207,29 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid body"})
 			return
 		}
+		// Hostname/address are written into the Caddyfile and Avahi service, so
+		// they must be plain host strings — reject anything that could inject
+		// extra directives (control chars, spaces, braces…).
 		if body.Hostname != nil {
+			if !validHost(*body.Hostname) {
+				writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid hostname"})
+				return
+			}
 			cfg.Hostname = *body.Hostname
 		}
 		if a := body.Access; a != nil {
+			if a.Mode != nil && *a.Mode != "local" && *a.Mode != "server" {
+				writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid access mode"})
+				return
+			}
 			if a.Mode != nil {
 				cfg.Access.Mode = *a.Mode
 			}
 			if a.Address != nil {
+				if *a.Address != "" && !validHost(*a.Address) {
+					writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid address"})
+					return
+				}
 				cfg.Access.Address = *a.Address
 			}
 			if a.PasswordProtected != nil {
@@ -648,6 +663,22 @@ func (fw *flushWriter) Write(p []byte) (int, error) {
 		fw.f.Flush()
 	}
 	return n, err
+}
+
+// validHost reports whether s is a plain hostname/domain/IP safe to write into
+// the Caddyfile and Avahi service (letters, digits, dots and hyphens only).
+func validHost(s string) bool {
+	if s == "" || len(s) > 253 {
+		return false
+	}
+	for _, r := range s {
+		ok := (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') ||
+			(r >= '0' && r <= '9') || r == '.' || r == '-'
+		if !ok {
+			return false
+		}
+	}
+	return true
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {

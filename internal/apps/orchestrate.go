@@ -234,6 +234,9 @@ func SetImageTag(dir, id, service, tag string) error {
 	if service == "" || tag == "" {
 		return fmt.Errorf("service and tag required")
 	}
+	if !validImageTag(tag) {
+		return fmt.Errorf("invalid image tag: %q", tag)
+	}
 	state := LoadState()
 	inst, ok := state.Installed[id]
 	if !ok {
@@ -251,6 +254,11 @@ func SetImageTag(dir, id, service, tag string) error {
 }
 
 var subdomainRe = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$`)
+
+// imageTagRe matches a valid docker image tag (the part after ':').
+var imageTagRe = regexp.MustCompile(`^[A-Za-z0-9_][A-Za-z0-9._-]{0,127}$`)
+
+func validImageTag(t string) bool { return imageTagRe.MatchString(t) }
 
 // appSubdomain returns the reverse-proxy subdomain label for an installed app:
 // the operator's override, or the app id by default.
@@ -532,6 +540,12 @@ func installOne(dir, appID string, provided, imageTagOverride map[string]string,
 	content := templateRefs(man.Compose, nonSecret, secret, registry)
 	for svc, img := range orchestrator.ParseComposeImages(content) {
 		if t := imageTags[svc]; t != "" {
+			// The tag is written verbatim into the compose `image:` line, so it
+			// must be a valid docker tag — otherwise a crafted tag could break out
+			// of the YAML scalar and inject sibling keys.
+			if !validImageTag(t) {
+				return fmt.Errorf("invalid image tag for %s: %q", svc, t)
+			}
 			content = strings.Replace(content, img, replaceTag(img, t), 1)
 		}
 	}
