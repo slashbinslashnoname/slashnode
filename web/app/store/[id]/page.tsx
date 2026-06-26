@@ -46,7 +46,7 @@ export default async function AppDetail({
       )}
 
       {app.notes && (
-        <div className="mb-6 rounded-lg border border-primary/40 bg-primary/10 p-4 text-sm">
+        <div className="mb-6 whitespace-pre-line rounded-lg border border-primary/40 bg-primary/10 p-4 text-sm">
           ℹ {app.notes}
         </div>
       )}

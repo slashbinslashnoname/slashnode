@@ -40,5 +40,5 @@
     "port": 8442,
     "path": "/"
   },
-  "notes": "Jitsi needs the JVB UDP port 10000 reachable from participants — open it in your firewall/NAT. Set the Public URL to the address users will join from (e.g. https://jitsi.<your-host>). Anonymous meetings are enabled by default; to require login, reconfigure prosody auth."
+  "notes": "Jitsi's components authenticate to each other with internal secrets, all generated automatically — view and copy them under the View tab → Parameters:\n• JICOFO_AUTH_PASSWORD — Jicofo (the conference focus) logging in to Prosody (XMPP).\n• JVB_AUTH_PASSWORD — the video bridge logging in to Prosody.\n• JICOFO_COMPONENT_SECRET — Jicofo's XMPP component secret.\nYou normally don't need to enter these anywhere; they just wire the services together."
 }
