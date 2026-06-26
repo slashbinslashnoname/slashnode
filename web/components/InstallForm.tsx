@@ -86,21 +86,17 @@ export function InstallForm({ app }: { app: App }) {
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-4">
-      {services.length > 0 && !app.installed && (
-        <div className="flex flex-col gap-2">
-          <span className="text-sm font-medium">Image version</span>
-          {services.map((svc) => (
-            <ServiceVersion
-              key={svc}
-              id={app.id}
-              service={svc}
-              image={(app.images ?? {})[svc]}
-              showService={services.length > 1}
-              onPick={pickVersion}
-            />
-          ))}
-        </div>
-      )}
+      {!app.installed &&
+        services.map((svc) => (
+          <ServiceVersion
+            key={svc}
+            id={app.id}
+            service={svc}
+            image={(app.images ?? {})[svc]}
+            showService={services.length > 1}
+            onPick={pickVersion}
+          />
+        ))}
 
       {(app.inputs ?? []).map((input) => (
         <Field key={input.key} input={input} value={values[input.key] ?? ""} onChange={set} />
@@ -196,13 +192,13 @@ function ServiceVersion({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2 text-xs">
-      <code className="text-muted">
-        {showService ? `${service}: ` : ""}
-        {repo}:
-      </code>
-      <VersionCombo value={tag} options={tags} onChange={change} />
-    </div>
+    <label className="flex flex-col gap-1">
+      <span className="text-sm font-medium">
+        {showService ? `${service} version` : "Image version"}
+      </span>
+      <VersionCombo value={tag} options={tags} onChange={change} variant="field" />
+      <span className="text-xs text-muted">{repo}</span>
+    </label>
   );
 }
 

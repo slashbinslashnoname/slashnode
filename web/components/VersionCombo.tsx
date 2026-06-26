@@ -13,13 +13,18 @@ export function VersionCombo({
   onChange,
   disabled,
   placeholder = "tag",
+  variant = "compact",
 }: {
   value: string;
   options: string[];
   onChange: (tag: string) => void;
   disabled?: boolean;
   placeholder?: string;
+  // "compact": small inline control (post-install version change row).
+  // "field": full-width, sized like the install form's other inputs.
+  variant?: "compact" | "field";
 }) {
+  const field = variant === "field";
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [touched, setTouched] = useState(false);
@@ -71,7 +76,7 @@ export function VersionCombo({
   }
 
   return (
-    <div ref={wrap} className="relative w-40">
+    <div ref={wrap} className={`relative ${field ? "w-full" : "w-40"}`}>
       <input
         value={touched ? query : value}
         autoComplete="off"
@@ -90,10 +95,18 @@ export function VersionCombo({
           onChange(e.target.value);
         }}
         onKeyDown={onKey}
-        className="w-full rounded-md border border-border bg-bg px-2 py-1 text-xs outline-none focus:border-primary"
+        className={
+          field
+            ? "w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm outline-none focus:border-primary"
+            : "w-full rounded-md border border-border bg-bg px-2 py-1 text-xs outline-none focus:border-primary"
+        }
       />
       {open && filtered.length > 0 && (
-        <ul className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-md border border-border bg-card py-1 text-xs shadow-lg">
+        <ul
+          className={`absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-md border border-border bg-card py-1 shadow-lg ${
+            field ? "text-sm" : "text-xs"
+          }`}
+        >
           {filtered.map((o, i) => (
             <li key={o}>
               <button
