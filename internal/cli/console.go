@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"os/exec"
+	"strings"
 
 	"github.com/coder/websocket"
 	"github.com/creack/pty"
@@ -32,6 +33,12 @@ func consoleHandler(cfg *config.Config, sec *secrets.Secrets) http.HandlerFunc {
 			http.Error(w, "missing container", http.StatusBadRequest)
 			return
 		}
+		// Only allow shelling into containers slashnode manages (compose project
+		// "slashnode-*"), not arbitrary containers on the host's Docker daemon.
+		if !isManagedContainer(container) {
+			http.Error(w, "unknown container", http.StatusForbidden)
+			return
+		}
 
 		conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{})
 		if err != nil {
@@ -42,6 +49,17 @@ func consoleHandler(cfg *config.Config, sec *secrets.Secrets) http.HandlerFunc {
 
 		runConsole(conn, container)
 	}
+}
+
+// isManagedContainer reports whether the named container belongs to a slashnode
+// compose project (label com.docker.compose.project = "slashnode-*").
+func isManagedContainer(name string) bool {
+	out, err := exec.Command("docker", "inspect", "--format",
+		`{{index .Config.Labels "com.docker.compose.project"}}`, "--", name).Output()
+	if err != nil {
+		return false
+	}
+	return strings.HasPrefix(strings.TrimSpace(string(out)), "slashnode-")
 }
 
 func runConsole(conn *websocket.Conn, container string) {
