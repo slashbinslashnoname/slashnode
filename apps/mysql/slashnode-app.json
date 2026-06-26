@@ -1,0 +1,47 @@
+{
+  "manifestVersion": 1,
+  "id": "mysql",
+  "name": "MySQL",
+  "version": "8.4",
+  "category": "database",
+  "description": "MySQL 8.4 LTS relational database server. Other apps connect to it over the internal network.",
+  "icon": "🗄️",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "ROOT_PASSWORD",
+      "label": "Root password",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Password for the MySQL root user. No default — you choose it. Stored encrypted."
+    },
+    {
+      "key": "DATABASE",
+      "label": "Initial database (optional)",
+      "type": "text",
+      "required": false,
+      "default": "",
+      "help": "If set, a database with this name is created on first start."
+    }
+  ],
+  "compose": "name: \"slashnode-mysql\"\nservices:\n  mysql:\n    image: \"mysql:8.4\"\n    container_name: \"mysql\"\n    restart: \"unless-stopped\"\n    networks:\n      - slashnode\n    environment:\n      MYSQL_ROOT_PASSWORD: \"${secret.ROOT_PASSWORD}\"\n      MYSQL_DATABASE: \"${input.DATABASE}\"\n    ports:\n      - \"127.0.0.1:3306:3306\"\n    volumes:\n      - \"mysql-data:/var/lib/mysql\"\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  mysql-data:\n    name: \"slashnode-mysql_mysql_mysql-data\"\n",
+  "probe": {
+    "type": "tcp",
+    "port": 3306
+  },
+  "exports": {
+    "db.host": "mysql",
+    "db.port": 3306,
+    "db.user": "root",
+    "db.password": "${secret.ROOT_PASSWORD}"
+  },
+  "endpoints": [
+    {
+      "label": "MySQL",
+      "port": 3306
+    }
+  ],
+  "notes": "No web UI — this is a database server reached by other apps at host \"mysql\" port 3306 on the slashnode network, or on 127.0.0.1:3306 from the node (and via the app's .onion). You define the root password; there is no default."
+}

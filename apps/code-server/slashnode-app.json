@@ -7,8 +7,18 @@
   "description": "Run VS Code on your Umbrel",
   "icon": "💻",
   "dependencies": [],
-  "inputs": [],
-  "compose": "name: slashnode-code-server\nservices:\n  server:\n    image: codercom/code-server:4.126.0\n    container_name: code-server\n    restart: unless-stopped\n    networks:\n      - slashnode\n    user: '1000:1000'\n    environment:\n      PASSWORD: $APP_PASSWORD\n    volumes:\n      - server_data:/home/coder\n    ports:\n      - 127.0.0.1:8091:8080\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  server_data:\n    name: slashnode-code-server_server_data\n",
+  "inputs": [
+    {
+      "key": "APP_PASSWORD",
+      "label": "password",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Mapped from Umbrel ${APP_PASSWORD}. Stored encrypted."
+    }
+  ],
+  "compose": "name: slashnode-code-server\nservices:\n  server:\n    image: codercom/code-server:4.126.0\n    container_name: code-server\n    restart: unless-stopped\n    networks:\n      - slashnode\n    user: '1000:1000'\n    environment:\n      PASSWORD: ${secret.APP_PASSWORD}\n    volumes:\n      - server_data:/home/coder\n    ports:\n      - 127.0.0.1:8091:8080\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  server_data:\n    name: slashnode-code-server_server_data\n",
   "web": {
     "port": 8091,
     "path": "/"

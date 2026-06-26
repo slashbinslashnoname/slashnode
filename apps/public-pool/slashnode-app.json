@@ -1,0 +1,37 @@
+{
+  "manifestVersion": 1,
+  "id": "public-pool",
+  "name": "Public Pool",
+  "version": "95565ee",
+  "category": "bitcoin",
+  "description": "A solo Bitcoin mining pool. Point your miners at its Stratum port and mine directly against your own Bitcoin Core node.",
+  "icon": "₿",
+  "dependencies": [
+    "bitcoind"
+  ],
+  "inputs": [],
+  "compose": "name: \"slashnode-public-pool\"\nservices:\n  server:\n    image: \"ghcr.io/benjamin-wilson/public-pool:95565ee\"\n    container_name: \"public-pool-server\"\n    restart: \"unless-stopped\"\n    networks:\n      - slashnode\n    environment:\n      NODE_ENV: \"production\"\n      BITCOIN_RPC_URL: \"http://${bitcoind.exports.rpc.host}\"\n      BITCOIN_RPC_USER: \"${bitcoind.exports.rpc.user}\"\n      BITCOIN_RPC_PASSWORD: \"${bitcoind.exports.rpc.password}\"\n      BITCOIN_RPC_PORT: \"8332\"\n      BITCOIN_RPC_TIMEOUT: \"10000\"\n      API_PORT: \"2019\"\n      STRATUM_PORT: \"2018\"\n      NETWORK: \"mainnet\"\n      API_SECURE: \"false\"\n      ENABLE_SOLO: \"true\"\n      ENABLE_PROXY: \"false\"\n      POOL_IDENTIFIER: \"Public Pool on SlashNode\"\n    ports:\n      - \"2018:2018/tcp\"\n    volumes:\n      - \"public-pool-data:/public-pool/DB\"\n  web:\n    image: \"ghcr.io/benjamin-wilson/public-pool-ui:5f730f4\"\n    container_name: \"public-pool-web\"\n    restart: \"unless-stopped\"\n    networks:\n      - slashnode\n    environment:\n      DOMAIN: \"${node.exports.host}\"\n      PUBLIC_POOL_API_URL: \"\"\n      PUBLIC_POOL_STRATUM_URL: \"${node.exports.host}:2018\"\n  proxy:\n    image: \"nginx:1.25.3\"\n    container_name: \"public-pool-proxy\"\n    restart: \"unless-stopped\"\n    networks:\n      - slashnode\n    depends_on:\n      - web\n      - server\n    ports:\n      - \"127.0.0.1:2080:80\"\n    volumes:\n      - \"./config/default.conf:/etc/nginx/conf.d/default.conf:ro\"\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  public-pool-data:\n    name: \"slashnode-public-pool_server_public-pool-data\"\n",
+  "configs": [
+    {
+      "service": "proxy",
+      "path": "/etc/nginx/conf.d/default.conf",
+      "content": "server {\n    listen 80;\n    location / {\n        proxy_pass http://public-pool-web:80;\n    }\n    location ~* ^/api/ {\n        proxy_pass http://public-pool-server:2019;\n    }\n}\n"
+    }
+  ],
+  "web": {
+    "port": 2080,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 2080,
+    "path": "/"
+  },
+  "endpoints": [
+    {
+      "label": "Stratum",
+      "port": 2018
+    }
+  ],
+  "notes": "Solo mining pool backed by your Bitcoin Core node. Point miners at the Stratum endpoint on port 2018 (clearnet host:2018). The web dashboard is served behind Caddy. Requires a fully-synced Bitcoin Core."
+}

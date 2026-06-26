@@ -1,0 +1,55 @@
+{
+  "manifestVersion": 1,
+  "id": "postgresql",
+  "name": "PostgreSQL",
+  "version": "17",
+  "category": "database",
+  "description": "PostgreSQL 17 relational database server. Other apps connect to it over the internal network.",
+  "icon": "🐘",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "PASSWORD",
+      "label": "Superuser password",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Password for the PostgreSQL superuser. No default — you choose it. Stored encrypted."
+    },
+    {
+      "key": "USER",
+      "label": "Superuser name",
+      "type": "text",
+      "required": true,
+      "default": "postgres",
+      "help": "Name of the superuser created on first start."
+    },
+    {
+      "key": "DATABASE",
+      "label": "Initial database (optional)",
+      "type": "text",
+      "required": false,
+      "default": "",
+      "help": "If set, a database with this name is created on first start."
+    }
+  ],
+  "compose": "name: \"slashnode-postgresql\"\nservices:\n  postgresql:\n    image: \"postgres:17\"\n    container_name: \"postgresql\"\n    restart: \"unless-stopped\"\n    networks:\n      - slashnode\n    environment:\n      POSTGRES_PASSWORD: \"${secret.PASSWORD}\"\n      POSTGRES_USER: \"${input.USER}\"\n      POSTGRES_DB: \"${input.DATABASE}\"\n    ports:\n      - \"127.0.0.1:5432:5432\"\n    volumes:\n      - \"postgresql-data:/var/lib/postgresql/data\"\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  postgresql-data:\n    name: \"slashnode-postgresql_postgresql_postgresql-data\"\n",
+  "probe": {
+    "type": "tcp",
+    "port": 5432
+  },
+  "exports": {
+    "db.host": "postgresql",
+    "db.port": 5432,
+    "db.user": "${input.USER}",
+    "db.password": "${secret.PASSWORD}"
+  },
+  "endpoints": [
+    {
+      "label": "PostgreSQL",
+      "port": 5432
+    }
+  ],
+  "notes": "No web UI — this is a database server reached by other apps at host \"postgresql\" port 5432 on the slashnode network, or on 127.0.0.1:5432 from the node (and via the app's .onion). You define the superuser password; there is no default."
+}

@@ -9,6 +9,8 @@ import type { App } from "@/lib/api";
 export function StoreList({ apps }: { apps: App[] }) {
   const [q, setQ] = useState("");
   const query = q.trim().toLowerCase();
+  // Bitcoin Knots is intentionally not offered.
+  const isKnots = /\bknots\b/.test(query);
   const matched = query
     ? apps.filter((a) =>
         [a.name, a.description ?? "", a.category]
@@ -34,7 +36,11 @@ export function StoreList({ apps }: { apps: App[] }) {
         className="w-full rounded-lg border border-border bg-bg px-4 py-2.5 text-sm outline-none focus:border-primary"
       />
 
-      {filtered.length === 0 ? (
+      {isKnots ? (
+        <p className="rounded-lg border border-primary/40 bg-primary/10 px-4 py-3 text-sm font-medium text-primary">
+          We do not provide softwares that can harm Bitcoin.
+        </p>
+      ) : filtered.length === 0 ? (
         <p className="text-muted">No apps match “{q}”.</p>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

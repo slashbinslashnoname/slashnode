@@ -1,0 +1,22 @@
+{
+  "manifestVersion": 1,
+  "id": "nostrudel",
+  "name": "noStrudel",
+  "version": "1.1.0",
+  "category": "social",
+  "description": "A sandbox for exploring nostr",
+  "icon": "💬",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-nostrudel\nservices:\n  cors:\n    image: ghcr.io/hzrd149/docker-cors-anywhere:0.4.5\n    container_name: nostrudel-cors\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      CORSANYWHERE_REQUIRE_HEADERS: host\n  web:\n    image: ghcr.io/hzrd149/nostrudel:1.1.0\n    container_name: nostrudel-web\n    restart: unless-stopped\n    networks:\n      - slashnode\n    init: true\n    depends_on:\n      - cors\n    environment:\n      REQUEST_PROXY: cors:8080\n    ports:\n      - 127.0.0.1:3149:80\nnetworks:\n  slashnode:\n    external: true\n",
+  "web": {
+    "port": 3149,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 3149,
+    "path": "/"
+  },
+  "notes": "Ported from Umbrel (nostrudel). Upstream: https://github.com/hzrd149/nostrudel. "
+}

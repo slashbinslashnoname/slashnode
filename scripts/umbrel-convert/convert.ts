@@ -56,7 +56,34 @@ const SHIP = [
   "libretranslate", "vaultwarden", "wordpress", "n8n",
   // finance & bitcoin
   "firefly-iii", "rotki", "specter-desktop",
+  // explicitly requested additions
+  "grafana", "photoprism", "grocy", "qbittorrent", "umami",
+  "calibre-web", "pi-hole", "miner-sentinel", "nostr-relay", "nostrudel", "snort",
 ];
+
+// Per-app overrides for apps that need more than the mechanical pass.
+//   passwordEnv : env vars set to ${secret.PASSWORD} (a required, user-defined
+//                 input) — clears the "default password" flag since the user
+//                 now chooses it.
+//   dropServices: Umbrel sidecars to remove (its own tor/helper containers).
+//   dropEnvRe   : env keys to drop (e.g. opinionated bitcoin wiring).
+//   force       : ship despite review/security flags (still applies fixes).
+//   note        : appended to the app's notes (e.g. how to set the password).
+const OVERRIDES: Record<string, {
+  passwordEnv?: string[];
+  dropServices?: string[];
+  dropEnvRe?: RegExp;
+  force?: boolean;
+  note?: string;
+}> = {
+  grafana: { passwordEnv: ["GF_SECURITY_ADMIN_PASSWORD"] },
+  grocy: { force: true, note: "Default login admin / admin — change it on first login (grocy has no password env var)." },
+  qbittorrent: { force: true, note: "qBittorrent prints a random temporary WebUI password for user 'admin' to its log on each start — open the logs panel, then set a permanent password in the WebUI." },
+  umami: { force: true, note: "Default login admin / umami — change it on first login (umami has no password env var)." },
+  "calibre-web": { force: true, note: "Default login admin / admin123 — change it on first login (Calibre-Web has no password env var)." },
+  "pi-hole": { force: true, note: "Runs in host network mode and binds the host's DNS/web ports directly — it is NOT behind Caddy/Tor. Set its web password from the app's own settings." },
+  photoprism: { force: true, note: "Admin password is the value you set (PHOTOPRISM_ADMIN_PASSWORD). The internal MariaDB password is app-internal." },
+};
 
 // Curated "self-hosting essentials" present in the Umbrel repo.
 const ALLOWLIST = [
@@ -78,8 +105,10 @@ const CATEGORY_ICON: Record<string, string> = {
   bitcoin: "₿", lightning: "⚡", ai: "🤖", health: "🩺", home: "🏠",
 };
 
-// SlashNode templating tokens that are legitimate in a rendered manifest.
-const SLASHNODE_TOKEN = /\$\{(input|secret|self|node|app)\./;
+// SlashNode templating tokens that are legitimate in a rendered manifest:
+// ${input.*}/${secret.*}/${self.*}/${node.*}/${app.*} and dependency refs
+// like ${bitcoind.exports.rpc.host}.
+const SLASHNODE_TOKEN = /\$\{(input|secret|self|node|app)\.|\$\{[a-z0-9-]+\.exports\./;
 
 type Report = {
   id: string;
@@ -121,24 +150,39 @@ function envEntries(env: unknown): [string, string][] {
   return Object.entries(env as Record<string, unknown>).map(([k, v]) => [k, String(v)]);
 }
 
-// remapTokens rewrites known Umbrel ${…} tokens; records secrets/unmapped.
+// remapTokens rewrites known Umbrel tokens (both ${VAR} and bare $VAR forms);
+// records secrets/unmapped.
 function remapTokens(
   value: string,
   secrets: Set<string>,
   unmapped: Set<string>,
 ): string {
-  return value.replace(/\$\{([A-Z0-9_]+)\}/g, (whole, name: string) => {
-    if (name === "DEVICE_DOMAIN" || name === "DEVICE_HOSTNAME") {
-      return "${node.exports.host}";
+  const map = (name: string): string | null => {
+    switch (name) {
+      case "DEVICE_DOMAIN":
+      case "DEVICE_HOSTNAME":
+      case "DEVICE_DOMAIN_NAME":
+      case "APP_DOMAIN":
+        return "${node.exports.host}";
+      // Bitcoin Core (bitcoind) RPC, wired to the SlashNode dependency.
+      case "APP_BITCOIN_NODE_IP": return "${bitcoind.exports.rpc.host}";
+      case "APP_BITCOIN_RPC_PORT": return "8332";
+      case "APP_BITCOIN_RPC_USER": return "${bitcoind.exports.rpc.user}";
+      case "APP_BITCOIN_RPC_PASS": return "${bitcoind.exports.rpc.password}";
+      case "APP_BITCOIN_P2P_PORT": return "8333";
+      case "APP_BITCOIN_ZMQ_RAWBLOCK_PORT": return "28332";
+      case "APP_BITCOIN_ZMQ_RAWTX_PORT": return "28333";
     }
     if (/^APP_.*(PASSWORD|SEED|SECRET|KEY|TOKEN|APIKEY)$/.test(name)) {
       secrets.add(name);
       return "${secret." + name + "}";
     }
-    // Anything else is an Umbrel-injected value we can't satisfy — leave it and
-    // flag it for review.
     unmapped.add(name);
-    return whole;
+    return null; // leave the original token in place for review
+  };
+  return value.replace(/\$\{([A-Z0-9_]+)\}|\$([A-Z][A-Z0-9_]+)/g, (whole, braced, bare) => {
+    const r = map(braced ?? bare);
+    return r === null ? whole : r;
   });
 }
 
@@ -210,7 +254,10 @@ async function convert(appId: string, ship = false): Promise<Report> {
   // APP_HOST is "<id>_<service>_1" → recover <service>.
   const m = appHost.match(new RegExp(`^${appId.replace(/[^a-z0-9]/g, "[^_]*")}_(.+)_1$`));
   if (m) webService = m[1];
-  const nonProxy = Object.keys(services).filter((s) => s !== "app_proxy");
+  const ov = OVERRIDES[appId] ?? {};
+  const nonProxy = Object.keys(services).filter(
+    (s) => s !== "app_proxy" && !(ov.dropServices ?? []).includes(s),
+  );
   if (!webService || !services[webService]) {
     webService = nonProxy.length === 1 ? nonProxy[0] : (nonProxy.includes("web") ? "web" : nonProxy[0] ?? "");
   }
@@ -269,7 +316,9 @@ async function convert(appId: string, ship = false): Promise<Report> {
       security.add(`${svc}: mounts docker.sock — container-escape / root-equivalent access`);
     }
 
-    const env = envEntries(s.environment);
+    const env = envEntries(s.environment).filter(
+      ([k]) => !(ov.dropEnvRe && ov.dropEnvRe.test(k)),
+    );
     if (env.length) {
       ns.environment = Object.fromEntries(
         env.map(([k, v]) => [k, rwHosts(remapTokens(v, secrets, unmapped))]),
@@ -294,6 +343,15 @@ async function convert(appId: string, ship = false): Promise<Report> {
     outServices[svc] = ns;
   }
 
+  // Let the user define the admin password via env (no hardcoded default), for
+  // apps whose image honors a password env var.
+  if (ov.passwordEnv && outServices[webService]) {
+    const e = (outServices[webService].environment ??= {});
+    for (const v of ov.passwordEnv) e[v] = "${secret.PASSWORD}";
+    secrets.add("PASSWORD");
+    for (const s of [...security]) if (s.includes("default password")) security.delete(s);
+  }
+
   const newCompose: any = {
     name: `slashnode-${appId}`,
     services: outServices,
@@ -303,10 +361,13 @@ async function convert(appId: string, ship = false): Promise<Report> {
 
   const composeYaml = yaml.dump(newCompose, { lineWidth: -1, noRefs: true });
 
-  // Unmapped Umbrel ${…} tokens left in the compose => needs review.
+  // Unmapped Umbrel tokens left in the compose (braced or bare) => needs review.
   for (const t of composeYaml.matchAll(/\$\{([A-Za-z0-9_.]+)\}/g)) {
     if (!SLASHNODE_TOKEN.test(t[0])) unmapped.add(t[1].split(".")[0]);
   }
+  for (const t of composeYaml.matchAll(/\$([A-Z][A-Z0-9_]+)/g)) unmapped.add(t[1]);
+  // Apps that reference bitcoind's RPC depend on it.
+  const dependencies = composeYaml.includes("${bitcoind.exports") ? ["bitcoind"] : [];
   if (!outServices[webService]) notes.add("no web service resolved");
 
   const status: Report["status"] =
@@ -314,8 +375,9 @@ async function convert(appId: string, ship = false): Promise<Report> {
   const allNotes = [...notes];
   if (unmapped.size) allNotes.unshift(`unmapped tokens: ${[...unmapped].join(", ")}`);
 
-  // In ship mode only genuinely clean apps are written into apps/.
-  if (ship && status !== "ok") {
+  // In ship mode only genuinely clean apps are written into apps/, unless the
+  // app is explicitly force-shipped (its remaining flags are documented).
+  if (ship && status !== "ok" && !ov.force) {
     return { id: appId, status, notes: ["skipped (not clean): " + allNotes.join("; ")], security: [...security] };
   }
 
@@ -329,15 +391,17 @@ async function convert(appId: string, ship = false): Promise<Report> {
     help: `Mapped from Umbrel ${"${" + name + "}"}. Stored encrypted.`,
   }));
 
-  const login =
-    meta.defaultUsername || meta.defaultPassword
+  const login = ov.passwordEnv
+    ? `Username "${meta.defaultUsername ?? "admin"}", password is the one you set. `
+    : meta.defaultUsername || meta.defaultPassword
       ? `Default login — user: "${meta.defaultUsername ?? ""}", password: "${meta.defaultPassword ?? ""}". `
       : "";
+  const ovNote = ov.note ? ov.note + " " : "";
+  const secNote = security.size ? `⚠️ ${[...security].join("; ")}. ` : "";
   const notesText = ship
-    ? `Ported from Umbrel (${appId}). ` + (meta.website ? `Upstream: ${meta.website}. ` : "") + login
+    ? `Ported from Umbrel (${appId}). ` + (meta.website ? `Upstream: ${meta.website}. ` : "") + ovNote + login + secNote
     : `Auto-converted from getumbrel/umbrel-apps (${appId}). Review before shipping. ` +
-      (meta.website ? `Upstream: ${meta.website}. ` : "") + login +
-      (security.size ? `⚠️ SECURITY: ${[...security].join("; ")}. ` : "");
+      (meta.website ? `Upstream: ${meta.website}. ` : "") + ovNote + login + secNote;
 
   const manifest: any = {
     manifestVersion: 1,
@@ -347,7 +411,7 @@ async function convert(appId: string, ship = false): Promise<Report> {
     category: meta.category ?? "apps",
     description: meta.tagline ?? meta.name ?? appId,
     icon: iconFor(meta.category),
-    dependencies: Array.isArray(meta.dependencies) ? meta.dependencies : [],
+    dependencies,
     inputs,
     compose: composeYaml,
     web: { port: webHostPort, path: meta.path && meta.path !== "" ? meta.path : "/" },
