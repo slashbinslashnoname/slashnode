@@ -4,20 +4,18 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { App } from "@/lib/api";
 
-// DomainTab lets the operator change both the reverse-proxy subdomain an app is
-// served under (https://<sub>.<host>) and an optional full custom domain
-// (https://app.example.com), and shows the DNS records to configure for each.
+// DomainTab lets the operator serve an app at EITHER a subdomain under the node
+// host (https://<sub>.<host>) OR a full custom domain (https://app.example.com)
+// — one or the other, never both. The choice is a single mode toggle.
 export function DomainTab({ app }: { app: App }) {
   const router = useRouter();
   const base = app.host ?? "";
 
+  const [mode, setMode] = useState<"subdomain" | "domain">(app.domain ? "domain" : "subdomain");
   const [sub, setSub] = useState(app.subdomain || app.id);
   const [domain, setDomain] = useState(app.domain ?? "");
-
-  const [subState, setSubState] = useState<SaveState>("idle");
-  const [subErr, setSubErr] = useState("");
-  const [domState, setDomState] = useState<SaveState>("idle");
-  const [domErr, setDomErr] = useState("");
+  const [state, setState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [err, setErr] = useState("");
 
   if (!app.web) {
     return (
@@ -27,13 +25,15 @@ export function DomainTab({ app }: { app: App }) {
     );
   }
 
-  async function save(
-    params: Record<string, string>,
-    setState: (s: SaveState) => void,
-    setErr: (s: string) => void,
-  ) {
+  async function save() {
     setErr("");
     setState("saving");
+    // Saving one mode clears the other so exactly one address is ever active:
+    // subdomain mode clears the custom domain; domain mode sets it.
+    const params =
+      mode === "subdomain"
+        ? { subdomain: sub, domain: "" }
+        : { domain: domain };
     try {
       const qs = new URLSearchParams(params).toString();
       const r = await fetch(`/api/apps/${app.id}/domain?${qs}`, { method: "POST" });
@@ -51,12 +51,28 @@ export function DomainTab({ app }: { app: App }) {
   }
 
   const subLabel = sub || app.id;
-  const subUrl = base ? `https://${subLabel}.${base}` : "";
+  const activeUrl =
+    mode === "subdomain"
+      ? base
+        ? `https://${subLabel}.${base}`
+        : ""
+      : domain
+        ? `https://${domain}`
+        : "";
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Subdomain under the node host */}
-      <section className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
+      {/* Mode toggle: choose exactly one addressing scheme. */}
+      <div className="inline-flex w-fit rounded-lg border border-border p-0.5 text-sm">
+        <ModeBtn active={mode === "subdomain"} onClick={() => setMode("subdomain")}>
+          Subdomain
+        </ModeBtn>
+        <ModeBtn active={mode === "domain"} onClick={() => setMode("domain")}>
+          Custom domain
+        </ModeBtn>
+      </div>
+
+      {mode === "subdomain" ? (
         <label className="flex flex-col gap-1">
           <span className="text-sm font-medium">Subdomain</span>
           <div className="flex items-center gap-2">
@@ -72,40 +88,7 @@ export function DomainTab({ app }: { app: App }) {
             Lowercase letters, digits and hyphens. Empty resets to “{app.id}”.
           </span>
         </label>
-        {subUrl && (
-          <div className="rounded-lg bg-bg p-3 text-sm">
-            <span className="text-muted">URL: </span>
-            <code className="break-all text-fg">{subUrl}</code>
-          </div>
-        )}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => save({ subdomain: sub }, setSubState, setSubErr)}
-            disabled={subState === "saving"}
-            className={btnCls}
-          >
-            {subState === "saving" ? "saving…" : subState === "saved" ? "✓ saved" : "Save subdomain"}
-          </button>
-          {subErr && <span className="text-sm text-primary">{subErr}</span>}
-        </div>
-        {base && (
-          <DnsHelp
-            title="DNS for the subdomain"
-            records={`A   *.${base}        <node-ip>   ← wildcard, covers every app
-  — or, per app —
-A   ${subLabel}.${base}   <node-ip>`}
-            note={
-              <>
-                With a wildcard <code>*.{base}</code> record any subdomain works
-                immediately — no extra DNS per app.
-              </>
-            }
-          />
-        )}
-      </section>
-
-      {/* Full custom domain */}
-      <section className="flex flex-col gap-3 border-t border-border pt-5">
+      ) : (
         <label className="flex flex-col gap-1">
           <span className="text-sm font-medium">Custom domain</span>
           <input
@@ -115,55 +98,84 @@ A   ${subLabel}.${base}   <node-ip>`}
             className={inputCls}
           />
           <span className="text-xs text-muted">
-            A full domain served in addition to the subdomain (e.g.{" "}
-            <code>app.example.com</code> or <code>my-node.org</code>). Leave empty
-            to remove. Caddy issues an HTTPS certificate automatically once DNS
-            points here.
+            A full domain (e.g. <code>app.example.com</code>). Caddy issues an HTTPS
+            certificate automatically once its DNS points at this node.
           </span>
         </label>
-        {domain && (
-          <div className="rounded-lg bg-bg p-3 text-sm">
-            <span className="text-muted">URL: </span>
-            <code className="break-all text-fg">https://{domain}</code>
-          </div>
-        )}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => save({ domain }, setDomState, setDomErr)}
-            disabled={domState === "saving"}
-            className={btnCls}
-          >
-            {domState === "saving"
-              ? "saving…"
-              : domState === "saved"
-                ? "✓ saved"
-                : "Save custom domain"}
-          </button>
-          {domErr && <span className="text-sm text-primary">{domErr}</span>}
+      )}
+
+      {activeUrl && (
+        <div className="rounded-lg bg-bg p-3 text-sm">
+          <span className="text-muted">Served at: </span>
+          <code className="break-all text-fg">{activeUrl}</code>
         </div>
-        {domain && (
-          <DnsHelp
-            title="DNS for the custom domain"
-            records={`A   ${domain}   <node-ip>`}
-            note={
-              <>
-                Point <code>{domain}</code> at this node. Ports 80 and 443 must be
-                reachable from the internet for the certificate.
-              </>
-            }
-          />
-        )}
-      </section>
+      )}
+
+      <div className="flex items-center gap-3">
+        <button
+          onClick={save}
+          disabled={state === "saving" || (mode === "domain" && !domain)}
+          className="cursor-pointer rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white disabled:cursor-default disabled:opacity-60"
+        >
+          {state === "saving" ? "saving…" : state === "saved" ? "✓ saved" : "Save"}
+        </button>
+        {err && <span className="text-sm text-primary">{err}</span>}
+      </div>
+
+      {/* DNS guidance for the active mode only. */}
+      {mode === "subdomain" && base && (
+        <DnsHelp
+          title="DNS for the subdomain"
+          records={`A   *.${base}        <node-ip>   ← wildcard, covers every app
+  — or, per app —
+A   ${subLabel}.${base}   <node-ip>`}
+          note={
+            <>
+              With a wildcard <code>*.{base}</code> record any subdomain works
+              immediately — no extra DNS per app.
+            </>
+          }
+        />
+      )}
+      {mode === "domain" && domain && (
+        <DnsHelp
+          title="DNS for the custom domain"
+          records={`A   ${domain}   <node-ip>`}
+          note={
+            <>
+              Point <code>{domain}</code> at this node. Ports 80 and 443 must be
+              reachable from the internet for the certificate.
+            </>
+          }
+        />
+      )}
     </div>
   );
 }
 
-type SaveState = "idle" | "saving" | "saved" | "error";
-
 const inputCls =
   "w-56 rounded-lg border border-border bg-bg px-3 py-2 text-sm outline-none focus:border-primary";
-const btnCls =
-  "cursor-pointer rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white disabled:cursor-default disabled:opacity-60";
+
+function ModeBtn({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`cursor-pointer rounded-md px-3 py-1.5 font-medium transition-colors ${
+        active ? "bg-primary text-white" : "text-muted hover:text-fg"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
 
 function DnsHelp({
   title,
