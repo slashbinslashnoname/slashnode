@@ -90,7 +90,7 @@ function Addr({
 }) {
   return (
     <span className="flex items-center gap-2">
-      {onionTag && <span className="text-[10px] text-primary">.onion</span>}
+      {onionTag && <span className="text-[10px] text-muted">.onion</span>}
       <code className="break-all text-fg">{value}</code>
       <button
         onClick={() => navigator.clipboard?.writeText(value)}
