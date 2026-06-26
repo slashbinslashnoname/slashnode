@@ -1,11 +1,6 @@
-<pre>
-      //
-     //
-    //
-   //
-  //
- //
-</pre>
+<p align="center">
+  <img src="docs/banner.jpg" alt="SlashNode" width="100%">
+</p>
 
 # SlashNode
 
