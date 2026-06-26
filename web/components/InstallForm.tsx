@@ -31,6 +31,24 @@ export function InstallForm({ app }: { app: App }) {
     setValues((prev) => ({ ...prev, [key]: v }));
   }
 
+  // When reconfiguring an installed app, prefill the form with the stored
+  // values (including secrets like the root password) so they aren't shown
+  // blank and an unchanged reconfigure keeps them.
+  useEffect(() => {
+    if (!app.installed) return;
+    fetch(`/api/apps/${app.id}/credentials`)
+      .then((r) => r.json())
+      .then((j) => {
+        const fields: { key: string; value: string }[] = j.fields ?? [];
+        setValues((prev) => {
+          const next = { ...prev };
+          for (const f of fields) if (f.value) next[f.key] = f.value;
+          return next;
+        });
+      })
+      .catch(() => {});
+  }, [app.id, app.installed]);
+
   // Keep the live log scrolled to the bottom as output streams in.
   useEffect(() => {
     if (preRef.current) preRef.current.scrollTop = preRef.current.scrollHeight;

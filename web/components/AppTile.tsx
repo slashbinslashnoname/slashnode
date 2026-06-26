@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { App, ServiceStatus, ProbeResult } from "@/lib/api";
 import { useConsole } from "@/components/console/ConsoleProvider";
-import { CredsPanel } from "@/components/CredsPanel";
 import { EndpointsPanel } from "@/components/EndpointsPanel";
 import { webClearnetUrl } from "@/lib/appUrl";
 import { appVersion } from "@/lib/version";
@@ -14,9 +13,7 @@ export function AppTile({ app }: { app: App }) {
   const [services, setServices] = useState<ServiceStatus[] | null>(null);
   const [docker, setDocker] = useState(true);
   const [probe, setProbe] = useState<ProbeResult | null>(null);
-  const [logs, setLogs] = useState<string | null>(null);
   const [busy, setBusy] = useState("");
-  const [showConfig, setShowConfig] = useState(false);
   const [imgUpdate, setImgUpdate] = useState(false);
   const [openUrl, setOpenUrl] = useState<string | null>(null);
   const consoles = useConsole();
@@ -74,24 +71,6 @@ export function AppTile({ app }: { app: App }) {
     router.refresh();
   }
 
-  async function clearLogs() {
-    await fetch(`/api/apps/${app.id}/clear-logs`, { method: "POST" });
-    await loadLogs();
-  }
-
-  async function loadLogs() {
-    try {
-      const j = await fetch(`/api/apps/${app.id}/logs?tail=200`).then((r) => r.json());
-      setLogs(j.logs || "(no logs)");
-    } catch {
-      setLogs("(failed to load logs)");
-    }
-  }
-
-  function toggleLogs() {
-    if (logs !== null) setLogs(null);
-    else loadLogs();
-  }
 
   const running = (services ?? []).some((s) => s.state === "running");
   const badge = !docker
@@ -143,10 +122,8 @@ export function AppTile({ app }: { app: App }) {
         <Btn onClick={() => act("start")} busy={busy === "start"}>start</Btn>
         <Btn onClick={() => act("stop")} busy={busy === "stop"}>stop</Btn>
         <Btn onClick={() => act("restart")} busy={busy === "restart"}>restart</Btn>
-        <Btn onClick={toggleLogs}>{logs !== null ? "hide logs" : "logs"}</Btn>
-        <Btn onClick={() => setShowConfig((s) => !s)}>
-          {showConfig ? "hide config" : "config"}
-        </Btn>
+        <Btn onClick={() => consoles.openLogs(app.id, app.name)}>logs</Btn>
+        <Btn onClick={() => consoles.openConfig(app.id, app.name)}>config</Btn>
         {(services ?? []).map((s) => (
           <Btn key={s.service} onClick={() => consoles.open(s.service)}>
             {`console${(services ?? []).length > 1 ? `:${s.service}` : ""}`}
@@ -174,22 +151,6 @@ export function AppTile({ app }: { app: App }) {
           </a>
         )}
       </div>
-
-      {showConfig && <CredsPanel id={app.id} />}
-
-      {logs !== null && (
-        <div className="flex flex-col gap-1">
-          <button
-            onClick={clearLogs}
-            className="self-end text-xs text-muted hover:text-primary"
-          >
-            clear logs
-          </button>
-          <pre className="max-h-60 overflow-auto rounded-lg bg-bg p-3 text-xs leading-relaxed">
-            {logs}
-          </pre>
-        </div>
-      )}
     </div>
   );
 }

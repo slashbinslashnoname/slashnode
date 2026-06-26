@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import "@xterm/xterm/css/xterm.css";
-
-let zCounter = 50;
+import { useFloating } from "@/components/windows/useFloating";
 
 // ConsoleWindow is a floating, draggable, resizable terminal connected to a
 // container via the slashnoded console WebSocket. Multiple can be open at once.
@@ -21,9 +20,10 @@ export function ConsoleWindow({
   const termHost = useRef<HTMLDivElement>(null);
   const fitRef = useRef<FitAddon | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
-  const [pos, setPos] = useState({ x: 80 + index * 28, y: 80 + index * 28 });
-  const [size, setSize] = useState({ w: 640, h: 380 });
-  const [z, setZ] = useState(() => ++zCounter);
+  const { pos, size, z, bringFront, startDrag, startResize } = useFloating(index, {
+    w: 640,
+    h: 380,
+  });
 
   // Terminal + WebSocket lifecycle.
   useEffect(() => {
@@ -82,44 +82,11 @@ export function ConsoleWindow({
     };
   }, [container]);
 
-  // Dragging (header) and resizing (corner) via pointer events.
-  function startDrag(e: React.PointerEvent) {
-    e.preventDefault();
-    setZ(++zCounter);
-    const sx = e.clientX, sy = e.clientY, ox = pos.x, oy = pos.y;
-    const move = (ev: PointerEvent) =>
-      setPos({ x: ox + ev.clientX - sx, y: Math.max(0, oy + ev.clientY - sy) });
-    const up = () => {
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", up);
-    };
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", up);
-  }
-
-  function startResize(e: React.PointerEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    setZ(++zCounter);
-    const sx = e.clientX, sy = e.clientY, ow = size.w, oh = size.h;
-    const move = (ev: PointerEvent) =>
-      setSize({
-        w: Math.max(320, ow + ev.clientX - sx),
-        h: Math.max(200, oh + ev.clientY - sy),
-      });
-    const up = () => {
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", up);
-    };
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", up);
-  }
-
   return (
     <div
       className="fixed flex flex-col overflow-hidden rounded-xl border border-border bg-[#0e0e10] shadow-2xl"
       style={{ left: pos.x, top: pos.y, width: size.w, height: size.h, zIndex: z }}
-      onPointerDownCapture={() => setZ(++zCounter)}
+      onPointerDownCapture={bringFront}
     >
       <div
         onPointerDown={startDrag}

@@ -9,7 +9,7 @@ import type { App } from "@/lib/api";
 export function StoreList({ apps }: { apps: App[] }) {
   const [q, setQ] = useState("");
   const query = q.trim().toLowerCase();
-  const filtered = query
+  const matched = query
     ? apps.filter((a) =>
         [a.name, a.description ?? "", a.category]
           .join(" ")
@@ -17,6 +17,11 @@ export function StoreList({ apps }: { apps: App[] }) {
           .includes(query),
       )
     : apps;
+  // Installed apps float to the top; name order (from the API) is preserved
+  // within each group since Array.sort is stable.
+  const filtered = [...matched].sort(
+    (a, b) => Number(!!b.installed) - Number(!!a.installed),
+  );
 
   return (
     <div className="flex flex-col gap-6">

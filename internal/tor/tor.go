@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"syscall"
 )
 
 // Service is one hidden service (Name = subdir under the data dir) exposing one
@@ -54,12 +55,34 @@ func Torrc(dataDir string, services []Service) string {
 	return b.String()
 }
 
-// Write renders and writes the torrc to path (mode 0644).
+// Write renders and writes the torrc to path (mode 0644), and ensures the
+// hidden-service parent directory exists with the right ownership.
 func Write(path, dataDir string, services []Service) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
+	if err := ensureDataDir(dataDir); err != nil {
+		return err
+	}
 	return os.WriteFile(path, []byte(Torrc(dataDir, services)), 0o644)
+}
+
+// ensureDataDir creates the hidden-service parent directory (e.g.
+// /var/lib/tor/slashnode) owned by the tor user, with mode 0700. tor only
+// mkdir's the leaf HiddenServiceDir (one level) and refuses a wrong owner, so
+// without this the tor process fails to start on a fresh node and no .onion is
+// ever generated. Ownership is matched to the existing tor DataDirectory
+// (the parent, e.g. /var/lib/tor, owned by debian-tor / tor / _tor).
+func ensureDataDir(dataDir string) error {
+	if err := os.MkdirAll(dataDir, 0o700); err != nil {
+		return err
+	}
+	if fi, err := os.Stat(filepath.Dir(dataDir)); err == nil {
+		if st, ok := fi.Sys().(*syscall.Stat_t); ok {
+			_ = os.Chown(dataDir, int(st.Uid), int(st.Gid))
+		}
+	}
+	return os.Chmod(dataDir, 0o700)
 }
 
 // Reload restarts tor so new hidden services are provisioned.

@@ -8,6 +8,7 @@
 package secrets
 
 import (
+	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
@@ -16,6 +17,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
 )
 
 const hashIterations = 200_000
@@ -56,6 +60,10 @@ func Generate() (s *Secrets, initialPassword string, err error) {
 	}, initialPassword, nil
 }
 
+// NewPassword returns a fresh random admin password (used by `slashnoded passwd`
+// and the initial generation).
+func NewPassword() (string, error) { return randomToken(12) }
+
 // SetPassword sets the admin password to pw (fresh salt + hash).
 func (s *Secrets) SetPassword(pw string) error {
 	salt, err := randomToken(16)
@@ -72,6 +80,35 @@ func (s *Secrets) Verify(password string) bool {
 	want, _ := hex.DecodeString(s.AdminPasswordHash)
 	got, _ := hex.DecodeString(hashPassword(password, s.AdminPasswordSalt))
 	return subtle.ConstantTimeCompare(want, got) == 1
+}
+
+// IssueSession mints a per-login session token: "<expiryUnix>.<hmac>" where the
+// HMAC-SHA256 is keyed by SessionSecret over the expiry. It is stateless and
+// expiring (no static shared cookie), and the same format is verified by the Go
+// console and the Next middleware (which holds the same SessionSecret).
+func (s *Secrets) IssueSession(ttl time.Duration) string {
+	exp := strconv.FormatInt(time.Now().Add(ttl).Unix(), 10)
+	return exp + "." + s.signSession(exp)
+}
+
+// VerifySession reports whether token is a valid, unexpired session token.
+func (s *Secrets) VerifySession(token string) bool {
+	i := strings.LastIndex(token, ".")
+	if i <= 0 {
+		return false
+	}
+	exp, sig := token[:i], token[i+1:]
+	n, err := strconv.ParseInt(exp, 10, 64)
+	if err != nil || time.Now().Unix() > n {
+		return false
+	}
+	return subtle.ConstantTimeCompare([]byte(s.signSession(exp)), []byte(sig)) == 1
+}
+
+func (s *Secrets) signSession(exp string) string {
+	mac := hmac.New(sha256.New, []byte(s.SessionSecret))
+	mac.Write([]byte(exp))
+	return hex.EncodeToString(mac.Sum(nil))
 }
 
 // Load reads the secrets from path.

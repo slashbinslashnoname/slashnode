@@ -309,8 +309,8 @@ print_dns_help() {
   dim "At your registrar, create these records pointing at this server:"
   printf '    A     %-22s %s\n' "${SERVER_ADDR}"   "$ip"   >/dev/tty
   printf '    A     %-22s %s\n' "*.${SERVER_ADDR}" "$ip"   >/dev/tty
-  dim "The main UI is at https://${SERVER_ADDR}; each app is served over HTTPS on"
-  dim "its own port (web port + 10000), e.g. https://${SERVER_ADDR}:13000."
+  dim "The wildcard (*) is REQUIRED: the UI is at https://${SERVER_ADDR} and each"
+  dim "app is served at https://<app>.${SERVER_ADDR} (e.g. https://mempool.${SERVER_ADDR})."
 }
 
 main "$@"

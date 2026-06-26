@@ -17,7 +17,6 @@ export function SettingsForm({
   const [hostname, setHostname] = useState(config.hostname);
   const [mode, setMode] = useState(config.access.mode);
   const [address, setAddress] = useState(config.access.address ?? "");
-  const [pwProtected, setPwProtected] = useState(config.access.password_protected);
   const [tor, setTor] = useState(config.tor.enabled);
   const [policy, setPolicy] = useState(config.update.policy);
   const [channel, setChannel] = useState(config.update.channel);
@@ -32,7 +31,7 @@ export function SettingsForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           hostname,
-          access: { mode, address, password_protected: pwProtected },
+          access: { mode, address },
           tor: { enabled: tor },
           update: { policy, channel },
         }),
@@ -45,6 +44,7 @@ export function SettingsForm({
   }
 
   // Password change.
+  const [curPw, setCurPw] = useState("");
   const [pw, setPw] = useState("");
   const [pwState, setPwState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [pwErr, setPwErr] = useState("");
@@ -56,7 +56,7 @@ export function SettingsForm({
       const res = await fetch("/api/password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password: pw }),
+        body: JSON.stringify({ current: curPw, password: pw }),
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
@@ -65,6 +65,7 @@ export function SettingsForm({
         return;
       }
       setPw("");
+      setCurPw("");
       setPwState("saved");
     } catch {
       setPwState("error");
@@ -83,6 +84,16 @@ export function SettingsForm({
       <Section title="Admin password">
         <div className="flex flex-wrap items-end gap-3">
           <label className="flex flex-1 flex-col gap-1">
+            <span className="text-sm font-medium">Current password</span>
+            <input
+              type="password"
+              value={curPw}
+              placeholder="current password"
+              onChange={(e) => setCurPw(e.target.value)}
+              className={inputCls}
+            />
+          </label>
+          <label className="flex flex-1 flex-col gap-1">
             <span className="text-sm font-medium">New password</span>
             <input
               type="password"
@@ -95,7 +106,7 @@ export function SettingsForm({
           </label>
           <button
             onClick={savePassword}
-            disabled={pwState === "saving" || pw.length < 8}
+            disabled={pwState === "saving" || pw.length < 8 || curPw.length === 0}
             className={btnPrimary}
           >
             {pwState === "saving" ? "saving…" : pwState === "saved" ? "✓ changed" : "Change password"}
@@ -105,12 +116,10 @@ export function SettingsForm({
       </Section>
 
       <Section title="Access & security">
-        <Toggle
-          label="Password-protect the web UI"
-          hint="Requires a restart to take effect on the front end."
-          checked={pwProtected}
-          onChange={setPwProtected}
-        />
+        <p className="text-xs text-muted">
+          The web UI always requires the admin login. Reset it from the node with{" "}
+          <code>slashnoded passwd</code>.
+        </p>
         <SelectRow label="Access mode" value={mode} onChange={setMode} options={["local", "server"]} />
         {mode === "server" && (
           <label className="flex flex-col gap-1">

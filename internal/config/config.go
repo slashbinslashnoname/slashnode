@@ -82,7 +82,7 @@ func Default(version, dataDir string) (*Config, error) {
 		Hostname:  "slashnode.local",
 		DataDir:   dataDir,
 		HTTP:      HTTP{Bind: "0.0.0.0", Port: 8080, APIPort: 8081},
-		Access:    Access{Mode: "local", Address: "", PasswordProtected: false},
+		Access:    Access{Mode: "local", Address: "", PasswordProtected: true},
 		Tor:       Tor{Enabled: true}, // Tor on by default: UI + apps reachable over .onion
 		Theme:     Theme{Mode: "system", Primary: "#e5484d"}, // red
 		Update:    Update{Policy: "notify", Channel: "stable"},

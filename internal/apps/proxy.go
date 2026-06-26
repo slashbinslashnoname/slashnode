@@ -18,16 +18,10 @@ func baseHost(cfg *config.Config) (host string, internalTLS bool) {
 	return cfg.Hostname, true
 }
 
-// appHTTPSPort is the dedicated port on which Caddy terminates TLS for an app
-// whose plain-HTTP backend is published on webPort. Derived deterministically so
-// the URL is stable across reinstalls.
-func appHTTPSPort(webPort int) int { return webPort + 10000 }
-
 // ReloadProxy regenerates the Caddyfile from the installed apps (root host →
-// front end on 443, plus a dedicated HTTPS port per app with a web UI) and
-// reloads Caddy. Each app is reached at https://<host>:<appHTTPSPort> — works on
-// a domain, an mDNS name or a bare IP, with no per-app DNS. Best-effort: a no-op
-// when the node isn't initialized; writes the file even without Caddy installed.
+// front end, plus <id>.<host> → each app's web port, all over HTTPS) and reloads
+// Caddy. Best-effort: a no-op when the node isn't initialized; writes the file
+// even without Caddy installed so it's ready once it is.
 func ReloadProxy() error {
 	cfg, err := config.Load(paths.ConfigFile())
 	if err != nil {
@@ -39,8 +33,7 @@ func ReloadProxy() error {
 	for _, a := range LoadState().Installed {
 		if a.WebPort > 0 {
 			routes = append(routes, caddy.Route{
-				Host:         host,
-				ListenPort:   appHTTPSPort(a.WebPort),
+				Host:         appSubdomain(a.ID) + "." + host,
 				UpstreamPort: a.WebPort,
 			})
 		}
@@ -55,12 +48,12 @@ func ReloadProxy() error {
 	return nil
 }
 
-// AppURL returns the HTTPS URL for an app (Caddy terminates TLS on the app's
-// dedicated port), or "" if it has no web UI.
+// AppURL returns the HTTPS reverse-proxy URL for an app (https://<id>.<host>),
+// or "" if it has no web UI.
 func AppURL(cfg *config.Config, m *Manifest) string {
 	if m.Web == nil {
 		return ""
 	}
 	host, _ := baseHost(cfg)
-	return fmt.Sprintf("https://%s:%d", host, appHTTPSPort(m.Web.Port))
+	return fmt.Sprintf("https://%s.%s", appSubdomain(m.ID), host)
 }

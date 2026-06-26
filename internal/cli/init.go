@@ -77,6 +77,15 @@ func Init(args []string) error {
 		logf(*quiet, "→ access set (mode=%s, password=%v)", cfg.Access.Mode, cfg.Access.PasswordProtected)
 	}
 
+	// The web UI and container console always require an admin login — force it
+	// on (also upgrades older open-mode nodes on the next init/bootstrap).
+	if !cfg.Access.PasswordProtected {
+		cfg.Access.PasswordProtected = true
+		if err := cfg.Save(paths.ConfigFile()); err != nil {
+			return fmt.Errorf("writing config: %w", err)
+		}
+	}
+
 	// 2c. Tor exposure. On by default (config.Default); --tor / --tor=false
 	// overrides it, applied only when the flag was explicitly passed so a plain
 	// idempotent re-init keeps the operator's choice.

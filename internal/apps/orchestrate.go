@@ -100,7 +100,6 @@ func selfExports(man *Manifest) map[string]string {
 	out["host"] = host
 	if man.Web != nil {
 		out["url"] = AppURL(cfg, man)
-		out["port"] = fmt.Sprintf("%d", appHTTPSPort(man.Web.Port))
 	}
 	return out
 }
@@ -132,13 +131,15 @@ func printServiceURLs(out io.Writer, dir, id string) {
 		}
 	}
 	for _, e := range man.Endpoints {
-		scheme := ""
-		if e.Scheme == "http" || e.Scheme == "https" {
-			scheme = e.Scheme + "://"
+		// Endpoints are connection addresses (RPC, P2P, …) — a bare host:port,
+		// no scheme; they're reached with a client, not a browser.
+		path := e.Path
+		if path == "/" {
+			path = ""
 		}
-		fmt.Fprintf(out, "    %-12s %s%s:%d%s\n", e.Label, scheme, host, e.Port, e.Path)
+		fmt.Fprintf(out, "    %-12s %s:%d%s\n", e.Label, host, e.Port, path)
 		if onion != "" {
-			fmt.Fprintf(out, "      .onion     %s%s:%d%s\n", scheme, onion, e.Port, e.Path)
+			fmt.Fprintf(out, "      .onion     %s:%d%s\n", onion, e.Port, path)
 		}
 	}
 }
@@ -233,6 +234,9 @@ func SetImageTag(dir, id, service, tag string) error {
 	if service == "" || tag == "" {
 		return fmt.Errorf("service and tag required")
 	}
+	if !validImageTag(tag) {
+		return fmt.Errorf("invalid image tag: %q", tag)
+	}
 	state := LoadState()
 	inst, ok := state.Installed[id]
 	if !ok {
@@ -242,6 +246,73 @@ func SetImageTag(dir, id, service, tag string) error {
 		inst.ImageTags = map[string]string{}
 	}
 	inst.ImageTags[service] = tag
+	state.Installed[id] = inst
+	if err := saveState(state); err != nil {
+		return err
+	}
+	return ReapplyOne(dir, id)
+}
+
+var subdomainRe = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$`)
+
+// imageTagRe matches a valid docker image tag (the part after ':').
+var imageTagRe = regexp.MustCompile(`^[A-Za-z0-9_][A-Za-z0-9._-]{0,127}$`)
+
+func validImageTag(t string) bool { return imageTagRe.MatchString(t) }
+
+// appSubdomain returns the reverse-proxy subdomain label for an installed app:
+// the operator's override, or the app id by default.
+func appSubdomain(id string) string {
+	if inst, ok := LoadState().Installed[id]; ok && inst.Subdomain != "" {
+		return inst.Subdomain
+	}
+	return id
+}
+
+// SetSubdomain changes the reverse-proxy subdomain an app is served under
+// (https://<sub>.<host>) and reloads Caddy. An empty value (or the app id)
+// resets to the default. Validated as a DNS label.
+func SetSubdomain(dir, id, sub string) error {
+	sub = strings.ToLower(strings.TrimSpace(sub))
+	state := LoadState()
+	inst, ok := state.Installed[id]
+	if !ok {
+		return fmt.Errorf("app not installed: %s", id)
+	}
+	if sub == id {
+		sub = ""
+	}
+	if sub != "" && !subdomainRe.MatchString(sub) {
+		return fmt.Errorf("invalid subdomain: use lowercase letters, digits and hyphens")
+	}
+	inst.Subdomain = sub
+	state.Installed[id] = inst
+	if err := saveState(state); err != nil {
+		return err
+	}
+	return ReloadProxy()
+}
+
+// SetImageTags pins several services' image tags at once (e.g. "update all to
+// latest") and re-applies the app a single time. Each tag is validated.
+func SetImageTags(dir, id string, tags map[string]string) error {
+	if len(tags) == 0 {
+		return nil
+	}
+	state := LoadState()
+	inst, ok := state.Installed[id]
+	if !ok {
+		return fmt.Errorf("app not installed: %s", id)
+	}
+	if inst.ImageTags == nil {
+		inst.ImageTags = map[string]string{}
+	}
+	for svc, tag := range tags {
+		if !validImageTag(tag) {
+			return fmt.Errorf("invalid image tag for %s: %q", svc, tag)
+		}
+		inst.ImageTags[svc] = tag
+	}
 	state.Installed[id] = inst
 	if err := saveState(state); err != nil {
 		return err
@@ -424,6 +495,9 @@ func installOne(dir, appID string, provided, imageTagOverride map[string]string,
 		if in.MinLength > 0 && len(val) < in.MinLength {
 			return fmt.Errorf("%s: %d characters minimum", in.Key, in.MinLength)
 		}
+		if err := validateInput(in, val); err != nil {
+			return err
+		}
 		if in.Secret || in.Type == "password" {
 			secret[in.Key] = val
 		} else {
@@ -493,13 +567,23 @@ func installOne(dir, appID string, provided, imageTagOverride map[string]string,
 	content := templateRefs(man.Compose, nonSecret, secret, registry)
 	for svc, img := range orchestrator.ParseComposeImages(content) {
 		if t := imageTags[svc]; t != "" {
+			// The tag is written verbatim into the compose `image:` line, so it
+			// must be a valid docker tag — otherwise a crafted tag could break out
+			// of the YAML scalar and inject sibling keys.
+			if !validImageTag(t) {
+				return fmt.Errorf("invalid image tag for %s: %q", svc, t)
+			}
 			content = strings.Replace(content, img, replaceTag(img, t), 1)
 		}
 	}
-	// Bind the web-UI backend to loopback so it's reachable only through Caddy
-	// (HTTPS) and Tor — never directly over the network in plain HTTP.
+	// In server mode (Caddy fronts each app at https://<id>.<host>), bind the
+	// web-UI backend to loopback so the plain-HTTP port isn't publicly exposed —
+	// only Caddy (HTTPS) and Tor reach it. In local mode the app subdomain isn't
+	// resolvable over mDNS, so the web port stays published for direct access.
 	if man.Web != nil && man.Web.Port > 0 {
-		content = loopbackPort(content, man.Web.Port)
+		if cfg, cerr := config.Load(paths.ConfigFile()); cerr == nil && cfg.Access.Mode == "server" {
+			content = loopbackPort(content, man.Web.Port)
+		}
 	}
 	if err := os.MkdirAll(paths.AppRuntimeDir(appID), 0o700); err != nil {
 		return err
@@ -617,25 +701,83 @@ func resolveValue(s string, inputs, secrets map[string]string, registry map[stri
 func templateRefs(s string, inputs, secrets map[string]string, registry map[string]map[string]string) string {
 	return refRe.ReplaceAllStringFunc(s, func(m string) string {
 		inner := m[2 : len(m)-1]
+		// Values are escaped for the double-quoted YAML scalar context manifests
+		// use, so a value can't break out of the compose structure.
 		switch {
 		case strings.HasPrefix(inner, "input."):
 			if v, ok := inputs[inner[len("input."):]]; ok {
-				return v
+				return composeEscape(v)
 			}
 		case strings.HasPrefix(inner, "secret."):
 			if v, ok := secrets[inner[len("secret."):]]; ok {
-				return v
+				return composeEscape(v)
 			}
 		case strings.Contains(inner, ".exports."):
 			parts := strings.SplitN(inner, ".exports.", 2)
 			if e, ok := registry[parts[0]]; ok {
 				if v, ok := e[parts[1]]; ok {
-					return v
+					return composeEscape(v)
 				}
 			}
 		}
 		return m // leave unknown refs untouched
 	})
+}
+
+// validateInput enforces an input's declared constraints server-side. This is a
+// security boundary, not just UX: a value is substituted verbatim into the
+// app's docker-compose document and config files, so a crafted value must not
+// be able to break out of the structure it lands in. Rejecting control
+// characters removes the newline primitive used to inject sibling YAML keys
+// (e.g. `privileged: true`, a host bind-mount) or extra config directives, and
+// option/number checks stop off-menu values.
+func validateInput(in Input, val string) error {
+	for _, r := range val {
+		if r < 0x20 || r == 0x7f {
+			return fmt.Errorf("%s: control characters are not allowed", in.Key)
+		}
+	}
+	switch in.Type {
+	case "select":
+		if len(in.Options) > 0 {
+			for _, o := range in.Options {
+				if o == val {
+					return nil
+				}
+			}
+			return fmt.Errorf("%s: %q is not an allowed option", in.Key, val)
+		}
+	case "number":
+		f, err := strconv.ParseFloat(strings.TrimSpace(val), 64)
+		if err != nil {
+			return fmt.Errorf("%s: must be a number", in.Key)
+		}
+		if in.Min != nil && f < *in.Min {
+			return fmt.Errorf("%s: must be >= %v", in.Key, *in.Min)
+		}
+		if in.Max != nil && f > *in.Max {
+			return fmt.Errorf("%s: must be <= %v", in.Key, *in.Max)
+		}
+	case "boolean":
+		if val != "true" && val != "false" {
+			return fmt.Errorf("%s: must be true or false", in.Key)
+		}
+	}
+	return nil
+}
+
+// composeEscape escapes a value for safe inclusion inside a double-quoted YAML
+// scalar in a compose document (the convention manifests use, e.g.
+// KEY: "${input.X}"). Backslash and quote are escaped so a value containing them
+// can't break the document or close the scalar early; `$` is doubled so docker
+// compose's own ${VAR}/$VAR interpolation leaves the literal value intact (e.g.
+// a password like `pa$$w` survives). Control characters are already rejected by
+// validateInput, so structural newline injection is impossible.
+func composeEscape(s string) string {
+	s = strings.ReplaceAll(s, `\`, `\\`)
+	s = strings.ReplaceAll(s, `"`, `\"`)
+	s = strings.ReplaceAll(s, `$`, `$$`)
+	return s
 }
 
 func randomToken(n int) (string, error) {

@@ -171,7 +171,12 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid password"})
 			return
 		}
-		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+		// Issue a per-login, expiring session token (the front stores it as the
+		// session cookie). 7-day TTL.
+		writeJSON(w, http.StatusOK, map[string]string{
+			"status": "ok",
+			"token":  sec.IssueSession(7 * 24 * time.Hour),
+		})
 	}))
 
 	// --- Settings ---
@@ -202,14 +207,29 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid body"})
 			return
 		}
+		// Hostname/address are written into the Caddyfile and Avahi service, so
+		// they must be plain host strings — reject anything that could inject
+		// extra directives (control chars, spaces, braces…).
 		if body.Hostname != nil {
+			if !validHost(*body.Hostname) {
+				writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid hostname"})
+				return
+			}
 			cfg.Hostname = *body.Hostname
 		}
 		if a := body.Access; a != nil {
+			if a.Mode != nil && *a.Mode != "local" && *a.Mode != "server" {
+				writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid access mode"})
+				return
+			}
 			if a.Mode != nil {
 				cfg.Access.Mode = *a.Mode
 			}
 			if a.Address != nil {
+				if *a.Address != "" && !validHost(*a.Address) {
+					writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid address"})
+					return
+				}
 				cfg.Access.Address = *a.Address
 			}
 			if a.PasswordProtected != nil {
@@ -242,9 +262,17 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 	// bearer token the front adds server-side).
 	mux.Handle("POST /api/v1/password", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
 		var body struct {
+			Current  string `json:"current"`
 			Password string `json:"password"`
 		}
 		_ = json.NewDecoder(r.Body).Decode(&body)
+		// Require the current password so a mere UI/session holder can't silently
+		// take over or lock out the owner (open mode: the initial password is
+		// shown post-install; reset via `slashnoded init --force --password`).
+		if !sec.Verify(body.Current) {
+			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "current password is incorrect"})
+			return
+		}
 		if len(body.Password) < 8 {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "password must be at least 8 characters"})
 			return
@@ -492,6 +520,48 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 		writeJSON(w, http.StatusOK, map[string]string{"status": "version-set"})
 	}))
 
+	// Bump every service's image to the latest stable registry tag.
+	mux.Handle("POST /api/v1/apps/{id}/update-latest", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
+		man, err := apps.Find(appsDir, r.PathValue("id"))
+		if err != nil {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": err.Error()})
+			return
+		}
+		tags := map[string]string{}
+		for svc, img := range apps.ResolvedImages(man, man.ID) {
+			t, _ := registry.Tags(img) // best-effort; empty on non-Docker-Hub
+			if latest := registry.LatestStable(t); latest != "" {
+				tags[svc] = latest
+			}
+		}
+		if len(tags) == 0 {
+			writeJSON(w, http.StatusOK, map[string]string{"status": "no newer tag found"})
+			return
+		}
+		if err := apps.SetImageTags(appsDir, man.ID, tags); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"status": "updated", "tags": tags})
+	}))
+
+	// Change the reverse-proxy subdomain an app is served under.
+	mux.Handle("POST /api/v1/apps/{id}/domain", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
+		sub := r.URL.Query().Get("subdomain")
+		if sub == "" {
+			var body struct {
+				Subdomain string `json:"subdomain"`
+			}
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			sub = body.Subdomain
+		}
+		if err := apps.SetSubdomain(appsDir, r.PathValue("id"), sub); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]string{"status": "domain-set"})
+	}))
+
 	mux.Handle("POST /api/v1/apps/{id}/start", bearer(sec, lifecycle(apps.Start, "started")))
 	mux.Handle("POST /api/v1/apps/{id}/stop", bearer(sec, lifecycle(apps.Stop, "stopped")))
 	mux.Handle("POST /api/v1/apps/{id}/restart", bearer(sec, lifecycle(apps.Restart, "restarted")))
@@ -618,6 +688,22 @@ func (fw *flushWriter) Write(p []byte) (int, error) {
 		fw.f.Flush()
 	}
 	return n, err
+}
+
+// validHost reports whether s is a plain hostname/domain/IP safe to write into
+// the Caddyfile and Avahi service (letters, digits, dots and hyphens only).
+func validHost(s string) bool {
+	if s == "" || len(s) > 253 {
+		return false
+	}
+	for _, r := range s {
+		ok := (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') ||
+			(r >= '0' && r <= '9') || r == '.' || r == '-'
+		if !ok {
+			return false
+		}
+	}
+	return true
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
