@@ -100,7 +100,6 @@ func selfExports(man *Manifest) map[string]string {
 	out["host"] = host
 	if man.Web != nil {
 		out["url"] = AppURL(cfg, man)
-		out["port"] = fmt.Sprintf("%d", appHTTPSPort(man.Web.Port))
 	}
 	return out
 }
@@ -501,10 +500,14 @@ func installOne(dir, appID string, provided, imageTagOverride map[string]string,
 			content = strings.Replace(content, img, replaceTag(img, t), 1)
 		}
 	}
-	// Bind the web-UI backend to loopback so it's reachable only through Caddy
-	// (HTTPS) and Tor — never directly over the network in plain HTTP.
+	// In server mode (Caddy fronts each app at https://<id>.<host>), bind the
+	// web-UI backend to loopback so the plain-HTTP port isn't publicly exposed —
+	// only Caddy (HTTPS) and Tor reach it. In local mode the app subdomain isn't
+	// resolvable over mDNS, so the web port stays published for direct access.
 	if man.Web != nil && man.Web.Port > 0 {
-		content = loopbackPort(content, man.Web.Port)
+		if cfg, cerr := config.Load(paths.ConfigFile()); cerr == nil && cfg.Access.Mode == "server" {
+			content = loopbackPort(content, man.Web.Port)
+		}
 	}
 	if err := os.MkdirAll(paths.AppRuntimeDir(appID), 0o700); err != nil {
 		return err
