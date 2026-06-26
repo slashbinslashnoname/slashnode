@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { App, ServiceStatus, ProbeResult } from "@/lib/api";
 import { useConsole } from "@/components/console/ConsoleProvider";
-import { EndpointsPanel } from "@/components/EndpointsPanel";
 import { webClearnetUrl } from "@/lib/appUrl";
 import { appVersion } from "@/lib/version";
 
@@ -110,10 +109,6 @@ export function AppTile({ app }: { app: App }) {
       </div>
 
       {probe && <ProbeLine probe={probe} />}
-
-      {app.endpoints && app.endpoints.length > 0 && (
-        <EndpointsPanel endpoints={app.endpoints} onion={onion ?? undefined} />
-      )}
 
       <div className="flex flex-wrap gap-1.5">
         {hasUpdate && (
