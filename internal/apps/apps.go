@@ -122,6 +122,9 @@ type CatalogEntry struct {
 	URL              string            `json:"url,omitempty"`       // reverse-proxy URL (set by the API layer)
 	OnionURL         string            `json:"onion_url,omitempty"` // Tor hidden-service URL of the web UI (set by the API layer)
 	Onion            string            `json:"onion,omitempty"`     // raw .onion host of the app, web + endpoints (set by the API layer)
+	Subdomain        string            `json:"subdomain,omitempty"` // effective reverse-proxy subdomain (set by the API layer)
+	Domain           string            `json:"domain,omitempty"`    // custom domain override (set by the API layer)
+	Host             string            `json:"host,omitempty"`      // node base host apps live under (set by the API layer)
 }
 
 // LoadCatalog reads all manifests dir/*/slashnode-app.json, sorted by name.
@@ -166,6 +169,7 @@ type InstalledApp struct {
 	Version     string            `json:"version"`
 	ImageTags        map[string]string `json:"image_tags,omitempty"` // service → chosen image tag override
 	Subdomain        string            `json:"subdomain,omitempty"`  // reverse-proxy subdomain override (default: id)
+	Domain           string            `json:"domain,omitempty"`     // full custom domain (e.g. app.example.com), served in addition to the subdomain
 	MigrationVersion int               `json:"migration_version,omitempty"` // last applied per-app migration
 	InstalledAt      string            `json:"installed_at"`
 	Inputs      map[string]string `json:"inputs"`

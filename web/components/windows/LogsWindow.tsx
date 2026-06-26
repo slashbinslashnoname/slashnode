@@ -17,7 +17,17 @@ export function LogsWindow({
   onClose: () => void;
 }) {
   const [logs, setLogs] = useState("loading…");
+  const [query, setQuery] = useState("");
   const preRef = useRef<HTMLPreElement>(null);
+
+  // Filter the displayed lines by the search query (case-insensitive). The full
+  // log text stays in state, so clearing the query restores everything.
+  const shown = query
+    ? logs
+        .split("\n")
+        .filter((l) => l.toLowerCase().includes(query.toLowerCase()))
+        .join("\n") || "(no matching lines)"
+    : logs;
 
   const load = useCallback(async () => {
     try {
@@ -59,19 +69,34 @@ export function LogsWindow({
       }
     >
       <div className="flex h-full flex-col gap-2">
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           <button onClick={load} className="cursor-pointer text-xs text-muted hover:text-primary">
             refresh
           </button>
           <button onClick={clear} className="cursor-pointer text-xs text-muted hover:text-primary">
             clear logs
           </button>
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="search…"
+            className="ml-auto w-32 rounded border border-border bg-bg px-2 py-0.5 text-xs outline-none focus:border-primary"
+          />
+          {query && (
+            <button
+              onClick={() => setQuery("")}
+              className="cursor-pointer text-xs text-muted hover:text-primary"
+              aria-label="clear search"
+            >
+              ✕
+            </button>
+          )}
         </div>
         <pre
           ref={preRef}
           className="min-h-0 flex-1 overflow-auto rounded-lg bg-bg p-3 text-xs leading-relaxed"
         >
-          {logs}
+          {shown}
         </pre>
       </div>
     </FloatingWindow>

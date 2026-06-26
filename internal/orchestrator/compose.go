@@ -17,6 +17,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Network is the shared Docker network all app containers join.
@@ -227,37 +228,71 @@ func Restart(appID, composeFile string) error {
 	return run("docker", "compose", "-p", project(appID), "-f", composeFile, "restart")
 }
 
-// Logs returns the last `tail` log lines across the app's services.
+// Logs returns the last `tail` log lines across the app's services. If the logs
+// have been cleared, only entries after the clear instant are returned.
 func Logs(appID, composeFile string, tail int) (string, error) {
-	return output("docker", "compose", "-p", project(appID), "-f", composeFile,
-		"logs", "--no-color", "--tail", strconv.Itoa(tail))
+	args := []string{"compose", "-p", project(appID), "-f", composeFile,
+		"logs", "--no-color", "--tail", strconv.Itoa(tail)}
+	if since := readLogsSince(composeFile); since != "" {
+		args = append(args, "--since", since)
+	}
+	return output("docker", args...)
 }
 
-// ClearLogs truncates the JSON log file of each of the app's containers.
+// ClearLogs clears an app's logs. Truncating the on-disk log file is futile for
+// a running, chatty container — Docker holds the file descriptor open and keeps
+// appending at its old offset, so the logs reappear instantly. The reliable
+// clear is therefore a "since" marker: Logs() filters to entries after this
+// instant, which works for every logging driver. Truncation is still attempted
+// as a best-effort disk reclaim.
 func ClearLogs(appID, composeFile string) error {
+	// Host clock is shared with the daemon; RFC3339Nano is accepted by
+	// `docker compose logs --since`.
+	since := time.Now().UTC().Format(time.RFC3339Nano)
+	if err := writeLogsSince(composeFile, since); err != nil {
+		return fmt.Errorf("record clear marker: %w", err)
+	}
+	truncateContainerLogs(appID, composeFile) // best-effort, reclaims disk
+	return nil
+}
+
+func logsSinceFile(composeFile string) string {
+	return filepath.Join(filepath.Dir(composeFile), "logs-since")
+}
+
+func readLogsSince(composeFile string) string {
+	b, err := os.ReadFile(logsSinceFile(composeFile))
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(b))
+}
+
+func writeLogsSince(composeFile, ts string) error {
+	return os.WriteFile(logsSinceFile(composeFile), []byte(ts), 0o600)
+}
+
+// truncateContainerLogs zeroes the on-disk log files of the app's containers to
+// reclaim space. Best-effort: errors are ignored because the "since" marker is
+// what actually clears the view.
+func truncateContainerLogs(appID, composeFile string) {
 	out, err := output("docker", "compose", "-p", project(appID), "-f", composeFile, "ps", "-q")
 	if err != nil {
-		return err
+		return
 	}
 	ids := strings.Fields(out)
 	if len(ids) == 0 {
-		return fmt.Errorf("no containers to clear")
+		return
 	}
 	root := ""
 	if r, e := output("docker", "info", "--format", "{{.DockerRootDir}}"); e == nil {
 		root = strings.TrimSpace(r)
 	}
-	cleared := 0
-	var lastErr error
 	for _, id := range ids {
 		// json-file driver exposes the log file path directly.
 		if lp, e := output("docker", "inspect", "--format", "{{.LogPath}}", id); e == nil {
 			if p := strings.TrimSpace(lp); p != "" {
-				if terr := os.Truncate(p, 0); terr == nil {
-					cleared++
-				} else {
-					lastErr = terr
-				}
+				os.Truncate(p, 0)
 				continue
 			}
 		}
@@ -268,26 +303,11 @@ func ClearLogs(appID, composeFile string) error {
 				dir := filepath.Join(root, "containers", strings.TrimSpace(full), "local-logs")
 				files, _ := filepath.Glob(filepath.Join(dir, "*"))
 				for _, f := range files {
-					if terr := os.Truncate(f, 0); terr == nil {
-						cleared++
-					} else {
-						lastErr = terr
-					}
+					os.Truncate(f, 0)
 				}
 			}
 		}
 	}
-	if cleared == 0 {
-		driver := "?"
-		if d, e := output("docker", "inspect", "--format", "{{.HostConfig.LogConfig.Type}}", ids[0]); e == nil {
-			driver = strings.TrimSpace(d)
-		}
-		if lastErr != nil {
-			return fmt.Errorf("clear logs failed (driver %s): %w", driver, lastErr)
-		}
-		return fmt.Errorf("clear logs: the %q logging driver keeps no truncatable file (try json-file/local)", driver)
-	}
-	return nil
 }
 
 func project(appID string) string { return "slashnode-" + appID }

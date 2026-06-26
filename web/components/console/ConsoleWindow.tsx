@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
+import { SearchAddon } from "@xterm/addon-search";
 import "@xterm/xterm/css/xterm.css";
 import { useFloating } from "@/components/windows/useFloating";
 
@@ -19,7 +20,9 @@ export function ConsoleWindow({
 }) {
   const termHost = useRef<HTMLDivElement>(null);
   const fitRef = useRef<FitAddon | null>(null);
+  const searchRef = useRef<SearchAddon | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
+  const [query, setQuery] = useState("");
   const { pos, size, z, bringFront, startDrag, startResize } = useFloating(index, {
     w: 640,
     h: 380,
@@ -36,6 +39,9 @@ export function ConsoleWindow({
     const fit = new FitAddon();
     fitRef.current = fit;
     term.loadAddon(fit);
+    const search = new SearchAddon();
+    searchRef.current = search;
+    term.loadAddon(search);
     term.open(termHost.current);
     fit.fit();
 
@@ -95,13 +101,46 @@ export function ConsoleWindow({
         <span className="font-mono text-xs text-fg">
           <span className="text-primary">$</span> {container}
         </span>
-        <button
+        <div
+          className="flex items-center gap-1"
           onPointerDown={(e) => e.stopPropagation()}
-          onClick={onClose}
-          className="rounded px-2 text-muted hover:text-primary"
         >
-          ✕
-        </button>
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                if (query) {
+                  if (e.shiftKey) searchRef.current?.findPrevious(query);
+                  else searchRef.current?.findNext(query);
+                }
+              }
+            }}
+            placeholder="search…"
+            className="w-28 rounded border border-border bg-bg px-2 py-0.5 font-mono text-xs outline-none focus:border-primary"
+          />
+          <button
+            onClick={() => query && searchRef.current?.findPrevious(query)}
+            className="cursor-pointer rounded px-1 text-muted hover:text-primary"
+            title="previous match (Shift+Enter)"
+          >
+            ↑
+          </button>
+          <button
+            onClick={() => query && searchRef.current?.findNext(query)}
+            className="cursor-pointer rounded px-1 text-muted hover:text-primary"
+            title="next match (Enter)"
+          >
+            ↓
+          </button>
+          <button
+            onClick={onClose}
+            className="rounded px-2 text-muted hover:text-primary"
+          >
+            ✕
+          </button>
+        </div>
       </div>
       <div ref={termHost} className="flex-1 overflow-hidden p-1.5" />
       <div

@@ -264,10 +264,17 @@ func SetImageTag(dir, id, service, tag string) error {
 
 var subdomainRe = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$`)
 
+// domainRe matches a full domain name (at least two labels and a letter TLD),
+// e.g. app.example.com or my-node.org.
+var domainRe = regexp.MustCompile(`^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$`)
+
 // imageTagRe matches a valid docker image tag (the part after ':').
 var imageTagRe = regexp.MustCompile(`^[A-Za-z0-9_][A-Za-z0-9._-]{0,127}$`)
 
 func validImageTag(t string) bool { return imageTagRe.MatchString(t) }
+
+// AppSubdomain returns the effective reverse-proxy subdomain label for an app.
+func AppSubdomain(id string) string { return appSubdomain(id) }
 
 // appSubdomain returns the reverse-proxy subdomain label for an installed app:
 // the operator's override, or the app id by default.
@@ -295,6 +302,35 @@ func SetSubdomain(dir, id, sub string) error {
 		return fmt.Errorf("invalid subdomain: use lowercase letters, digits and hyphens")
 	}
 	inst.Subdomain = sub
+	state.Installed[id] = inst
+	if err := saveState(state); err != nil {
+		return err
+	}
+	return ReloadProxy()
+}
+
+// SetDomain assigns a full custom domain to an app (served in addition to the
+// default <subdomain>.<host>), and reloads Caddy so it requests a certificate
+// for it. An empty value removes the custom domain. The operator must point the
+// domain's DNS at this node for the HTTPS certificate to be issued.
+func SetDomain(dir, id, domain string) error {
+	domain = strings.ToLower(strings.TrimSpace(strings.TrimSuffix(domain, ".")))
+	domain = strings.TrimPrefix(strings.TrimPrefix(domain, "https://"), "http://")
+	state := LoadState()
+	inst, ok := state.Installed[id]
+	if !ok {
+		return fmt.Errorf("app not installed: %s", id)
+	}
+	if domain != "" && !domainRe.MatchString(domain) {
+		return fmt.Errorf("invalid domain: use a full name like app.example.com")
+	}
+	// Reject a domain already claimed by another app.
+	for otherID, other := range state.Installed {
+		if otherID != id && other.Domain != "" && other.Domain == domain {
+			return fmt.Errorf("domain already used by %q", otherID)
+		}
+	}
+	inst.Domain = domain
 	state.Installed[id] = inst
 	if err := saveState(state); err != nil {
 		return err
@@ -635,6 +671,7 @@ func installOne(dir, appID string, provided, imageTagOverride map[string]string,
 		Version:          man.Version,
 		ImageTags:        imageTags,
 		Subdomain:        prev.Subdomain,          // preserve the subdomain override across updates
+		Domain:           prev.Domain,             // preserve the custom domain across updates
 		MigrationVersion: appMigrationLatest(man), // current after a successful install/reapply
 		InstalledAt:      time.Now().UTC().Format(time.RFC3339),
 		Inputs:           nonSecret,
