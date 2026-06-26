@@ -30,6 +30,9 @@ MIN_DISK_GB=10
 INIT_ARGS=()
 # Whether the operator opted into Tor hidden services (set by configure_access).
 ENABLE_TOR=0
+# Public domain entered in server mode (set by configure_access); drives the DNS
+# help printed at the end.
+SERVER_ADDR=""
 
 red()  { printf '\033[1;31m%s\033[0m\n' "$*"; }
 dim()  { printf '\033[2m%s\033[0m\n' "$*"; }
@@ -192,6 +195,7 @@ configure_access() {
     read -r addr </dev/tty
     printf 'Set admin password: ' >/dev/tty
     read -rs pass </dev/tty; printf '\n' >/dev/tty
+    SERVER_ADDR="$addr"
     INIT_ARGS=(--access server --address "$addr" --password "$pass" --password-protect)
   else
     local yn pass
@@ -284,6 +288,29 @@ main() {
 
   echo
   slashnoded status --post-install
+  print_dns_help
+}
+
+# print_dns_help shows the DNS records and firewall ports needed when a public
+# domain was configured (skipped for a bare IP or local mode).
+print_dns_help() {
+  [ -n "$SERVER_ADDR" ] || return 0
+  # Skip when the address is a bare IP (no DNS to set up).
+  case "$SERVER_ADDR" in
+    *[!0-9.]*) ;;            # contains a non IPv4 char → treat as a domain
+    *) return 0 ;;           # looks like an IPv4 → nothing to configure
+  esac
+
+  local ip
+  ip="$(curl -fsS --max-time 5 https://api.ipify.org 2>/dev/null || echo '<your-server-ip>')"
+
+  echo
+  red "DNS setup for ${SERVER_ADDR}"
+  dim "At your registrar, create these records pointing at this server:"
+  printf '    A     %-22s %s\n' "${SERVER_ADDR}"   "$ip"   >/dev/tty
+  printf '    A     %-22s %s\n' "*.${SERVER_ADDR}" "$ip"   >/dev/tty
+  dim "The main UI is at https://${SERVER_ADDR}; each app is served over HTTPS on"
+  dim "its own port (web port + 10000), e.g. https://${SERVER_ADDR}:13000."
 }
 
 main "$@"

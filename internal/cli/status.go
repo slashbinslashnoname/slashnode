@@ -7,7 +7,9 @@ import (
 	"net"
 	"os"
 	"strings"
+	"time"
 
+	"github.com/slashbinslashnoname/slashnode/internal/apps"
 	"github.com/slashbinslashnoname/slashnode/internal/config"
 	"github.com/slashbinslashnoname/slashnode/internal/paths"
 )
@@ -25,6 +27,14 @@ func Status(args []string) error {
 	cfg, err := config.Load(paths.ConfigFile())
 	if err != nil {
 		return fmt.Errorf("node not initialized (run `slashnoded init`): %w", err)
+	}
+
+	// Right after bootstrap, Tor has just (re)started and may not have written
+	// the hidden-service hostname yet — wait briefly so the .onion URL appears.
+	if *postInstall && cfg.Tor.Enabled {
+		for i := 0; i < 15 && apps.NodeOnion() == ""; i++ {
+			time.Sleep(time.Second)
+		}
 	}
 
 	urls := accessURLs(cfg)
@@ -92,6 +102,11 @@ func accessURLs(cfg *config.Config) []string {
 	urls = append(urls, fmt.Sprintf("http://%s:%d", cfg.Hostname, cfg.HTTP.Port))
 	for _, ip := range localIPs() {
 		urls = append(urls, fmt.Sprintf("http://%s:%d", ip, cfg.HTTP.Port))
+	}
+	if cfg.Tor.Enabled {
+		if onion := apps.NodeOnion(); onion != "" {
+			urls = append(urls, "http://"+onion)
+		}
 	}
 	return urls
 }
