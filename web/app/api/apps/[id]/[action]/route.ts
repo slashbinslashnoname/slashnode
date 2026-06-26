@@ -19,6 +19,7 @@ const POST_ACTIONS = new Set([
   "restart",
   "clear-logs",
   "update",
+  "update-latest",
   "set-version",
   "domain",
 ]);

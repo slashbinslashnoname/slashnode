@@ -520,6 +520,31 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 		writeJSON(w, http.StatusOK, map[string]string{"status": "version-set"})
 	}))
 
+	// Bump every service's image to the latest stable registry tag.
+	mux.Handle("POST /api/v1/apps/{id}/update-latest", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
+		man, err := apps.Find(appsDir, r.PathValue("id"))
+		if err != nil {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": err.Error()})
+			return
+		}
+		tags := map[string]string{}
+		for svc, img := range apps.ResolvedImages(man, man.ID) {
+			t, _ := registry.Tags(img) // best-effort; empty on non-Docker-Hub
+			if latest := registry.LatestStable(t); latest != "" {
+				tags[svc] = latest
+			}
+		}
+		if len(tags) == 0 {
+			writeJSON(w, http.StatusOK, map[string]string{"status": "no newer tag found"})
+			return
+		}
+		if err := apps.SetImageTags(appsDir, man.ID, tags); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"status": "updated", "tags": tags})
+	}))
+
 	// Change the reverse-proxy subdomain an app is served under.
 	mux.Handle("POST /api/v1/apps/{id}/domain", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
 		sub := r.URL.Query().Get("subdomain")

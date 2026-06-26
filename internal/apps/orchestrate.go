@@ -293,6 +293,33 @@ func SetSubdomain(dir, id, sub string) error {
 	return ReloadProxy()
 }
 
+// SetImageTags pins several services' image tags at once (e.g. "update all to
+// latest") and re-applies the app a single time. Each tag is validated.
+func SetImageTags(dir, id string, tags map[string]string) error {
+	if len(tags) == 0 {
+		return nil
+	}
+	state := LoadState()
+	inst, ok := state.Installed[id]
+	if !ok {
+		return fmt.Errorf("app not installed: %s", id)
+	}
+	if inst.ImageTags == nil {
+		inst.ImageTags = map[string]string{}
+	}
+	for svc, tag := range tags {
+		if !validImageTag(tag) {
+			return fmt.Errorf("invalid image tag for %s: %q", svc, tag)
+		}
+		inst.ImageTags[svc] = tag
+	}
+	state.Installed[id] = inst
+	if err := saveState(state); err != nil {
+		return err
+	}
+	return ReapplyOne(dir, id)
+}
+
 // ResolvedImages returns an installed app's per-service image refs (with any
 // stored tag overrides applied), for display in the version picker.
 func ResolvedImages(man *Manifest, id string) map[string]string {

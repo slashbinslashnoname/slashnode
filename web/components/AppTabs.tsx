@@ -50,6 +50,7 @@ export function AppTabs({ app }: { app: App }) {
               <VersionSelector id={app.id} images={app.images!} />
             </div>
           )}
+          <UpdateLatestButton id={app.id} />
           <RepullButton id={app.id} />
         </div>
       )}
@@ -67,6 +68,54 @@ export function AppTabs({ app }: { app: App }) {
           <CredsPanel id={app.id} />
         </div>
       )}
+    </div>
+  );
+}
+
+// UpdateLatestButton bumps every service's image to the latest stable tag in its
+// registry, then recreates the containers.
+function UpdateLatestButton({ id }: { id: string }) {
+  const router = useRouter();
+  const [state, setState] = useState<"idle" | "busy" | "done" | "error">("idle");
+  const [msg, setMsg] = useState("");
+
+  async function update() {
+    setState("busy");
+    setMsg("");
+    try {
+      const r = await fetch(`/api/apps/${id}/update-latest`, { method: "POST" });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        setMsg(j.error || "failed");
+        setState("error");
+        return;
+      }
+      setMsg(j.status === "updated" ? "" : j.status || "");
+      setState("done");
+      router.refresh();
+    } catch {
+      setState("error");
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-1">
+      <button
+        onClick={update}
+        disabled={state === "busy"}
+        className="cursor-pointer self-start rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white disabled:cursor-default disabled:opacity-60"
+      >
+        {state === "busy"
+          ? "updating…"
+          : state === "done"
+            ? "✓ updated"
+            : state === "error"
+              ? "failed — retry"
+              : "Update to latest tag"}
+      </button>
+      <span className="text-xs text-muted">
+        {msg || "Bumps each image to the newest stable tag in its registry and recreates the containers."}
+      </span>
     </div>
   );
 }
