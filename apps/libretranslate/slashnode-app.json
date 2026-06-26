@@ -1,0 +1,22 @@
+{
+  "manifestVersion": 1,
+  "id": "libretranslate",
+  "name": "LibreTranslate",
+  "version": "1.6.5",
+  "category": "ai",
+  "description": "Free and Open Source machine translation API",
+  "icon": "🤖",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-libretranslate\nservices:\n  main:\n    image: libretranslate/libretranslate:v1.6.5\n    container_name: libretranslate\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      LT_API_KEYS: 'true'\n      LT_API_KEYS_DB_PATH: /app/db/api_keys.db\n      LT_UPDATE_MODELS: 'true'\n    volumes:\n      - main_data-api_keys:/app/db\n      - main_data-models:/home/libretranslate/.local:rw\n    ports:\n      - 127.0.0.1:7017:5000\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  main_data-api_keys:\n    name: slashnode-libretranslate_main_data-api_keys\n  main_data-models:\n    name: slashnode-libretranslate_main_data-models\n",
+  "web": {
+    "port": 7017,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 7017,
+    "path": "/"
+  },
+  "notes": "Ported from Umbrel (libretranslate). Upstream: https://libretranslate.com. "
+}

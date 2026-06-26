@@ -1,0 +1,22 @@
+{
+  "manifestVersion": 1,
+  "id": "memos",
+  "name": "Memos",
+  "version": "0.29.1",
+  "category": "files",
+  "description": "Easily capture and share your great thoughts",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-memos\nservices:\n  main:\n    image: neosmemo/memos:0.29.1\n    container_name: memos\n    restart: unless-stopped\n    networks:\n      - slashnode\n    user: '1000:1000'\n    environment:\n      MEMOS_MODE: prod\n      MEMOS_PORT: '5230'\n    volumes:\n      - main_data:/var/opt/memos\n    ports:\n      - 127.0.0.1:5230:5230\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  main_data:\n    name: slashnode-memos_main_data\n",
+  "web": {
+    "port": 5230,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 5230,
+    "path": "/"
+  },
+  "notes": "Ported from Umbrel (memos). Upstream: https://www.usememos.com/. "
+}

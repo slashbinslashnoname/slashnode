@@ -11,3 +11,7 @@
 # Divers
 *.log
 .DS_Store
+
+# Umbrel converter review output (regenerable via scripts/umbrel-convert)
+/converted/*
+!/converted/REPORT.md

@@ -1,0 +1,22 @@
+{
+  "manifestVersion": 1,
+  "id": "wallos",
+  "name": "Wallos",
+  "version": "4.9.6",
+  "category": "finance",
+  "description": "Track your recurring subscriptions and expenses",
+  "icon": "💰",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-wallos\nservices:\n  server:\n    image: bellamy/wallos:4.9.6\n    container_name: wallos\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      TZ: Etc/UTC\n      PUID: '1000'\n      PGID: '1000'\n    volumes:\n      - server_data-db:/var/www/html/db\n      - server_data-logos:/var/www/html/images/uploads/logos\n    ports:\n      - 127.0.0.1:8282:80\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  server_data-db:\n    name: slashnode-wallos_server_data-db\n  server_data-logos:\n    name: slashnode-wallos_server_data-logos\n",
+  "web": {
+    "port": 8282,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8282,
+    "path": "/"
+  },
+  "notes": "Ported from Umbrel (wallos). Upstream: https://wallosapp.com. "
+}

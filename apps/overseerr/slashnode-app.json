@@ -1,0 +1,22 @@
+{
+  "manifestVersion": 1,
+  "id": "overseerr",
+  "name": "Overseerr",
+  "version": "1.35.0",
+  "category": "media",
+  "description": "Beautiful media discovery",
+  "icon": "🎬",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-overseerr\nservices:\n  server:\n    image: linuxserver/overseerr:1.35.0\n    container_name: overseerr\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      PUID: '1000'\n      PGID: '1000'\n    volumes:\n      - server_data-config:/config\n    ports:\n      - 127.0.0.1:5055:5055\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  server_data-config:\n    name: slashnode-overseerr_server_data-config\n",
+  "web": {
+    "port": 5055,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 5055,
+    "path": "/"
+  },
+  "notes": "Ported from Umbrel (overseerr). Upstream: https://overseerr.dev/. "
+}

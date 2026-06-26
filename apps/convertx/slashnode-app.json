@@ -1,0 +1,22 @@
+{
+  "manifestVersion": 1,
+  "id": "convertx",
+  "name": "ConvertX",
+  "version": "0.18.0",
+  "category": "files",
+  "description": "Self-hosted online file converter",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-convertx\nservices:\n  server:\n    image: c4illin/convertx:v0.18.0\n    container_name: convertx\n    restart: unless-stopped\n    networks:\n      - slashnode\n    user: '1000:1000'\n    environment:\n      HTTP_ALLOWED: 'true'\n      ACCOUNT_REGISTRATION: 'true'\n    volumes:\n      - server_data-app:/app/data\n    ports:\n      - 127.0.0.1:8386:3000\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  server_data-app:\n    name: slashnode-convertx_server_data-app\n",
+  "web": {
+    "port": 8386,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8386,
+    "path": "/"
+  },
+  "notes": "Ported from Umbrel (convertx). Upstream: https://github.com/C4illin/ConvertX. "
+}

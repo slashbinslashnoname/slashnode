@@ -1,0 +1,22 @@
+{
+  "manifestVersion": 1,
+  "id": "snapdrop",
+  "name": "Snapdrop",
+  "version": "b8b78cc2",
+  "category": "files",
+  "description": "Opensource Airdrop Alternative",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-snapdrop\nservices:\n  server:\n    image: linuxserver/snapdrop:version-b8b78cc2\n    container_name: snapdrop\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      PUID: '1000'\n      PGID: '1000'\n    volumes:\n      - server_data-config:/config\n    ports:\n      - 127.0.0.1:8222:80\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  server_data-config:\n    name: slashnode-snapdrop_server_data-config\n",
+  "web": {
+    "port": 8222,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8222,
+    "path": "/"
+  },
+  "notes": "Ported from Umbrel (snapdrop). Upstream: https://snapdrop.net/. "
+}

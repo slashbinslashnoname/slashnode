@@ -1,0 +1,22 @@
+{
+  "manifestVersion": 1,
+  "id": "wikijs",
+  "name": "WikiJS",
+  "version": "2.5.314",
+  "category": "developer",
+  "description": "Make documentation a joy to write",
+  "icon": "💻",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-wikijs\nservices:\n  server:\n    image: linuxserver/wikijs:2.5.314\n    container_name: wikijs\n    restart: unless-stopped\n    networks:\n      - slashnode\n    user: '1000:1000'\n    volumes:\n      - server_data:/data\n      - server_repo:/app/wiki/data/repo\n      - server_config:/config\n    ports:\n      - 127.0.0.1:9182:3000\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  server_data:\n    name: slashnode-wikijs_server_data\n  server_repo:\n    name: slashnode-wikijs_server_repo\n  server_config:\n    name: slashnode-wikijs_server_config\n",
+  "web": {
+    "port": 9182,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 9182,
+    "path": "/"
+  },
+  "notes": "Ported from Umbrel (wikijs). Upstream: https://js.wiki/. "
+}

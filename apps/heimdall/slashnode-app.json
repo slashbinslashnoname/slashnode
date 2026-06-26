@@ -1,0 +1,22 @@
+{
+  "manifestVersion": 1,
+  "id": "heimdall",
+  "name": "Heimdall",
+  "version": "2.7.6",
+  "category": "files",
+  "description": "Organize your most used web sites in a simple way",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-heimdall\nservices:\n  server:\n    image: linuxserver/heimdall:2.7.6\n    container_name: heimdall\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      PUID: '1000'\n      PGID: '1000'\n    volumes:\n      - server_config:/config\n    ports:\n      - 127.0.0.1:7392:80\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  server_config:\n    name: slashnode-heimdall_server_config\n",
+  "web": {
+    "port": 7392,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 7392,
+    "path": "/"
+  },
+  "notes": "Ported from Umbrel (heimdall). Upstream: https://heimdall.site. "
+}

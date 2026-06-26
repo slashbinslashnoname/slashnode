@@ -25,13 +25,38 @@
  *         npm start -- audiobookshelf navidrome   # convert specific ids
  */
 import yaml from "js-yaml";
+import { existsSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = join(HERE, "..", "..", "converted");
+const APPS_DIR = join(HERE, "..", "..", "apps");
 const RAW = "https://raw.githubusercontent.com/getumbrel/umbrel-apps/master";
+
+// SHIP is the hand-picked set promoted directly into apps/ (with `--ship`):
+// well-known, low-risk apps that convert cleanly. Anything not strictly clean
+// is skipped even if listed here. Apps already in apps/ are skipped too.
+const SHIP = [
+  // productivity & docs
+  "trilium-notes", "nocodb", "docuseal", "wikijs", "super-productivity",
+  "mealie", "memos", "booklore", "wallos",
+  // files & sharing
+  "pingvin-share", "snapdrop", "privatebin", "enclosed", "stirling-pdf", "convertx",
+  // media companions
+  "jellyseerr", "overseerr", "tautulli",
+  // AI
+  "ollama", "librechat", "localai",
+  // communication
+  "thelounge",
+  // dev & utilities
+  "code-server", "sqlitebrowser", "uptime-kuma", "librespeed", "ittools",
+  "excalidraw", "freshrss", "syncthing", "heimdall", "whoogle-search",
+  "libretranslate", "vaultwarden", "wordpress", "n8n",
+  // finance & bitcoin
+  "firefly-iii", "rotki", "specter-desktop",
+];
 
 // Curated "self-hosting essentials" present in the Umbrel repo.
 const ALLOWLIST = [
@@ -67,6 +92,16 @@ async function fetchText(url: string): Promise<string | null> {
   const res = await fetch(url);
   if (!res.ok) return null;
   return res.text();
+}
+
+// allAppIds lists every app directory in the upstream repo.
+async function allAppIds(): Promise<string[]> {
+  const res = await fetch("https://api.github.com/repos/getumbrel/umbrel-apps/contents", {
+    headers: { "User-Agent": "umbrel-convert" },
+  });
+  if (!res.ok) throw new Error(`GitHub contents API: HTTP ${res.status}`);
+  const arr = (await res.json()) as { name: string; type: string }[];
+  return arr.filter((e) => e.type === "dir" && !e.name.startsWith(".")).map((e) => e.name).sort();
 }
 
 function iconFor(category: string): string {
@@ -154,7 +189,7 @@ function convertVolumes(
   return out;
 }
 
-async function convert(appId: string): Promise<Report> {
+async function convert(appId: string, ship = false): Promise<Report> {
   const notes = new Set<string>();
   const [metaRaw, composeRaw] = await Promise.all([
     fetchText(`${RAW}/${appId}/umbrel-app.yml`),
@@ -193,17 +228,30 @@ async function convert(appId: string): Promise<Report> {
     security.add(`ships a default password ("${meta.defaultPassword}") — must be changed on first login`);
   }
 
+  // Namespace container names by app id (all apps share one Docker network), and
+  // rewrite Umbrel's inter-service hostnames (<id>_<svc>_1) to the new names so
+  // multi-service apps still resolve each other.
+  const containerName = (svc: string) => (nonProxy.length === 1 ? appId : `${appId}-${svc}`);
+  const hostRewrites = nonProxy.map(
+    (svc) => [new RegExp(`${appId}_${svc}_1`, "g"), containerName(svc)] as const,
+  );
+  const rwHosts = (v: unknown): any => {
+    if (typeof v === "string") return hostRewrites.reduce((a, [re, rep]) => a.replace(re, rep), v);
+    if (Array.isArray(v)) return v.map(rwHosts);
+    return v;
+  };
+
   for (const svc of nonProxy) {
     const s = services[svc] ?? {};
     const ns: any = {};
     ns.image = String(s.image ?? "").split("@")[0]; // strip @sha256 digest
-    ns.container_name = svc;
+    ns.container_name = containerName(svc);
     ns.restart = "unless-stopped";
     ns.networks = ["slashnode"];
     if (s.user) ns.user = s.user;
     if (s.init) ns.init = s.init;
-    if (s.command) ns.command = s.command;
-    if (s.entrypoint) ns.entrypoint = s.entrypoint;
+    if (s.command) ns.command = rwHosts(s.command);
+    if (s.entrypoint) ns.entrypoint = rwHosts(s.entrypoint);
     if (s.depends_on) ns.depends_on = s.depends_on;
 
     // Elevated-privilege constructs: preserved (so the app still works) but
@@ -224,7 +272,7 @@ async function convert(appId: string): Promise<Report> {
     const env = envEntries(s.environment);
     if (env.length) {
       ns.environment = Object.fromEntries(
-        env.map(([k, v]) => [k, remapTokens(v, secrets, unmapped)]),
+        env.map(([k, v]) => [k, rwHosts(remapTokens(v, secrets, unmapped))]),
       );
     }
 
@@ -255,7 +303,22 @@ async function convert(appId: string): Promise<Report> {
 
   const composeYaml = yaml.dump(newCompose, { lineWidth: -1, noRefs: true });
 
-  // Build inputs for detected secrets.
+  // Unmapped Umbrel ${…} tokens left in the compose => needs review.
+  for (const t of composeYaml.matchAll(/\$\{([A-Za-z0-9_.]+)\}/g)) {
+    if (!SLASHNODE_TOKEN.test(t[0])) unmapped.add(t[1].split(".")[0]);
+  }
+  if (!outServices[webService]) notes.add("no web service resolved");
+
+  const status: Report["status"] =
+    unmapped.size || notes.size || security.size ? "needs-review" : "ok";
+  const allNotes = [...notes];
+  if (unmapped.size) allNotes.unshift(`unmapped tokens: ${[...unmapped].join(", ")}`);
+
+  // In ship mode only genuinely clean apps are written into apps/.
+  if (ship && status !== "ok") {
+    return { id: appId, status, notes: ["skipped (not clean): " + allNotes.join("; ")], security: [...security] };
+  }
+
   const inputs = [...secrets].map((name) => ({
     key: name,
     label: name.replace(/^APP_/, "").replace(/_/g, " ").toLowerCase(),
@@ -265,6 +328,16 @@ async function convert(appId: string): Promise<Report> {
     minLength: 12,
     help: `Mapped from Umbrel ${"${" + name + "}"}. Stored encrypted.`,
   }));
+
+  const login =
+    meta.defaultUsername || meta.defaultPassword
+      ? `Default login — user: "${meta.defaultUsername ?? ""}", password: "${meta.defaultPassword ?? ""}". `
+      : "";
+  const notesText = ship
+    ? `Ported from Umbrel (${appId}). ` + (meta.website ? `Upstream: ${meta.website}. ` : "") + login
+    : `Auto-converted from getumbrel/umbrel-apps (${appId}). Review before shipping. ` +
+      (meta.website ? `Upstream: ${meta.website}. ` : "") + login +
+      (security.size ? `⚠️ SECURITY: ${[...security].join("; ")}. ` : "");
 
   const manifest: any = {
     manifestVersion: 1,
@@ -279,47 +352,53 @@ async function convert(appId: string): Promise<Report> {
     compose: composeYaml,
     web: { port: webHostPort, path: meta.path && meta.path !== "" ? meta.path : "/" },
     probe: { type: "http", port: webHostPort, path: "/" },
-    notes:
-      `Auto-converted from getumbrel/umbrel-apps (${appId}). Review before shipping. ` +
-      (meta.website ? `Upstream: ${meta.website}. ` : "") +
-      (meta.defaultUsername || meta.defaultPassword
-        ? `Default login — user: "${meta.defaultUsername ?? ""}", password: "${meta.defaultPassword ?? ""}". `
-        : "") +
-      (security.size ? `⚠️ SECURITY: ${[...security].join("; ")}. ` : ""),
+    notes: notesText,
   };
 
   const json = JSON.stringify(manifest, null, 2) + "\n";
+  const outRoot = ship ? APPS_DIR : OUT_DIR;
+  await mkdir(join(outRoot, appId), { recursive: true });
+  await writeFile(join(outRoot, appId, "slashnode-app.json"), json);
 
-  // Validate: leftover non-SlashNode ${…} tokens anywhere => needs review.
-  const leftover = [...json.matchAll(/\$\{([A-Za-z0-9_.]+)\}/g)]
-    .map((x) => x[0])
-    .filter((t) => !SLASHNODE_TOKEN.test(t));
-  for (const t of leftover) unmapped.add(t.replace(/[${}]/g, ""));
-
-  await mkdir(join(OUT_DIR, appId), { recursive: true });
-  await writeFile(join(OUT_DIR, appId, "slashnode-app.json"), json);
-
-  if (!outServices[webService]) notes.add("no web service resolved");
-  const allNotes = [...notes];
-  if (unmapped.size) allNotes.unshift(`unmapped tokens: ${[...unmapped].join(", ")}`);
-  const status: Report["status"] =
-    unmapped.size || notes.size || security.size ? "needs-review" : "ok";
   return { id: appId, status, notes: allNotes, security: [...security] };
 }
 
 async function main() {
-  const ids = process.argv.slice(2).length ? process.argv.slice(2) : ALLOWLIST;
-  await mkdir(OUT_DIR, { recursive: true });
+  const args = process.argv.slice(2);
+  const ship = args.includes("--ship");
+  const explicit = args.filter((a) => !a.startsWith("-"));
+  let ids: string[];
+  if (args.includes("--all")) ids = await allAppIds();
+  else if (explicit.length) ids = explicit;
+  else if (ship) ids = SHIP;
+  else ids = ALLOWLIST;
+  ids = [...new Set(ids)];
+
+  await mkdir(ship ? APPS_DIR : OUT_DIR, { recursive: true });
   const reports: Report[] = [];
   for (const id of ids) {
+    // Never clobber an app already in the catalog.
+    if (ship && existsSync(join(APPS_DIR, id))) {
+      console.log(`• ${id}  — already in apps/, skipped`);
+      continue;
+    }
     try {
-      const r = await convert(id);
+      const r = await convert(id, ship);
       reports.push(r);
-      console.log(`${r.status === "ok" ? "✓" : r.status === "failed" ? "✗" : "△"} ${id}${r.notes.length ? "  — " + r.notes[0] : ""}`);
+      const mark = r.status === "ok" ? "✓" : r.status === "failed" ? "✗" : "△";
+      console.log(`${mark} ${id}${r.notes.length ? "  — " + r.notes[0] : ""}`);
     } catch (e) {
       reports.push({ id, status: "failed", notes: [String((e as Error).message)], security: [] });
       console.log(`✗ ${id}  — ${(e as Error).message}`);
     }
+  }
+
+  if (ship) {
+    const shipped = reports.filter((r) => r.status === "ok").map((r) => r.id);
+    const skipped = reports.filter((r) => r.status !== "ok");
+    console.log(`\nShipped ${shipped.length} apps into apps/: ${shipped.join(", ")}`);
+    if (skipped.length) console.log(`Skipped (not clean): ${skipped.map((r) => r.id).join(", ")}`);
+    return;
   }
 
   const ok = reports.filter((r) => r.status === "ok");

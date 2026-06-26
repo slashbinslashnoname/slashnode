@@ -1,0 +1,22 @@
+{
+  "manifestVersion": 1,
+  "id": "mealie",
+  "name": "Mealie",
+  "version": "3.20.0",
+  "category": "files",
+  "description": "A Place for All Your Recipes",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-mealie\nservices:\n  web:\n    image: ghcr.io/mealie-recipes/mealie:v3.20.0\n    container_name: mealie\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      ALLOW_SIGNUP: 'true'\n      PUID: '1000'\n      PGID: '1000'\n      MAX_WORKERS: '1'\n      WEB_CONCURRENCY: '1'\n    volumes:\n      - web_data:/app/data\n    ports:\n      - 127.0.0.1:9925:9000\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data:\n    name: slashnode-mealie_web_data\n",
+  "web": {
+    "port": 9925,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 9925,
+    "path": "/"
+  },
+  "notes": "Ported from Umbrel (mealie). Upstream: https://docs.mealie.io/. "
+}

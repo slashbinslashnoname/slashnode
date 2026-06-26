@@ -1,0 +1,22 @@
+{
+  "manifestVersion": 1,
+  "id": "ittools",
+  "name": "IT-Tools",
+  "version": "2024.10.22",
+  "category": "developer",
+  "description": "An array of handy online tools for developers",
+  "icon": "💻",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-ittools\nservices:\n  app:\n    image: corentinth/it-tools:2024.10.22-7ca5933\n    container_name: ittools\n    restart: unless-stopped\n    networks:\n      - slashnode\n    ports:\n      - 127.0.0.1:8786:80\nnetworks:\n  slashnode:\n    external: true\n",
+  "web": {
+    "port": 8786,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8786,
+    "path": "/"
+  },
+  "notes": "Ported from Umbrel (ittools). Upstream: https://it-tools.tech/. "
+}
