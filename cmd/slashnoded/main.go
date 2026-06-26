@@ -47,6 +47,8 @@ func main() {
 		err = cli.Prune(args)
 	case "passwd":
 		err = cli.Passwd(args)
+	case "migrate":
+		err = cli.Migrate(args)
 	case "uninstall":
 		err = cli.Uninstall(args)
 	case "version", "-v", "--version":

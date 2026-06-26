@@ -165,6 +165,24 @@ func Prune(w io.Writer) error {
 	return runStreamed(w, "docker", "image", "prune", "-f")
 }
 
+// ExecStreamed runs a one-off command inside a running service container (used
+// by per-app migrations), streaming output to w.
+func ExecStreamed(appID, composeFile, service, command string, w io.Writer) error {
+	return runStreamed(w, "docker", "compose", "-p", project(appID), "-f", composeFile,
+		"exec", "-T", service, "sh", "-c", command)
+}
+
+// CopyVolume copies the contents of the `from` docker volume into a new `to`
+// volume (used by migrations that rename a volume). The destination is created
+// if missing.
+func CopyVolume(from, to string) error {
+	if err := run("docker", "volume", "create", to); err != nil {
+		return err
+	}
+	return run("docker", "run", "--rm", "-v", from+":/from:ro", "-v", to+":/to",
+		"alpine", "sh", "-c", "cp -a /from/. /to/")
+}
+
 // ImagesOutdated reports whether any of the app's images has a newer version in
 // its registry (remote manifest digest differs from the local one). Best-effort:
 // returns false on any error or for not-yet-pulled images.

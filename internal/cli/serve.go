@@ -21,6 +21,7 @@ import (
 
 	"github.com/slashbinslashnoname/slashnode/internal/apps"
 	"github.com/slashbinslashnoname/slashnode/internal/config"
+	"github.com/slashbinslashnoname/slashnode/internal/migrate"
 	"github.com/slashbinslashnoname/slashnode/internal/paths"
 	"github.com/slashbinslashnoname/slashnode/internal/registry"
 	"github.com/slashbinslashnoname/slashnode/internal/secrets"
@@ -35,6 +36,12 @@ func Serve(args []string) error {
 	noWeb := fs.Bool("no-web", false, "do not launch the Next.js front (API only)")
 	if err := fs.Parse(args); err != nil {
 		return err
+	}
+
+	// Apply pending node-state migrations before loading config / serving — this
+	// is the freshly-updated binary migrating state written by the old one.
+	if err := migrate.Run(os.Stderr); err != nil {
+		return fmt.Errorf("migrations: %w", err)
 	}
 
 	cfg, err := config.Load(paths.ConfigFile())
