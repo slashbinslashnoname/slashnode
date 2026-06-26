@@ -52,6 +52,16 @@ func Serve(args []string) error {
 	Banner()
 
 	appsDir := resolveAppsDir()
+
+	// Reconcile the reverse-proxy + Tor config with the installed apps on
+	// startup, so each app's Caddy route and per-app .onion exist even if Tor
+	// was enabled (or the apps installed) before this version. Best-effort, in
+	// the background so it never blocks serving.
+	go func() {
+		_ = apps.ReloadProxy()
+		_ = apps.ReloadTor(appsDir)
+	}()
+
 	// Next runs on a localhost-only internal port; slashnoded fronts the public
 	// port so it can serve /__console (WebSocket) on the same origin and proxy
 	// the rest to Next.
