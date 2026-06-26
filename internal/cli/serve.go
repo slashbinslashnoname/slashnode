@@ -171,7 +171,12 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid password"})
 			return
 		}
-		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+		// Issue a per-login, expiring session token (the front stores it as the
+		// session cookie). 7-day TTL.
+		writeJSON(w, http.StatusOK, map[string]string{
+			"status": "ok",
+			"token":  sec.IssueSession(7 * 24 * time.Hour),
+		})
 	}))
 
 	// --- Settings ---

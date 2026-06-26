@@ -9,7 +9,6 @@ import { SignOutButton } from "@/components/SignOutButton";
 // sign-out button. Password protection is driven by the daemon (passed in as an
 // env var when it launches the front).
 export function TopControls() {
-  const protectedMode = process.env.SLASHNODE_PASSWORD_PROTECTED === "true";
   return (
     <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
       <NodeLinks />
@@ -23,7 +22,7 @@ export function TopControls() {
       </Link>
       <ThemeToggle />
       <ThemePicker />
-      {protectedMode && <SignOutButton />}
+      <SignOutButton />
     </div>
   );
 }

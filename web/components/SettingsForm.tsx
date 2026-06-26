@@ -17,7 +17,6 @@ export function SettingsForm({
   const [hostname, setHostname] = useState(config.hostname);
   const [mode, setMode] = useState(config.access.mode);
   const [address, setAddress] = useState(config.access.address ?? "");
-  const [pwProtected, setPwProtected] = useState(config.access.password_protected);
   const [tor, setTor] = useState(config.tor.enabled);
   const [policy, setPolicy] = useState(config.update.policy);
   const [channel, setChannel] = useState(config.update.channel);
@@ -32,7 +31,7 @@ export function SettingsForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           hostname,
-          access: { mode, address, password_protected: pwProtected },
+          access: { mode, address },
           tor: { enabled: tor },
           update: { policy, channel },
         }),
@@ -117,12 +116,10 @@ export function SettingsForm({
       </Section>
 
       <Section title="Access & security">
-        <Toggle
-          label="Password-protect the web UI"
-          hint="Requires a restart to take effect on the front end."
-          checked={pwProtected}
-          onChange={setPwProtected}
-        />
+        <p className="text-xs text-muted">
+          The web UI always requires the admin login. Reset it from the node with{" "}
+          <code>slashnoded passwd</code>.
+        </p>
         <SelectRow label="Access mode" value={mode} onChange={setMode} options={["local", "server"]} />
         {mode === "server" && (
           <label className="flex flex-col gap-1">

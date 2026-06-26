@@ -2,7 +2,6 @@ package cli
 
 import (
 	"context"
-	"crypto/subtle"
 	"encoding/json"
 	"net/http"
 	"os/exec"
@@ -24,7 +23,7 @@ func consoleHandler(cfg *config.Config, sec *secrets.Secrets) http.HandlerFunc {
 	_ = cfg
 	return func(w http.ResponseWriter, r *http.Request) {
 		c, err := r.Cookie("slashnode_session")
-		if err != nil || subtle.ConstantTimeCompare([]byte(c.Value), []byte(sec.SessionSecret)) != 1 {
+		if err != nil || !sec.VerifySession(c.Value) {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
