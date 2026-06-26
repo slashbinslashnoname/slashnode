@@ -1,0 +1,64 @@
+{
+  "manifestVersion": 1,
+  "id": "phoenixd",
+  "name": "phoenixd",
+  "version": "0.8.0",
+  "category": "lightning",
+  "description": "ACINQ's phoenixd — a headless Lightning Network node with automatic liquidity. Exposes an HTTP API to send/receive Lightning payments.",
+  "icon": "⚡",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "HTTP_PASSWORD",
+      "label": "API password",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Full-access HTTP API password (Basic auth, blank username). Stored encrypted."
+    },
+    {
+      "key": "NETWORK",
+      "label": "Network",
+      "type": "select",
+      "options": [
+        "mainnet",
+        "testnet"
+      ],
+      "default": "mainnet"
+    },
+    {
+      "key": "AUTO_LIQUIDITY",
+      "label": "Auto-liquidity",
+      "type": "select",
+      "options": [
+        "off",
+        "2m",
+        "5m",
+        "10m"
+      ],
+      "default": "2m",
+      "help": "Inbound liquidity automatically requested from the LSP (sat). Off disables auto-liquidity."
+    }
+  ],
+  "compose": "name: \"slashnode-phoenixd\"\nservices:\n  phoenixd:\n    image: \"acinq/phoenixd:0.8.0\"\n    container_name: \"phoenixd\"\n    restart: \"unless-stopped\"\n    networks:\n      - slashnode\n    command:\n      - \"--http-password=${secret.HTTP_PASSWORD}\"\n      - \"--chain=${input.NETWORK}\"\n      - \"--auto-liquidity=${input.AUTO_LIQUIDITY}\"\n    ports:\n      - \"127.0.0.1:9740:9740\"\n    volumes:\n      - \"phoenixd-data:/phoenix/.phoenix\"\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  phoenixd-data:\n    name: \"slashnode-phoenixd_phoenixd_phoenixd-data\"\n",
+  "probe": {
+    "type": "http",
+    "port": 9740,
+    "path": "/getinfo"
+  },
+  "exports": {
+    "api.host": "phoenixd",
+    "api.port": 9740,
+    "api.password": "${secret.HTTP_PASSWORD}"
+  },
+  "endpoints": [
+    {
+      "label": "HTTP API",
+      "scheme": "http",
+      "port": 9740,
+      "path": "/"
+    }
+  ],
+  "notes": "⚠️ This API controls your funds and must NOT be exposed to the open internet. It is published only on 127.0.0.1:9740 and on the slashnode network — reach it remotely via the app's .onion (Tor + Basic auth) or an SSH tunnel. Authenticate with HTTP Basic auth: blank username, the API password as the password (curl -u :PASSWORD http://phoenixd:9740/getinfo). On first start phoenixd generates a wallet seed at /phoenix/.phoenix/seed.dat — back it up. Webhooks can be added in /phoenix/.phoenix/phoenix.conf."
+}
