@@ -24,7 +24,7 @@
       "minLength": 8
     }
   ],
-  "compose": "name: \"slashnode-hermes\"\nservices:\n  hermes:\n    image: \"nousresearch/hermes-agent:latest\"\n    container_name: \"hermes\"\n    restart: \"unless-stopped\"\n    networks:\n      - slashnode\n    command: \"gateway run\"\n    shm_size: \"1g\"\n    ports:\n      - \"9119:9119\"\n    volumes:\n      - \"hermes-data:/opt/data\"\n    environment:\n      HERMES_DASHBOARD: \"1\"\n      HERMES_DASHBOARD_HOST: \"0.0.0.0\"\n      HERMES_DASHBOARD_PORT: \"9119\"\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  hermes-data:\n    name: \"slashnode-hermes_hermes_hermes-data\"\n",
+  "compose": "name: \"slashnode-hermes\"\nservices:\n  hermes:\n    image: \"nousresearch/hermes-agent:latest\"\n    container_name: \"hermes\"\n    restart: \"unless-stopped\"\n    networks:\n      - slashnode\n    command: \"gateway run --insecure\"\n    shm_size: \"1g\"\n    ports:\n      - \"9119:9119\"\n    volumes:\n      - \"hermes-data:/opt/data\"\n    environment:\n      HERMES_DASHBOARD: \"1\"\n      HERMES_DASHBOARD_HOST: \"0.0.0.0\"\n      HERMES_DASHBOARD_PORT: \"9119\"\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  hermes-data:\n    name: \"slashnode-hermes_hermes_hermes-data\"\n",
   "exports": {
     "dashboard.host": "hermes",
     "dashboard.port": 9119
