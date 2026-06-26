@@ -30,10 +30,10 @@ export function DomainTab({ app }: { app: App }) {
     setState("saving");
     // Saving one mode clears the other so exactly one address is ever active:
     // subdomain mode clears the custom domain; domain mode sets it.
-    const params =
+    const params: Record<string, string> =
       mode === "subdomain"
         ? { subdomain: sub, domain: "" }
-        : { domain: domain };
+        : { domain };
     try {
       const qs = new URLSearchParams(params).toString();
       const r = await fetch(`/api/apps/${app.id}/domain?${qs}`, { method: "POST" });
