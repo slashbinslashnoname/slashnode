@@ -108,7 +108,8 @@ func printServiceURLs(out io.Writer, dir, id string) {
 	if man.Web != nil {
 		fmt.Fprintf(out, "    Web UI       http://%s:%d%s\n", host, man.Web.Port, man.Web.Path)
 		if onion != "" {
-			fmt.Fprintf(out, "      .onion     http://%s:%d%s\n", onion, man.Web.Port, man.Web.Path)
+			// Tor maps the web UI to onion:80, not the published web port.
+			fmt.Fprintf(out, "      .onion     http://%s%s\n", onion, man.Web.Path)
 		}
 	}
 	for _, e := range man.Endpoints {

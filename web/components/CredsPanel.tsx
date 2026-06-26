@@ -1,26 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { CredField, AppEndpoint } from "@/lib/api";
+import type { CredField } from "@/lib/api";
 
-// CredsPanel shows an installed app's full configuration in a single view:
-// its connection endpoints, stored parameters (rpc user, passwords…) and its
-// exposed config (the endpoints other apps wire to), with reveal + copy.
-export function CredsPanel({
-  id,
-  endpoints,
-}: {
-  id: string;
-  endpoints?: AppEndpoint[];
-}) {
+// CredsPanel shows an installed app's stored parameters (rpc user, passwords…)
+// and its exposed config (the values other apps wire to), with reveal + copy.
+// Connection URLs live in EndpointsPanel so the open/reverse-proxy convention
+// stays in one place.
+export function CredsPanel({ id }: { id: string }) {
   const [data, setData] = useState<{
     fields: CredField[];
     exports: Record<string, string>;
   } | null>(null);
-  const [host, setHost] = useState("");
 
   useEffect(() => {
-    setHost(location.hostname);
     fetch(`/api/apps/${id}/credentials`)
       .then((r) => r.json())
       .then((j) => setData({ fields: j.fields ?? [], exports: j.exports ?? {} }))
@@ -33,34 +26,6 @@ export function CredsPanel({
 
   return (
     <div className="flex flex-col gap-4 rounded-lg border border-border bg-card p-3 text-sm">
-      {endpoints && endpoints.length > 0 && (
-        <Section title="Endpoints">
-          {endpoints.map((e) => {
-            const isWeb = e.scheme === "http" || e.scheme === "https";
-            const value = isWeb
-              ? `${e.scheme}://${host}:${e.port}${e.path ?? ""}`
-              : `${host}:${e.port}`;
-            return (
-              <Row key={e.label + e.port} label={e.label}>
-                <code className="break-all text-fg">{host ? value : "…"}</code>
-                <CopyBtn value={value} />
-                {isWeb && host && (
-                  <a
-                    href={value}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-muted hover:text-primary"
-                    aria-label="Open"
-                  >
-                    ↗
-                  </a>
-                )}
-              </Row>
-            );
-          })}
-        </Section>
-      )}
-
       <Section title="Parameters">
         {data.fields.length > 0 ? (
           data.fields.map((c) => <CredRow key={c.key} field={c} />)

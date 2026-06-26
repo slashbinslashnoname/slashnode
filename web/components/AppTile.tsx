@@ -6,6 +6,7 @@ import type { App, ServiceStatus, ProbeResult } from "@/lib/api";
 import { useConsole } from "@/components/console/ConsoleProvider";
 import { CredsPanel } from "@/components/CredsPanel";
 import { EndpointsPanel } from "@/components/EndpointsPanel";
+import { webClearnetUrl } from "@/lib/appUrl";
 
 export function AppTile({ app }: { app: App }) {
   const router = useRouter();
@@ -21,8 +22,7 @@ export function AppTile({ app }: { app: App }) {
 
   useEffect(() => {
     if (!app.web) return;
-    if (location.protocol === "https:" && app.url) setOpenUrl(app.url);
-    else setOpenUrl(`http://${location.hostname}:${app.web.port}`);
+    setOpenUrl(webClearnetUrl(app.url, app.web.port));
   }, []);
 
   // Docker image update check (no manifest bump needed).
