@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { AppEndpoint } from "@/lib/api";
+import { webClearnetUrl } from "@/lib/appUrl";
 
 // EndpointsPanel renders an app's connection URLs/addresses: the clearnet
 // address (node host the browser is using + port) and, when the app is exposed
@@ -12,10 +13,12 @@ export function EndpointsPanel({
   endpoints,
   onion,
   web,
+  url,
 }: {
   endpoints: AppEndpoint[];
   onion?: string;
   web?: { port: number; path?: string };
+  url?: string; // the app's reverse-proxy URL (https://<id>.<host>)
 }) {
   const [host, setHost] = useState("");
 
@@ -25,9 +28,11 @@ export function EndpointsPanel({
 
   if (!endpoints.length && !web) return null;
 
-  const webPath = web?.path ?? "";
-  const webClear = web && host ? `http://${host}:${web.port}${webPath}` : "";
-  const webOnion = web && onion ? `http://${onion}:${web.port}${webPath}` : "";
+  // The web UI follows the reverse-proxy convention (same as the tile's "open"
+  // button). Its onion is the hidden service at :80 (Tor maps onion:80 → web
+  // port), not the published web port.
+  const webClear = web && host ? webClearnetUrl(url, web.port) : "";
+  const webOnion = web && onion ? `http://${onion}` : "";
 
   return (
     <div className="flex flex-col gap-1.5 rounded-lg border border-border bg-card p-3 text-sm">

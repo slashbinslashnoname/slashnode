@@ -45,6 +45,7 @@ export function AppTabs({ app }: { app: App }) {
             endpoints={app.endpoints ?? []}
             onion={app.onion}
             web={app.web}
+            url={app.url}
           />
           <CredsPanel id={app.id} />
         </div>
