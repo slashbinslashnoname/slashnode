@@ -308,6 +308,8 @@ async function convert(appId: string, ship = false): Promise<Report> {
     if (s.devices) { ns.devices = s.devices; security.add(`${svc}: maps host devices ${JSON.stringify(s.devices)}`); }
     if (s.network_mode) {
       ns.network_mode = s.network_mode;
+      // network_mode and networks are mutually exclusive in compose.
+      delete ns.networks;
       if (String(s.network_mode).includes("host")) {
         security.add(`${svc}: host network mode — bypasses Caddy/Tor isolation, binds host interfaces directly`);
       }
