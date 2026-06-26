@@ -363,6 +363,9 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 		if installed {
 			entry.InstalledVersion = inst.Version
 			entry.UpdateAvailable = inst.Version != man.Version
+			entry.Subdomain = apps.AppSubdomain(man.ID)
+			entry.Domain = inst.Domain
+			entry.Host = apps.BaseHost(cfg)
 			if onion := apps.AppOnion(man.ID); onion != "" {
 				entry.Onion = onion
 				if man.Web != nil {
@@ -568,19 +571,22 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 		writeJSON(w, http.StatusOK, map[string]any{"status": "updated", "tags": tags})
 	}))
 
-	// Change the reverse-proxy subdomain an app is served under.
+	// Change the reverse-proxy subdomain and/or custom domain an app is served
+	// under. Each parameter is applied only when present in the query.
 	mux.Handle("POST /api/v1/apps/{id}/domain", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
-		sub := r.URL.Query().Get("subdomain")
-		if sub == "" {
-			var body struct {
-				Subdomain string `json:"subdomain"`
+		id := r.PathValue("id")
+		q := r.URL.Query()
+		if q.Has("subdomain") {
+			if err := apps.SetSubdomain(appsDir, id, q.Get("subdomain")); err != nil {
+				writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+				return
 			}
-			_ = json.NewDecoder(r.Body).Decode(&body)
-			sub = body.Subdomain
 		}
-		if err := apps.SetSubdomain(appsDir, r.PathValue("id"), sub); err != nil {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
-			return
+		if q.Has("domain") {
+			if err := apps.SetDomain(appsDir, id, q.Get("domain")); err != nil {
+				writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+				return
+			}
 		}
 		writeJSON(w, http.StatusOK, map[string]string{"status": "domain-set"})
 	}))

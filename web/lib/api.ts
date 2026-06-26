@@ -48,6 +48,9 @@ export type App = {
   url?: string;
   onion_url?: string;
   onion?: string;
+  subdomain?: string;
+  domain?: string;
+  host?: string;
   web?: { port: number; path?: string };
   endpoints?: AppEndpoint[];
   probe?: { type: string };

@@ -8,6 +8,9 @@ import (
 	"github.com/slashbinslashnoname/slashnode/internal/paths"
 )
 
+// BaseHost returns the node host apps live under (public address or mDNS name).
+func BaseHost(cfg *config.Config) string { h, _ := baseHost(cfg); return h }
+
 // baseHost returns the host apps live under: the public address in server mode,
 // otherwise the mDNS hostname. internalTLS is true for local mode (.local names
 // use Caddy's internal CA; a public domain gets Let's Encrypt).
@@ -36,6 +39,13 @@ func ReloadProxy() error {
 				Host:         appSubdomain(a.ID) + "." + host,
 				UpstreamPort: a.WebPort,
 			})
+			// A custom domain is served in addition to the subdomain.
+			if a.Domain != "" {
+				routes = append(routes, caddy.Route{
+					Host:         a.Domain,
+					UpstreamPort: a.WebPort,
+				})
+			}
 		}
 	}
 
@@ -53,6 +63,10 @@ func ReloadProxy() error {
 func AppURL(cfg *config.Config, m *Manifest) string {
 	if m.Web == nil {
 		return ""
+	}
+	// A configured custom domain is the app's primary URL.
+	if inst, ok := LoadState().Installed[m.ID]; ok && inst.Domain != "" {
+		return "https://" + inst.Domain
 	}
 	host, _ := baseHost(cfg)
 	return fmt.Sprintf("https://%s.%s", appSubdomain(m.ID), host)
