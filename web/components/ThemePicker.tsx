@@ -67,9 +67,10 @@ export function ThemePicker() {
       <button
         onClick={() => setOpen((o) => !o)}
         aria-label="Background"
+        title="Background"
         className="cursor-pointer rounded-lg border border-border bg-card px-3 py-1.5 text-sm hover:border-primary transition-colors"
       >
-        🖼 theme
+        🖼
       </button>
 
       {open && (

@@ -22,9 +22,10 @@ export function SignOutButton() {
       onClick={signOut}
       disabled={busy}
       aria-label="Sign out"
-      className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm hover:border-primary transition-colors disabled:opacity-60"
+      title="Sign out"
+      className="cursor-pointer rounded-lg border border-border bg-card px-3 py-1.5 text-sm hover:border-primary transition-colors disabled:opacity-60"
     >
-      {busy ? "…" : "⏻ sign out"}
+      {busy ? "…" : "⏻"}
     </button>
   );
 }
