@@ -14,6 +14,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -220,14 +221,41 @@ func ClearLogs(appID, composeFile string) error {
 	if err != nil {
 		return err
 	}
-	for _, id := range strings.Fields(out) {
-		lp, err := output("docker", "inspect", "--format", "{{.LogPath}}", id)
-		if err != nil {
-			continue
+	ids := strings.Fields(out)
+	if len(ids) == 0 {
+		return fmt.Errorf("no containers to clear")
+	}
+	root := ""
+	if r, e := output("docker", "info", "--format", "{{.DockerRootDir}}"); e == nil {
+		root = strings.TrimSpace(r)
+	}
+	cleared := 0
+	for _, id := range ids {
+		// json-file driver exposes the log file path directly.
+		if lp, e := output("docker", "inspect", "--format", "{{.LogPath}}", id); e == nil {
+			if p := strings.TrimSpace(lp); p != "" {
+				if os.Truncate(p, 0) == nil {
+					cleared++
+				}
+				continue
+			}
 		}
-		if p := strings.TrimSpace(lp); p != "" {
-			_ = exec.Command("truncate", "-s", "0", p).Run()
+		// local driver (Docker's default on many setups) doesn't expose LogPath;
+		// its files live under <root>/containers/<fullID>/local-logs/.
+		if root != "" {
+			if full, e := output("docker", "inspect", "--format", "{{.Id}}", id); e == nil {
+				dir := filepath.Join(root, "containers", strings.TrimSpace(full), "local-logs")
+				if files, _ := filepath.Glob(filepath.Join(dir, "*")); len(files) > 0 {
+					for _, f := range files {
+						_ = os.Truncate(f, 0)
+					}
+					cleared++
+				}
+			}
 		}
+	}
+	if cleared == 0 {
+		return fmt.Errorf("could not clear logs (unsupported logging driver?)")
 	}
 	return nil
 }
