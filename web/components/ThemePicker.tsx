@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Starmind } from "@/components/Starmind";
 import {
+  APOLLO_SRC,
   BG_EVENT,
   getBg,
   getCustom,
@@ -13,13 +13,12 @@ import {
 } from "@/lib/background";
 
 // ThemePicker sits to the right of the dark/light toggle. Clicking it opens a
-// popover of small live previews of each background (none, Starmind animation,
-// NASA image of the day, custom upload), letting the operator pick or upload.
+// popover of small previews of each background (none, Starmind animation, an
+// Apollo photo, custom upload), letting the operator pick or upload.
 export function ThemePicker() {
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<BgKind>("none");
   const [custom, setCustomState] = useState<string | null>(null);
-  const [nasa, setNasa] = useState<string | null>(null);
   const [error, setError] = useState("");
   const wrap = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -45,16 +44,6 @@ export function ThemePicker() {
     return () => document.removeEventListener("mousedown", onDoc);
   }, [open]);
 
-  // Lazily fetch the NASA thumbnail once the popover opens.
-  useEffect(() => {
-    if (open && !nasa) {
-      fetch("/api/nasa-bg")
-        .then((r) => r.json())
-        .then((j) => j?.url && setNasa(j.url))
-        .catch(() => {});
-    }
-  }, [open, nasa]);
-
   function choose(k: BgKind) {
     setBg(k);
   }
@@ -78,7 +67,7 @@ export function ThemePicker() {
       <button
         onClick={() => setOpen((o) => !o)}
         aria-label="Background"
-        className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm hover:border-primary transition-colors"
+        className="cursor-pointer rounded-lg border border-border bg-card px-3 py-1.5 text-sm hover:border-primary transition-colors"
       >
         🖼 theme
       </button>
@@ -96,20 +85,18 @@ export function ThemePicker() {
               active={kind === "starmind"}
               onClick={() => choose("starmind")}
             >
-              <Starmind mini className="h-full w-full" />
+              <StarmindPreview />
             </Tile>
 
-            <Tile label="NASA" active={kind === "nasa"} onClick={() => choose("nasa")}>
-              {nasa ? (
-                <div
-                  className="h-full w-full bg-cover bg-center"
-                  style={{ backgroundImage: `url("${nasa}")` }}
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center text-[10px] text-muted">
-                  loading…
-                </div>
-              )}
+            <Tile
+              label="Apollo"
+              active={kind === "apollo"}
+              onClick={() => choose("apollo")}
+            >
+              <div
+                className="h-full w-full bg-cover bg-center"
+                style={{ backgroundImage: `url("${APOLLO_SRC}")` }}
+              />
             </Tile>
 
             <Tile
@@ -133,7 +120,7 @@ export function ThemePicker() {
           {custom && kind !== "custom" && (
             <button
               onClick={() => choose("custom")}
-              className="mt-2 w-full rounded-md border border-border py-1 text-xs hover:border-primary"
+              className="mt-2 w-full cursor-pointer rounded-md border border-border py-1 text-xs hover:border-primary"
             >
               use uploaded image
             </button>
@@ -153,6 +140,43 @@ export function ThemePicker() {
   );
 }
 
+// Static, dependency-free depiction of the Starmind background so opening the
+// popover doesn't spin up a live canvas/animation (which made it feel slow).
+function StarmindPreview() {
+  const sats = [
+    [14, 10],
+    [50, 12],
+    [10, 30],
+    [54, 30],
+    [22, 33],
+    [42, 8],
+  ];
+  return (
+    <svg
+      viewBox="0 0 64 40"
+      preserveAspectRatio="xMidYMid slice"
+      className="h-full w-full"
+    >
+      {sats.map(([x, y], i) => (
+        <line
+          key={i}
+          x1="32"
+          y1="20"
+          x2={x}
+          y2={y}
+          stroke="var(--primary)"
+          strokeOpacity="0.18"
+          strokeWidth="0.5"
+        />
+      ))}
+      {sats.map(([x, y], i) => (
+        <circle key={i} cx={x} cy={y} r="1.4" fill="var(--primary)" fillOpacity="0.85" />
+      ))}
+      <circle cx="32" cy="20" r="2" fill="var(--primary)" />
+    </svg>
+  );
+}
+
 function Tile({
   label,
   active,
@@ -167,7 +191,7 @@ function Tile({
   return (
     <button
       onClick={onClick}
-      className={`group flex flex-col gap-1 rounded-lg border p-1 text-left transition-colors ${
+      className={`group flex cursor-pointer flex-col gap-1 rounded-lg border p-1 text-left transition-colors ${
         active ? "border-primary" : "border-border hover:border-primary/60"
       }`}
     >

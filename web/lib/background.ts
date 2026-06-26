@@ -2,11 +2,14 @@
 // localStorage, applied in the browser, no server round-trip). The custom image
 // is downscaled before storing so it fits comfortably in localStorage.
 
-export type BgKind = "none" | "starmind" | "nasa" | "custom";
+export type BgKind = "none" | "starmind" | "apollo" | "custom";
 
 export const BG_KEY = "slashnode-bg";
 export const BG_CUSTOM_KEY = "slashnode-bg-custom";
 export const BG_EVENT = "slashnode-bg-change";
+
+// Bundled predefined photo (Apollo 11, AS11-40-5927).
+export const APOLLO_SRC = "/backgrounds/as11-40-5927.jpg";
 
 export function getBg(): BgKind {
   if (typeof window === "undefined") return "none";

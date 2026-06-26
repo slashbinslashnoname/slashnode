@@ -32,7 +32,10 @@ export function Starmind({
 
     let w = 0;
     let h = 0;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    // Render at CSS pixels (dpr 1) rather than the device ratio: a soft dot
+    // field doesn't need retina crispness and this cuts the per-frame pixel
+    // work ~4x on high-DPI screens.
+    const dpr = 1;
     function resize() {
       const r = cv.getBoundingClientRect();
       w = r.width;
@@ -81,6 +84,9 @@ export function Starmind({
     let last = 0;
     let acc = 0;
     function frame(ts: number) {
+      raf = requestAnimationFrame(frame);
+      // Throttle to ~30fps — smooth enough for slow orbits, half the work.
+      if (last && ts - last < 33) return;
       const dt = last ? Math.min((ts - last) / 1000, 0.05) : 0;
       last = ts;
       c.clearRect(0, 0, w, h);
@@ -137,8 +143,6 @@ export function Starmind({
       c.beginPath();
       c.arc(w / 2, h / 2, mini ? 1.8 : 3, 0, Math.PI * 2);
       c.fill();
-
-      raf = requestAnimationFrame(frame);
     }
     raf = requestAnimationFrame(frame);
 
