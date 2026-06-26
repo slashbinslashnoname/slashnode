@@ -86,6 +86,24 @@ func nodeExports() map[string]string {
 	return map[string]string{"host": host}
 }
 
+// selfExports returns the installing app's own public coordinates for
+// ${self.exports.*}: the HTTPS URL Caddy serves it on (and host/port), so the
+// app can advertise itself without the operator entering a URL.
+func selfExports(man *Manifest) map[string]string {
+	out := map[string]string{}
+	cfg, err := config.Load(paths.ConfigFile())
+	if err != nil {
+		return out
+	}
+	host, _ := baseHost(cfg)
+	out["host"] = host
+	if man.Web != nil {
+		out["url"] = AppURL(cfg, man)
+		out["port"] = fmt.Sprintf("%d", appHTTPSPort(man.Web.Port))
+	}
+	return out
+}
+
 // printServiceURLs writes a bootstrap-style summary of how to reach the app: its
 // web UI and every declared endpoint, in clearnet form and (when Tor is enabled
 // and provisioned) over .onion.
@@ -404,10 +422,13 @@ func installOne(dir, appID string, provided, imageTagOverride map[string]string,
 
 	registry := loadRegistry()
 
-	// Expose the node's own coordinates so manifests can build conventional URLs
-	// (e.g. jitsi's PUBLIC_URL = https://jitsi.${node.exports.host}) without
-	// asking the operator. Not persisted — stripped before saveRegistry.
+	// Expose the node's own coordinates and this app's own public URL so
+	// manifests can set their public-origin env (PUBLIC_ORIGIN, …) to the HTTPS
+	// URL Caddy serves — ${self.exports.url} — without the operator typing it and
+	// without the app ever terminating TLS itself. Templating-only: both are
+	// stripped before saveRegistry.
 	registry["node"] = nodeExports()
+	registry["self"] = selfExports(man)
 
 	// Resolve this app's exports from its own inputs/secrets.
 	exports := map[string]string{}
@@ -483,9 +504,10 @@ func installOne(dir, appID string, provided, imageTagOverride map[string]string,
 		}
 	}
 
-	// Persist registry, secrets and installed state. The synthetic "node" entry
-	// is templating-only — never persist it.
+	// Persist registry, secrets and installed state. The synthetic "node"/"self"
+	// entries are templating-only — never persist them.
 	delete(registry, "node")
+	delete(registry, "self")
 	registry[appID] = exports
 	if err := saveRegistry(registry); err != nil {
 		return err
