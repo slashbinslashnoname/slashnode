@@ -46,19 +46,17 @@ export function EndpointsPanel({
       )}
 
       {endpoints.map((e, i) => {
-        const isWeb = e.scheme === "http" || e.scheme === "https";
-        const clear = isWeb
-          ? `${e.scheme}://${host}:${e.port}${e.path ?? ""}`
-          : `${host}:${e.port}`;
-        const onionAddr = onion
-          ? isWeb
-            ? `${e.scheme}://${onion}:${e.port}${e.path ?? ""}`
-            : `${onion}:${e.port}`
-          : "";
+        // Endpoints are connection addresses (RPC, P2P, Electrum, S3…), reached
+        // with a client — not browser pages — so they show as a bare host:port
+        // with no scheme prefix and no "open" link (the Web UI row above is the
+        // only browser-navigable URL).
+        const suffix = e.path && e.path !== "/" ? e.path : "";
+        const clear = `${host}:${e.port}${suffix}`;
+        const onionAddr = onion ? `${onion}:${e.port}${suffix}` : "";
         return (
           <Row key={`${e.label}-${e.port}-${i}`} label={e.label}>
-            <Addr value={host ? clear : "…"} open={isWeb && !!host} />
-            {onionAddr && <Addr value={onionAddr} open={isWeb} onionTag />}
+            <Addr value={host ? clear : "…"} />
+            {onionAddr && <Addr value={onionAddr} onionTag />}
           </Row>
         );
       })}

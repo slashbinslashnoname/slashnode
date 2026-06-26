@@ -132,13 +132,15 @@ func printServiceURLs(out io.Writer, dir, id string) {
 		}
 	}
 	for _, e := range man.Endpoints {
-		scheme := ""
-		if e.Scheme == "http" || e.Scheme == "https" {
-			scheme = e.Scheme + "://"
+		// Endpoints are connection addresses (RPC, P2P, …) — a bare host:port,
+		// no scheme; they're reached with a client, not a browser.
+		path := e.Path
+		if path == "/" {
+			path = ""
 		}
-		fmt.Fprintf(out, "    %-12s %s%s:%d%s\n", e.Label, scheme, host, e.Port, e.Path)
+		fmt.Fprintf(out, "    %-12s %s:%d%s\n", e.Label, host, e.Port, path)
 		if onion != "" {
-			fmt.Fprintf(out, "      .onion     %s%s:%d%s\n", scheme, onion, e.Port, e.Path)
+			fmt.Fprintf(out, "      .onion     %s:%d%s\n", onion, e.Port, path)
 		}
 	}
 }
