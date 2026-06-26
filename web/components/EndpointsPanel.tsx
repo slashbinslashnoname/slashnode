@@ -45,7 +45,7 @@ export function EndpointsPanel({
         </Row>
       )}
 
-      {endpoints.map((e) => {
+      {endpoints.map((e, i) => {
         const isWeb = e.scheme === "http" || e.scheme === "https";
         const clear = isWeb
           ? `${e.scheme}://${host}:${e.port}${e.path ?? ""}`
@@ -56,7 +56,7 @@ export function EndpointsPanel({
             : `${onion}:${e.port}`
           : "";
         return (
-          <Row key={e.label + e.port} label={e.label}>
+          <Row key={`${e.label}-${e.port}-${i}`} label={e.label}>
             <Addr value={host ? clear : "…"} open={isWeb && !!host} />
             {onionAddr && <Addr value={onionAddr} open={isWeb} onionTag />}
           </Row>
