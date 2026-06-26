@@ -7,19 +7,8 @@
   "description": "An easy-to-run Slack clone that lives on your own server. Channels, DMs, file uploads and invites — your team chat, self-hosted.",
   "icon": "💬",
   "dependencies": [],
-  "inputs": [
-    {
-      "key": "SESSION_SECRET",
-      "label": "Session secret",
-      "type": "password",
-      "required": true,
-      "secret": true,
-      "generate": true,
-      "minLength": 32,
-      "help": "Long random secret used to encrypt session cookies. Generated automatically."
-    }
-  ],
-  "compose": "name: \"slashnode-slashslack\"\nservices:\n  slashslack:\n    image: \"ghcr.io/slashbinslashnoname/slashslack:latest\"\n    container_name: \"slashslack\"\n    restart: \"unless-stopped\"\n    networks:\n      - slashnode\n    ports:\n      - \"3000:3000\"\n    environment:\n      PORT: \"3000\"\n      NODE_ENV: \"production\"\n      SESSION_SECRET: \"${secret.SESSION_SECRET}\"\n      DATA_DIR: \"/app/data\"\n      UPLOAD_DIR: \"/app/uploads\"\n      PUBLIC_ORIGIN: \"https://slashslack.${node.exports.host}\"\n    volumes:\n      - \"slashslack-data:/app/data\"\n      - \"slashslack-uploads:/app/uploads\"\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  slashslack-data:\n    name: \"slashnode-slashslack_slashslack_slashslack-data\"\n  slashslack-uploads:\n    name: \"slashnode-slashslack_slashslack_slashslack-uploads\"\n",
+  "inputs": [],
+  "compose": "name: \"slashnode-slashslack\"\nservices:\n  slashslack:\n    image: \"ghcr.io/slashbinslashnoname/slashslack:latest\"\n    container_name: \"slashslack\"\n    restart: \"unless-stopped\"\n    networks:\n      - slashnode\n    entrypoint:\n      - \"/bin/sh\"\n      - \"-c\"\n      - 's=/app/data/.session_secret; [ -s \"$$s\" ] || { mkdir -p /app/data; head -c 64 /dev/urandom | base64 | tr -dc A-Za-z0-9 | head -c 48 > \"$$s\"; }; export SESSION_SECRET=\"$$(cat \"$$s\")\"; exec node server/dist/index.js'\n    ports:\n      - \"3000:3000\"\n    environment:\n      PORT: \"3000\"\n      NODE_ENV: \"production\"\n      DATA_DIR: \"/app/data\"\n      UPLOAD_DIR: \"/app/uploads\"\n      PUBLIC_ORIGIN: \"https://slashslack.${node.exports.host}\"\n    volumes:\n      - \"slashslack-data:/app/data\"\n      - \"slashslack-uploads:/app/uploads\"\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  slashslack-data:\n    name: \"slashnode-slashslack_slashslack_slashslack-data\"\n  slashslack-uploads:\n    name: \"slashnode-slashslack_slashslack_slashslack-uploads\"\n",
   "web": {
     "port": 3000,
     "path": "/"
@@ -28,6 +17,5 @@
     "type": "http",
     "port": 3000,
     "path": "/api/health"
-  },
-  "notes": "The image is published to GitHub Container Registry. Make the package public (repo → Packages → Package settings → Visibility) or the image pull will fail."
+  }
 }
