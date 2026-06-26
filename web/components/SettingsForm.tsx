@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Config, Status } from "@/lib/api";
+import { SystemIndicators } from "@/components/SystemStatus";
 
 export function SettingsForm({
   config,
@@ -79,6 +80,10 @@ export function SettingsForm({
         <Info label="Node ID" value={config.node_id} />
         <Info label="Hostname" value={config.hostname} />
         {status?.onion && <Info label="Tor (.onion)" value={status.onion} />}
+      </Section>
+
+      <Section title="System">
+        <SystemIndicators />
       </Section>
 
       <Section title="Admin password">

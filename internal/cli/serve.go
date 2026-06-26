@@ -25,6 +25,7 @@ import (
 	"github.com/slashbinslashnoname/slashnode/internal/paths"
 	"github.com/slashbinslashnoname/slashnode/internal/registry"
 	"github.com/slashbinslashnoname/slashnode/internal/secrets"
+	"github.com/slashbinslashnoname/slashnode/internal/system"
 	"github.com/slashbinslashnoname/slashnode/internal/updater"
 )
 
@@ -148,6 +149,11 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 
 	mux.Handle("/api/v1/update", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, updater.CheckCached(Version, cfg.Update.Channel))
+	}))
+
+	// Host health indicators (disk/memory/load) for the UI; disk warning flags.
+	mux.Handle("/api/v1/system", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, http.StatusOK, system.Collect())
 	}))
 
 	mux.Handle("POST /api/v1/update/apply", bearer(sec, func(w http.ResponseWriter, r *http.Request) {

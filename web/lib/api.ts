@@ -110,9 +110,20 @@ export type Config = {
   created_at: string;
 };
 
+export type SystemStats = {
+  disk: { path: string; total: number; used: number; free: number; percent: number };
+  mem_total: number;
+  mem_used: number;
+  mem_percent: number;
+  load1: number;
+  disk_warn: boolean;
+  disk_critical: boolean;
+};
+
 export const getStatus = () => apiGet<Status>("/api/v1/status");
 export const getUpdate = () => apiGet<UpdateInfo>("/api/v1/update");
 export const getConfig = () => apiGet<Config>("/api/v1/config");
+export const getSystem = () => apiGet<SystemStats>("/api/v1/system");
 
 export const getApps = () => apiGet<{ apps: App[] }>("/api/v1/apps");
 export const getApp = (id: string) => apiGet<App>(`/api/v1/apps/${id}`);
