@@ -62,5 +62,6 @@
     "rpc.ws.port": 8546,
     "engine.host": "geth",
     "engine.port": 8551
-  }
+  },
+  "priority": 112
 }

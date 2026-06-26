@@ -58,5 +58,6 @@
       "label": "P2P",
       "port": 9735
     }
-  ]
+  ],
+  "priority": 108
 }

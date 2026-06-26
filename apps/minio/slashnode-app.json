@@ -45,5 +45,6 @@
     "type": "http",
     "port": 9001,
     "path": "/"
-  }
+  },
+  "priority": 106
 }

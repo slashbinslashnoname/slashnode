@@ -62,5 +62,6 @@
       "port": 22556
     }
   ],
-  "notes": "Mainnet Dogecoin node with txindex. RPC is published on 127.0.0.1:22555 (reach it via the .onion or an SSH tunnel); P2P is public on 22556."
+  "notes": "Mainnet Dogecoin node with txindex. RPC is published on 127.0.0.1:22555 (reach it via the .onion or an SSH tunnel); P2P is public on 22556.",
+  "priority": 114
 }

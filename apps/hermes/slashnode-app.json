@@ -38,5 +38,6 @@
     "port": 9119,
     "path": "/"
   },
-  "notes": "Configure Hermes from its console: open the console and run `hermes setup` to add your model provider keys (Anthropic / OpenAI) and platforms. The dashboard login uses the username/password set above."
+  "notes": "Configure Hermes from its console: open the console and run `hermes setup` to add your model provider keys (Anthropic / OpenAI) and platforms. The dashboard login uses the username/password set above.",
+  "priority": 111
 }

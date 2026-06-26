@@ -54,5 +54,6 @@
     "port": 8000,
     "path": "/"
   },
-  "notes": "Experimental multi-service stack. Uses Supabase's DEMO JWT keys (insecure) — regenerate JWT secret + anon/service keys for production. Studio is at port 8000; the API gateway (kong) is on the same port under /rest/v1, /auth/v1, /storage/v1."
+  "notes": "Experimental multi-service stack. Uses Supabase's DEMO JWT keys (insecure) — regenerate JWT secret + anon/service keys for production. Studio is at port 8000; the API gateway (kong) is on the same port under /rest/v1, /auth/v1, /storage/v1.",
+  "priority": 102
 }

@@ -30,5 +30,6 @@
     "type": "http",
     "port": 8999,
     "path": "/"
-  }
+  },
+  "priority": 107
 }

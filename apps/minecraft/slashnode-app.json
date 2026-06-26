@@ -33,5 +33,6 @@
       "port": 25565
     }
   ],
-  "notes": "Connect from Minecraft Java Edition to <your-host>:25565. By installing you accept the Minecraft EULA."
+  "notes": "Connect from Minecraft Java Edition to <your-host>:25565. By installing you accept the Minecraft EULA.",
+  "priority": 105
 }

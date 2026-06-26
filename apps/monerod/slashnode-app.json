@@ -19,5 +19,6 @@
     "port": 18081,
     "path": "/get_height"
   },
-  "notes": "Restricted public RPC on 18089, full RPC on localhost:18081. Initial sync takes a while."
+  "notes": "Restricted public RPC on 18089, full RPC on localhost:18081. Initial sync takes a while.",
+  "priority": 104
 }
