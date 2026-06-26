@@ -1,0 +1,22 @@
+{
+  "manifestVersion": 1,
+  "id": "uptime-kuma",
+  "name": "Uptime Kuma",
+  "version": "2.4.0",
+  "category": "networking",
+  "description": "Self-hosted uptime monitoring tool",
+  "icon": "🌐",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-uptime-kuma\nservices:\n  server:\n    image: louislam/uptime-kuma:2.4.0\n    container_name: server\n    restart: unless-stopped\n    networks:\n      - slashnode\n    volumes:\n      - server_data-uptime-kuma:/app/data\n    ports:\n      - 127.0.0.1:8385:3001\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  server_data-uptime-kuma:\n    name: slashnode-uptime-kuma_server_data-uptime-kuma\n",
+  "web": {
+    "port": 8385,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8385,
+    "path": "/"
+  },
+  "notes": "Auto-converted from getumbrel/umbrel-apps (uptime-kuma). Review before shipping. Upstream: https://uptime.kuma.pet. "
+}

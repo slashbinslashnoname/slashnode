@@ -1,0 +1,24 @@
+{
+  "manifestVersion": 1,
+  "id": "lidarr",
+  "name": "Lidarr",
+  "version": "3.1.0.4875-1",
+  "category": "media",
+  "description": "Looks and smells like Sonarr but made for music",
+  "icon": "🎬",
+  "dependencies": [
+    "transmission"
+  ],
+  "inputs": [],
+  "compose": "name: slashnode-lidarr\nservices:\n  server:\n    image: linuxserver/lidarr:3.1.0\n    container_name: server\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      PUID: '1000'\n      PGID: '1000'\n    volumes:\n      - server_data-config:/config\n      - server_shared-data-storage-downloads:/downloads\n    ports:\n      - 127.0.0.1:8686:8686\n  mac:\n    image: getumbrel/media-app-configurator:v1.3.2\n    container_name: mac\n    restart: unless-stopped\n    networks:\n      - slashnode\n    user: '1000:1000'\n    environment:\n      APP_ID: lidarr\n      APP_URL: http://lidarr_server_1:8686\n      TRANSMISSION_HOST: transmission_server_1\n      TRANSMISSION_PORT: '9091'\n      ROOT_FOLDER: /downloads/music\n      QBITTORRENT_INSTALLED: ${APP_LIDARR_QBITTORRENT_INSTALLED:-\"false\"}\n      QBITTORRENT_HOST: qbittorrent_server_1\n      QBITTORRENT_PORT: '8080'\n      SABNZBD_INSTALLED: ${APP_LIDARR_SABNZBD_INSTALLED:-\"false\"}\n      SABNZBD_HOST: sabnzbd_web_1\n      SABNZBD_PORT: '8080'\n      SABNZBD_API_KEY: ${APP_LIDARR_SABNZBD_API_KEY:-\"\"}\n    volumes:\n      - mac_data-config:/config\n      - mac_shared-data-storage-downloads:/downloads\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  server_data-config:\n    name: slashnode-lidarr_server_data-config\n  server_shared-data-storage-downloads:\n    name: slashnode-lidarr_server_shared-data-storage-downloads\n  mac_data-config:\n    name: slashnode-lidarr_mac_data-config\n  mac_shared-data-storage-downloads:\n    name: slashnode-lidarr_mac_shared-data-storage-downloads\n",
+  "web": {
+    "port": 8686,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8686,
+    "path": "/"
+  },
+  "notes": "Auto-converted from getumbrel/umbrel-apps (lidarr). Review before shipping. Upstream: https://lidarr.audio/. "
+}

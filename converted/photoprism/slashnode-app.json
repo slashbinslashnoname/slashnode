@@ -1,0 +1,32 @@
+{
+  "manifestVersion": 1,
+  "id": "photoprism",
+  "name": "PhotoPrism",
+  "version": "260305-fad9d5395",
+  "category": "files",
+  "description": "Self-host your photo and video library",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "APP_PASSWORD",
+      "label": "password",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Mapped from Umbrel ${APP_PASSWORD}. Stored encrypted."
+    }
+  ],
+  "compose": "name: slashnode-photoprism\nservices:\n  web:\n    image: photoprism/photoprism:260305\n    container_name: web\n    restart: unless-stopped\n    networks:\n      - slashnode\n    user: '1000:1000'\n    environment:\n      PHOTOPRISM_ADMIN_PASSWORD: ${secret.APP_PASSWORD}\n      PHOTOPRISM_ORIGINALS_LIMIT: '10000'\n      PHOTOPRISM_HTTP_COMPRESSION: gzip\n      PHOTOPRISM_HTTP_PORT: '8087'\n      PHOTOPRISM_DATABASE_DRIVER: mysql\n      PHOTOPRISM_DATABASE_SERVER: photoprism_db_1:3306\n      PHOTOPRISM_DATABASE_NAME: photoprism\n      PHOTOPRISM_DATABASE_USER: photoprism\n      PHOTOPRISM_DATABASE_PASSWORD: photoprism\n      PHOTOPRISM_SITE_URL: http://${APP_DOMAIN}:8087/\n      PHOTOPRISM_SITE_TITLE: PhotoPrism\n      PHOTOPRISM_SITE_CAPTION: Digital Asset Management\n      PHOTOPRISM_SITE_DESCRIPTION: ''\n      PHOTOPRISM_SITE_AUTHOR: ''\n    volumes:\n      - web_originals:/photoprism/originals\n      - web_storage:/photoprism/storage\n    ports:\n      - 127.0.0.1:8087:8087\n  db:\n    image: mariadb:10.5.12\n    container_name: db\n    restart: unless-stopped\n    networks:\n      - slashnode\n    user: '1000:1000'\n    command: mysqld --transaction-isolation=READ-COMMITTED --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --max-connections=512 --innodb-rollback-on-timeout=OFF --innodb-lock-wait-timeout=50\n    environment:\n      MYSQL_ROOT_PASSWORD: photoprism\n      MYSQL_DATABASE: photoprism\n      MYSQL_USER: photoprism\n      MYSQL_PASSWORD: photoprism\n    volumes:\n      - db_database:/var/lib/mysql\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_originals:\n    name: slashnode-photoprism_web_originals\n  web_storage:\n    name: slashnode-photoprism_web_storage\n  db_database:\n    name: slashnode-photoprism_db_database\n",
+  "web": {
+    "port": 8087,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8087,
+    "path": "/"
+  },
+  "notes": "Auto-converted from getumbrel/umbrel-apps (photoprism). Review before shipping. Upstream: https://photoprism.app. Default login — user: \"admin\", password: \"\". "
+}

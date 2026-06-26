@@ -1,0 +1,32 @@
+{
+  "manifestVersion": 1,
+  "id": "nextcloud",
+  "name": "Nextcloud",
+  "version": "34.0.0",
+  "category": "files",
+  "description": "Productivity platform that keeps you in control",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "APP_PASSWORD",
+      "label": "password",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Mapped from Umbrel ${APP_PASSWORD}. Stored encrypted."
+    }
+  ],
+  "compose": "name: slashnode-nextcloud\nservices:\n  db:\n    image: mariadb:10.6.21\n    container_name: db\n    restart: unless-stopped\n    networks:\n      - slashnode\n    user: '1000:1000'\n    command: '--transaction-isolation=READ-COMMITTED --binlog-format=ROW'\n    environment:\n      MYSQL_ROOT_PASSWORD: moneyprintergobrrr\n      MYSQL_PASSWORD: moneyprintergobrrr\n      MYSQL_DATABASE: nextcloud\n      MYSQL_USER: nextcloud\n      MARIADB_AUTO_UPGRADE: '1'\n    volumes:\n      - db_data-db:/var/lib/mysql\n  redis:\n    image: redis:6.2.2-buster\n    container_name: redis\n    restart: unless-stopped\n    networks:\n      - slashnode\n    user: '1000:1000'\n    volumes:\n      - redis_data-redis:/data\n  web:\n    image: nextcloud:34.0.0-apache\n    container_name: web\n    restart: unless-stopped\n    networks:\n      - slashnode\n    depends_on:\n      db:\n        condition: service_healthy\n      redis:\n        condition: service_started\n    environment:\n      MYSQL_HOST: nextcloud_db_1\n      REDIS_HOST: nextcloud_redis_1\n      MYSQL_PASSWORD: moneyprintergobrrr\n      MYSQL_DATABASE: nextcloud\n      MYSQL_USER: nextcloud\n      TRUSTED_PROXIES: ${NETWORK_IP}/16\n      NEXTCLOUD_ADMIN_USER: umbrel\n      NEXTCLOUD_ADMIN_PASSWORD: ${secret.APP_PASSWORD}\n      NEXTCLOUD_TRUSTED_DOMAINS: ${APP_DOMAIN}:${APP_NEXTCLOUD_PORT} ${APP_HIDDEN_SERVICE} ${node.exports.host}:${APP_NEXTCLOUD_PORT} ${APP_NEXTCLOUD_LOCAL_IPS} nextcloud_web_1\n      PHP_UPLOAD_LIMIT: 1024G\n    volumes:\n      - web_data-nextcloud:/var/www/html\n    ports:\n      - 127.0.0.1:8081:80\n  cron:\n    image: nextcloud:34.0.0-apache\n    container_name: cron\n    restart: unless-stopped\n    networks:\n      - slashnode\n    entrypoint: /cron.sh\n    depends_on:\n      db:\n        condition: service_healthy\n      redis:\n        condition: service_started\n    volumes:\n      - cron_data-nextcloud:/var/www/html\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  db_data-db:\n    name: slashnode-nextcloud_db_data-db\n  redis_data-redis:\n    name: slashnode-nextcloud_redis_data-redis\n  web_data-nextcloud:\n    name: slashnode-nextcloud_web_data-nextcloud\n  cron_data-nextcloud:\n    name: slashnode-nextcloud_cron_data-nextcloud\n",
+  "web": {
+    "port": 8081,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8081,
+    "path": "/"
+  },
+  "notes": "Auto-converted from getumbrel/umbrel-apps (nextcloud). Review before shipping. Upstream: https://nextcloud.com. Default login — user: \"umbrel\", password: \"\". "
+}

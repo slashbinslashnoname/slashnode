@@ -1,0 +1,22 @@
+{
+  "manifestVersion": 1,
+  "id": "grafana",
+  "name": "Grafana",
+  "version": "13.0.3",
+  "category": "networking",
+  "description": "The open-source platform for monitoring and observability",
+  "icon": "🌐",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-grafana\nservices:\n  web:\n    image: grafana/grafana:13.0.3\n    container_name: web\n    restart: unless-stopped\n    networks:\n      - slashnode\n    user: '1000:1000'\n    volumes:\n      - web_data:/var/lib/grafana\n    ports:\n      - 127.0.0.1:3030:3000\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data:\n    name: slashnode-grafana_web_data\n",
+  "web": {
+    "port": 3030,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 3030,
+    "path": "/"
+  },
+  "notes": "Auto-converted from getumbrel/umbrel-apps (grafana). Review before shipping. Upstream: https://grafana.com. Default login — user: \"admin\", password: \"admin\". ⚠️ SECURITY: ships a default password (\"admin\") — must be changed on first login. "
+}

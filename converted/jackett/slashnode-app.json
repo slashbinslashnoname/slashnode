@@ -1,0 +1,22 @@
+{
+  "manifestVersion": 1,
+  "id": "jackett",
+  "name": "Jackett",
+  "version": "0.24.2122",
+  "category": "media",
+  "description": "API support for your favorite torrent trackers",
+  "icon": "🎬",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-jackett\nservices:\n  server:\n    image: linuxserver/jackett:0.24.2122\n    container_name: server\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      PUID: '1000'\n      PGID: '1000'\n    volumes:\n      - server_data:/config\n      - server_shared-data-storage-downloads:/downloads\n    ports:\n      - 127.0.0.1:9117:9117\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  server_data:\n    name: slashnode-jackett_server_data\n  server_shared-data-storage-downloads:\n    name: slashnode-jackett_server_shared-data-storage-downloads\n",
+  "web": {
+    "port": 9117,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 9117,
+    "path": "/"
+  },
+  "notes": "Auto-converted from getumbrel/umbrel-apps (jackett). Review before shipping. Upstream: https://github.com/Jackett/Jackett/. "
+}

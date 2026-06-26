@@ -1,0 +1,22 @@
+{
+  "manifestVersion": 1,
+  "id": "tautulli",
+  "name": "tautulli",
+  "version": "2.17.2",
+  "category": "media",
+  "description": "Monitor your Plex Media Server",
+  "icon": "🎬",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-tautulli\nservices:\n  web:\n    image: linuxserver/tautulli:2.17.2\n    container_name: web\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      PUID: '1000'\n      PGID: '1000'\n    volumes:\n      - web_data-config:/config\n    ports:\n      - 127.0.0.1:8212:8181\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data-config:\n    name: slashnode-tautulli_web_data-config\n",
+  "web": {
+    "port": 8212,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8212,
+    "path": "/"
+  },
+  "notes": "Auto-converted from getumbrel/umbrel-apps (tautulli). Review before shipping. Upstream: https://tautulli.com/. "
+}

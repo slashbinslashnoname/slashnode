@@ -1,0 +1,22 @@
+{
+  "manifestVersion": 1,
+  "id": "excalidraw",
+  "name": "Excalidraw",
+  "version": "0.18.0-7",
+  "category": "files",
+  "description": "An open source virtual hand-drawn style whiteboard",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-excalidraw\nservices:\n  app:\n    image: ghcr.io/ozencb/excalidraw-persist:0.18.0-persist.7\n    container_name: app\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      PORT: '4000'\n      NODE_ENV: production\n      DB_PATH: /app/data/database.sqlite\n    volumes:\n      - app_data:/app/data:rw\n    ports:\n      - 127.0.0.1:4422:80\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  app_data:\n    name: slashnode-excalidraw_app_data\n",
+  "web": {
+    "port": 4422,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 4422,
+    "path": "/"
+  },
+  "notes": "Auto-converted from getumbrel/umbrel-apps (excalidraw). Review before shipping. Upstream: https://excalidraw.com/. "
+}

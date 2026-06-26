@@ -1,0 +1,22 @@
+{
+  "manifestVersion": 1,
+  "id": "wireguard",
+  "name": "WireGuard",
+  "version": "15.3.0",
+  "category": "networking",
+  "description": "Run your own free and unlimited WireGuard VPN",
+  "icon": "🌐",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-wireguard\nservices:\n  app:\n    image: ghcr.io/wg-easy/wg-easy:15.3.0\n    container_name: app\n    restart: unless-stopped\n    networks:\n      - slashnode\n    cap_add:\n      - NET_ADMIN\n      - SYS_MODULE\n    environment:\n      PORT: '51821'\n      INSECURE: 'true'\n    volumes:\n      - app_data-wireguard:/etc/wireguard\n      - /lib/modules:/lib/modules:ro\n    ports:\n      - 127.0.0.1:51821:51821\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  app_data-wireguard:\n    name: slashnode-wireguard_app_data-wireguard\n",
+  "web": {
+    "port": 51821,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 51821,
+    "path": "/"
+  },
+  "notes": "Auto-converted from getumbrel/umbrel-apps (wireguard). Review before shipping. Upstream: https://github.com/wg-easy/wg-easy. Default login — user: \"umbrel\", password: \"\". ⚠️ SECURITY: app: extra capabilities [\"NET_ADMIN\",\"SYS_MODULE\"]. "
+}

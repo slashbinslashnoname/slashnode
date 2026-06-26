@@ -1,0 +1,32 @@
+{
+  "manifestVersion": 1,
+  "id": "homarr",
+  "name": "Homarr",
+  "version": "1.67.0",
+  "category": "files",
+  "description": "A customizable browser home page",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "APP_SEED",
+      "label": "seed",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Mapped from Umbrel ${APP_SEED}. Stored encrypted."
+    }
+  ],
+  "compose": "name: slashnode-homarr\nservices:\n  web:\n    image: ghcr.io/homarr-labs/homarr:v1.67.0\n    container_name: web\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      SECRET_ENCRYPTION_KEY: ${secret.APP_SEED}\n    volumes:\n      - web_data:/appdata\n    ports:\n      - 127.0.0.1:7575:7575\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data:\n    name: slashnode-homarr_web_data\n",
+  "web": {
+    "port": 7575,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 7575,
+    "path": "/"
+  },
+  "notes": "Auto-converted from getumbrel/umbrel-apps (homarr). Review before shipping. Upstream: https://homarr.dev/. "
+}

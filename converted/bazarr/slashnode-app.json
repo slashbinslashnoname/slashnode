@@ -1,0 +1,22 @@
+{
+  "manifestVersion": 1,
+  "id": "bazarr",
+  "name": "Bazarr",
+  "version": "1.5.6",
+  "category": "media",
+  "description": "Manage and download subtitles for Sonarr and Radarr",
+  "icon": "🎬",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-bazarr\nservices:\n  server:\n    image: linuxserver/bazarr:1.5.6\n    container_name: server\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      PUID: '1000'\n      PGID: '1000'\n    volumes:\n      - server_data-config:/config\n      - server_shared-data-storage-downloads:/downloads\n    ports:\n      - 127.0.0.1:6767:6767\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  server_data-config:\n    name: slashnode-bazarr_server_data-config\n  server_shared-data-storage-downloads:\n    name: slashnode-bazarr_server_shared-data-storage-downloads\n",
+  "web": {
+    "port": 6767,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 6767,
+    "path": "/"
+  },
+  "notes": "Auto-converted from getumbrel/umbrel-apps (bazarr). Review before shipping. Upstream: https://www.bazarr.media/. "
+}

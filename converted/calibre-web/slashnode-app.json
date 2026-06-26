@@ -1,0 +1,22 @@
+{
+  "manifestVersion": 1,
+  "id": "calibre-web",
+  "name": "Calibre Web",
+  "version": "0.6.26",
+  "category": "files",
+  "description": "A clean web app for your eBooks",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-calibre-web\nservices:\n  server:\n    image: linuxserver/calibre-web:0.6.26\n    container_name: server\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      PUID: '1000'\n      PGID: '1000'\n    volumes:\n      - server_data-config:/config\n      - server_data-books:/books\n    ports:\n      - 127.0.0.1:8098:8083\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  server_data-config:\n    name: slashnode-calibre-web_server_data-config\n  server_data-books:\n    name: slashnode-calibre-web_server_data-books\n",
+  "web": {
+    "port": 8098,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8098,
+    "path": "/"
+  },
+  "notes": "Auto-converted from getumbrel/umbrel-apps (calibre-web). Review before shipping. Upstream: https://github.com/janeczku/calibre-web. Default login — user: \"admin\", password: \"admin123\". ⚠️ SECURITY: ships a default password (\"admin123\") — must be changed on first login. "
+}

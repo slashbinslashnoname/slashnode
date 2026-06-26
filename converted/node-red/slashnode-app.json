@@ -1,0 +1,26 @@
+{
+  "manifestVersion": 1,
+  "id": "node-red",
+  "name": "Node-RED (Bitcoin)",
+  "version": "5.0.0",
+  "category": "automation",
+  "description": "Wire together the Internet of Things",
+  "icon": "🔧",
+  "dependencies": [
+    "bitcoin",
+    "electrs",
+    "lightning"
+  ],
+  "inputs": [],
+  "compose": "name: slashnode-node-red\nservices:\n  web:\n    image: nodered/node-red:5.0.0\n    container_name: web\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      PORT: '1880'\n      BITCOIN_NETWORK: $APP_BITCOIN_NETWORK\n      BITCOIN_IP: $APP_BITCOIN_NODE_IP\n      BITCOIN_RPC_PORT: $APP_BITCOIN_RPC_PORT\n      BITCOIN_RPC_USER: $APP_BITCOIN_RPC_USER\n      BITCOIN_RPC_PASS: $APP_BITCOIN_RPC_PASS\n      LND_IP: $APP_LIGHTNING_NODE_IP\n      LND_GRPC_PORT: $APP_LIGHTNING_NODE_GRPC_PORT\n      ELECTRUM_IP: $APP_ELECTRS_NODE_IP\n      ELECTRUM_PORT: $APP_ELECTRS_NODE_PORT\n    volumes:\n      - web_data:/data\n      - ${APP_LIGHTNING_NODE_DATA_DIR}:/lnd:ro\n    ports:\n      - 127.0.0.1:1880:1880\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data:\n    name: slashnode-node-red_web_data\n",
+  "web": {
+    "port": 1880,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 1880,
+    "path": "/"
+  },
+  "notes": "Auto-converted from getumbrel/umbrel-apps (node-red). Review before shipping. Upstream: https://nodered.org. Default login — user: \"umbrel\", password: \"moneyprintergobrrr\". ⚠️ SECURITY: ships a default password (\"moneyprintergobrrr\") — must be changed on first login. "
+}

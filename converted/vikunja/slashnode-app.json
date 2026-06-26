@@ -1,0 +1,32 @@
+{
+  "manifestVersion": 1,
+  "id": "vikunja",
+  "name": "Vikunja",
+  "version": "2.3.0",
+  "category": "files",
+  "description": "The open-source, self-hostable to-do app",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "APP_SEED",
+      "label": "seed",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Mapped from Umbrel ${APP_SEED}. Stored encrypted."
+    }
+  ],
+  "compose": "name: slashnode-vikunja\nservices:\n  db:\n    image: mariadb:10.11.8\n    container_name: db\n    restart: unless-stopped\n    networks:\n      - slashnode\n    command: '--character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci'\n    environment:\n      MYSQL_ROOT_PASSWORD: supersecret\n      MYSQL_USER: vikunja\n      MYSQL_PASSWORD: secret\n      MYSQL_DATABASE: vikunja\n    volumes:\n      - db_data-db:/var/lib/mysql\n  web:\n    image: vikunja/vikunja:2.3.0\n    container_name: web\n    restart: unless-stopped\n    networks:\n      - slashnode\n    depends_on:\n      - db\n    environment:\n      VIKUNJA_SERVICE_PUBLICURL: http://${DEVICE_DOMAIN_NAME}:4523\n      VIKUNJA_DATABASE_HOST: vikunja_db_1\n      VIKUNJA_DATABASE_PASSWORD: secret\n      VIKUNJA_DATABASE_TYPE: mysql\n      VIKUNJA_DATABASE_USER: vikunja\n      VIKUNJA_DATABASE_DATABASE: vikunja\n      VIKUNJA_SERVICE_JWTSECRET: ${secret.APP_SEED}\n    volumes:\n      - web_data-files:/app/vikunja/files\n    ports:\n      - 127.0.0.1:4523:3456\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  db_data-db:\n    name: slashnode-vikunja_db_data-db\n  web_data-files:\n    name: slashnode-vikunja_web_data-files\n",
+  "web": {
+    "port": 4523,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 4523,
+    "path": "/"
+  },
+  "notes": "Auto-converted from getumbrel/umbrel-apps (vikunja). Review before shipping. Upstream: https://vikunja.io/. "
+}

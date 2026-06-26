@@ -1,0 +1,22 @@
+{
+  "manifestVersion": 1,
+  "id": "audiobookshelf",
+  "name": "Audiobookshelf",
+  "version": "2.35.1",
+  "category": "media",
+  "description": "Audiobook and podcast server",
+  "icon": "🎬",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-audiobookshelf\nservices:\n  web:\n    image: ghcr.io/advplyr/audiobookshelf:2.35.1\n    container_name: web\n    restart: unless-stopped\n    networks:\n      - slashnode\n    user: '1000:1000'\n    init: true\n    environment:\n      CONFIG_PATH: /home/node/config\n      METADATA_PATH: /home/node/metadata\n      AUDIOBOOKSHELF_UID: '1000'\n      AUDIOBOOKSHELF_GID: '1000'\n    volumes:\n      - web_data-config:/home/node/config\n      - web_data-metadata:/home/node/metadata\n      - web_shared-data-storage-downloads-audiobooks:/audiobooks\n      - web_shared-data-storage-downloads-podcasts:/podcasts\n    ports:\n      - 127.0.0.1:13378:80\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data-config:\n    name: slashnode-audiobookshelf_web_data-config\n  web_data-metadata:\n    name: slashnode-audiobookshelf_web_data-metadata\n  web_shared-data-storage-downloads-audiobooks:\n    name: slashnode-audiobookshelf_web_shared-data-storage-downloads-audiobooks\n  web_shared-data-storage-downloads-podcasts:\n    name: slashnode-audiobookshelf_web_shared-data-storage-downloads-podcasts\n",
+  "web": {
+    "port": 13378,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 13378,
+    "path": "/"
+  },
+  "notes": "Auto-converted from getumbrel/umbrel-apps (audiobookshelf). Review before shipping. Upstream: https://audiobookshelf.org. "
+}

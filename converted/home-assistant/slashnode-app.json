@@ -1,0 +1,22 @@
+{
+  "manifestVersion": 1,
+  "id": "home-assistant",
+  "name": "Home Assistant",
+  "version": "2026.6.4",
+  "category": "automation",
+  "description": "Home automation that puts local control & privacy first",
+  "icon": "🔧",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-home-assistant\nservices:\n  server:\n    image: homeassistant/home-assistant:2026.6.4\n    container_name: server\n    restart: unless-stopped\n    networks:\n      - slashnode\n    privileged: true\n    network_mode: host\n    volumes:\n      - server_data:/config\n      - server_shared-data-storage-downloads:/media\n      - /dev:/dev\n      - /run/dbus:/run/dbus:ro\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  server_data:\n    name: slashnode-home-assistant_server_data\n  server_shared-data-storage-downloads:\n    name: slashnode-home-assistant_server_shared-data-storage-downloads\n",
+  "web": {
+    "port": 8123,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8123,
+    "path": "/"
+  },
+  "notes": "Auto-converted from getumbrel/umbrel-apps (home-assistant). Review before shipping. Upstream: https://home-assistant.io. ⚠️ SECURITY: server: runs privileged; server: host network mode — bypasses Caddy/Tor isolation, binds host interfaces directly. "
+}

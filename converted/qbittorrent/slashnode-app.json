@@ -1,0 +1,22 @@
+{
+  "manifestVersion": 1,
+  "id": "qbittorrent",
+  "name": "qBittorrent",
+  "version": "5.2.2",
+  "category": "networking",
+  "description": "Free and reliable P2P Bittorrent client",
+  "icon": "🌐",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-qbittorrent\nservices:\n  server:\n    image: ghcr.io/hotio/qbittorrent:release-5.2.2\n    container_name: server\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      PUID: '1000'\n      PGID: '1000'\n    volumes:\n      - server_data-config:/config\n      - server_shared-data-storage-downloads:/downloads\n    ports:\n      - 127.0.0.1:8094:8080\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  server_data-config:\n    name: slashnode-qbittorrent_server_data-config\n  server_shared-data-storage-downloads:\n    name: slashnode-qbittorrent_server_shared-data-storage-downloads\n",
+  "web": {
+    "port": 8094,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8094,
+    "path": "/"
+  },
+  "notes": "Auto-converted from getumbrel/umbrel-apps (qbittorrent). Review before shipping. Upstream: https://qbittorrent.org/. Default login — user: \"admin\", password: \"adminadmin\". ⚠️ SECURITY: ships a default password (\"adminadmin\") — must be changed on first login. "
+}

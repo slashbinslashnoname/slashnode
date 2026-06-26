@@ -1,0 +1,22 @@
+{
+  "manifestVersion": 1,
+  "id": "minio",
+  "name": "MinIO",
+  "version": "RELEASE.2025-06-13T11-33-47Z",
+  "category": "developer",
+  "description": "The Object Store for AI Data Infrastructure",
+  "icon": "💻",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-minio\nservices:\n  web:\n    image: quay.io/minio/minio:RELEASE.2025-06-13T11-33-47Z\n    container_name: web\n    restart: unless-stopped\n    networks:\n      - slashnode\n    user: '1000:1000'\n    command:\n      - server\n      - /data\n    environment:\n      MINIO_ROOT_USER: umbrel\n      MINIO_ROOT_PASSWORD: $APP_PASSWORD\n      MINIO_CONSOLE_ADDRESS: ':9011'\n    volumes:\n      - web_data-minio:/data\n    ports:\n      - 127.0.0.1:9011:9011\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data-minio:\n    name: slashnode-minio_web_data-minio\n",
+  "web": {
+    "port": 9011,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 9011,
+    "path": "/"
+  },
+  "notes": "Auto-converted from getumbrel/umbrel-apps (minio). Review before shipping. Upstream: https://min.io. Default login — user: \"umbrel\", password: \"\". "
+}

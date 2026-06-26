@@ -1,0 +1,32 @@
+{
+  "manifestVersion": 1,
+  "id": "duplicati",
+  "name": "Duplicati",
+  "version": "v2.3.0.3_stable_2026-06-10",
+  "category": "files",
+  "description": "Store securely encrypted backups in the cloud",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "APP_PASSWORD",
+      "label": "password",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Mapped from Umbrel ${APP_PASSWORD}. Stored encrypted."
+    }
+  ],
+  "compose": "name: slashnode-duplicati\nservices:\n  duplicati:\n    image: duplicati/duplicati:2.3.0.3\n    container_name: duplicati\n    restart: unless-stopped\n    networks:\n      - slashnode\n    user: '1000:1000'\n    environment:\n      DUPLICATI__WEBSERVICE_PORT: '8200'\n      DUPLICATI__WEBSERVICE_INTERFACE: any\n      DUPLICATI__WEBSERVICE_PASSWORD: ${secret.APP_PASSWORD}\n      DUPLICATI__WEBSERVICE_ALLOWED_HOSTNAMES: '*'\n    volumes:\n      - duplicati_data:/data\n      - duplicati_shared-data-storage:/umbrel\n    ports:\n      - 127.0.0.1:38476:8200\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  duplicati_data:\n    name: slashnode-duplicati_duplicati_data\n  duplicati_shared-data-storage:\n    name: slashnode-duplicati_duplicati_shared-data-storage\n",
+  "web": {
+    "port": 38476,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 38476,
+    "path": "/"
+  },
+  "notes": "Auto-converted from getumbrel/umbrel-apps (duplicati). Review before shipping. Upstream: https://duplicati.com/. "
+}

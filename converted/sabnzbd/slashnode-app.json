@@ -1,0 +1,22 @@
+{
+  "manifestVersion": 1,
+  "id": "sabnzbd",
+  "name": "SABnzbd",
+  "version": "5.0.4",
+  "category": "networking",
+  "description": "The automated Usenet download tool",
+  "icon": "🌐",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-sabnzbd\nservices:\n  web:\n    image: linuxserver/sabnzbd:5.0.4\n    container_name: web\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      DOCKER_MODS: linuxserver/mods:universal-package-install\n      INSTALL_PACKAGES: ffmpeg\n      PUID: '1000'\n      PGID: '1000'\n      TZ: Etc/UTC\n    volumes:\n      - web_data-config:/config\n      - web_shared-data-storage-downloads:/downloads\n    ports:\n      - 127.0.0.1:9876:8080\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data-config:\n    name: slashnode-sabnzbd_web_data-config\n  web_shared-data-storage-downloads:\n    name: slashnode-sabnzbd_web_shared-data-storage-downloads\n",
+  "web": {
+    "port": 9876,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 9876,
+    "path": "/"
+  },
+  "notes": "Auto-converted from getumbrel/umbrel-apps (sabnzbd). Review before shipping. Upstream: https://sabnzbd.org/. "
+}
