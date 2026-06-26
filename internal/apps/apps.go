@@ -14,9 +14,36 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/slashbinslashnoname/slashnode/internal/paths"
 )
+
+// CategoryList is an app's categories. It accepts either a JSON array
+// (["files","media"]) or a legacy single/comma-separated string ("files" or
+// "files,media") in a manifest, and always serializes as an array so the UI can
+// filter on it.
+type CategoryList []string
+
+func (c *CategoryList) UnmarshalJSON(b []byte) error {
+	var arr []string
+	if err := json.Unmarshal(b, &arr); err == nil {
+		*c = arr
+		return nil
+	}
+	var s string
+	if err := json.Unmarshal(b, &s); err != nil {
+		return err
+	}
+	out := []string{}
+	for _, p := range strings.Split(s, ",") {
+		if p = strings.TrimSpace(p); p != "" {
+			out = append(out, p)
+		}
+	}
+	*c = out
+	return nil
+}
 
 // Input describes a user input (→ container environment variable).
 type Input struct {
@@ -92,7 +119,7 @@ type Manifest struct {
 	ID              string          `json:"id"`
 	Name            string          `json:"name"`
 	Version         string          `json:"version"`
-	Category        string          `json:"category"`
+	Category        CategoryList    `json:"category"`
 	Description     string          `json:"description"`
 	Icon            string          `json:"icon"`
 	Dependencies    []string        `json:"dependencies"`
@@ -125,6 +152,7 @@ type CatalogEntry struct {
 	Subdomain        string            `json:"subdomain,omitempty"` // effective reverse-proxy subdomain (set by the API layer)
 	Domain           string            `json:"domain,omitempty"`    // custom domain override (set by the API layer)
 	Host             string            `json:"host,omitempty"`      // node base host apps live under (set by the API layer)
+	Hidden           bool              `json:"hidden,omitempty"`    // removed from the App Store (set by the API layer)
 }
 
 // LoadCatalog reads all manifests dir/*/slashnode-app.json, sorted by name.
@@ -179,6 +207,9 @@ type InstalledApp struct {
 // State is the installation state (var/lib/slashnode/apps.json).
 type State struct {
 	Installed map[string]InstalledApp `json:"installed"`
+	// Hidden lists catalog apps the operator removed from the App Store. They no
+	// longer appear for new installs but already-installed instances keep running.
+	Hidden []string `json:"hidden,omitempty"`
 }
 
 // LoadState reads the installation state (empty if absent).

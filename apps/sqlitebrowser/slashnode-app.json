@@ -1,0 +1,22 @@
+{
+  "manifestVersion": 1,
+  "id": "sqlitebrowser",
+  "name": "SQLite Browser",
+  "version": "3.13.1",
+  "category": "developer",
+  "description": "A database browser for SQLite",
+  "icon": "💻",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-sqlitebrowser\nservices:\n  app:\n    image: linuxserver/sqlitebrowser:3.13.1\n    container_name: sqlitebrowser\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      PUID: '1000'\n      PGID: '1000'\n      TZ: Etc/CET\n    volumes:\n      - app_data-config:/config\n    ports:\n      - 127.0.0.1:8887:3000\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  app_data-config:\n    name: slashnode-sqlitebrowser_app_data-config\n",
+  "web": {
+    "port": 8887,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8887,
+    "path": "/"
+  },
+  "notes": "Ported from Umbrel (sqlitebrowser). Upstream: https://sqlitebrowser.org/. "
+}

@@ -37,7 +37,7 @@ export type App = {
   name: string;
   version: string;
   images?: Record<string, string>;
-  category: string;
+  category: string[];
   description?: string;
   icon?: string;
   dependencies?: string[];
@@ -51,6 +51,7 @@ export type App = {
   subdomain?: string;
   domain?: string;
   host?: string;
+  hidden?: boolean;
   web?: { port: number; path?: string };
   endpoints?: AppEndpoint[];
   probe?: { type: string };

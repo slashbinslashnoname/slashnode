@@ -1,0 +1,22 @@
+{
+  "manifestVersion": 1,
+  "id": "trilium-notes",
+  "name": "Trilium Notes",
+  "version": "v0.103.0",
+  "category": "files",
+  "description": "Build your personal knowledge base with Trilium Notes",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-trilium-notes\nservices:\n  server:\n    image: triliumnext/trilium:v0.103.0\n    container_name: trilium-notes\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      TRILIUM_DATA_DIR: /data\n    volumes:\n      - server_data:/data\n    ports:\n      - 127.0.0.1:3779:8080\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  server_data:\n    name: slashnode-trilium-notes_server_data\n",
+  "web": {
+    "port": 3779,
+    "path": "/#root"
+  },
+  "probe": {
+    "type": "http",
+    "port": 3779,
+    "path": "/"
+  },
+  "notes": "Ported from Umbrel (trilium-notes). Upstream: https://github.com/TriliumNext. "
+}

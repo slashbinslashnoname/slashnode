@@ -1,0 +1,22 @@
+{
+  "manifestVersion": 1,
+  "id": "node-red",
+  "name": "Node-RED",
+  "version": "5.0.0",
+  "category": "automation",
+  "description": "Low-code, flow-based programming for wiring together devices, APIs and online services.",
+  "icon": "🔧",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: \"slashnode-node-red\"\nservices:\n  node-red:\n    image: \"nodered/node-red:5.0.0\"\n    container_name: \"node-red\"\n    restart: \"unless-stopped\"\n    networks:\n      - slashnode\n    environment:\n      TZ: \"UTC\"\n    ports:\n      - \"127.0.0.1:1880:1880\"\n    volumes:\n      - \"node-red-data:/data\"\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  node-red-data:\n    name: \"slashnode-node-red_node-red_node-red-data\"\n",
+  "web": {
+    "port": 1880,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 1880,
+    "path": "/"
+  },
+  "notes": "Node-RED starts with NO admin authentication (the editor is open). Before exposing it, secure the editor by adding an adminAuth block with a bcrypt-hashed password to /data/settings.js (see https://nodered.org/docs/user-guide/runtime/securing-node-red)."
+}

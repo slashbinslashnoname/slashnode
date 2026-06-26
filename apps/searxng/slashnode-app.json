@@ -1,0 +1,22 @@
+{
+  "manifestVersion": 1,
+  "id": "searxng",
+  "name": "SearXNG",
+  "version": "latest",
+  "category": "networking",
+  "description": "A privacy-respecting metasearch engine that aggregates results from many search services without tracking you.",
+  "icon": "🔎",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: \"slashnode-searxng\"\nservices:\n  redis:\n    image: \"valkey/valkey:8-alpine\"\n    container_name: \"searxng-redis\"\n    restart: \"unless-stopped\"\n    command: \"valkey-server --save 30 1 --loglevel warning\"\n    networks:\n      - slashnode\n    volumes:\n      - \"searxng-redis-data:/data\"\n  searxng:\n    image: \"searxng/searxng:latest\"\n    container_name: \"searxng\"\n    restart: \"unless-stopped\"\n    networks:\n      - slashnode\n    environment:\n      SEARXNG_BASE_URL: \"${self.exports.url}\"\n      SEARXNG_REDIS_URL: \"redis://searxng-redis:6379/0\"\n      UWSGI_WORKERS: \"4\"\n      UWSGI_THREADS: \"4\"\n    ports:\n      - \"127.0.0.1:8080:8080\"\n    volumes:\n      - \"searxng-config:/etc/searxng\"\n    depends_on:\n      - redis\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  searxng-config:\n    name: \"slashnode-searxng_searxng_searxng-config\"\n  searxng-redis-data:\n    name: \"slashnode-searxng_searxng_searxng-redis-data\"\n",
+  "web": {
+    "port": 8080,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8080,
+    "path": "/"
+  },
+  "notes": "Privacy-respecting metasearch engine (SearXNG) with a Valkey/Redis cache. On first start it generates a settings.yml with a random secret in the searxng-config volume. Reached behind Caddy + the admin login."
+}

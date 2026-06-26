@@ -1,0 +1,22 @@
+{
+  "manifestVersion": 1,
+  "id": "super-productivity",
+  "name": "Super Productivity",
+  "version": "18.12.0",
+  "category": "files",
+  "description": "An efficient way to manage tasks, time, and projects all in one place",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-super-productivity\nservices:\n  web:\n    image: johannesjo/super-productivity:v18.12.0\n    container_name: super-productivity\n    restart: unless-stopped\n    networks:\n      - slashnode\n    ports:\n      - 127.0.0.1:8020:80\nnetworks:\n  slashnode:\n    external: true\n",
+  "web": {
+    "port": 8020,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8020,
+    "path": "/"
+  },
+  "notes": "Ported from Umbrel (super-productivity). Upstream: https://super-productivity.com/. "
+}

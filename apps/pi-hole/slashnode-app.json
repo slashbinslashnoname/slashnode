@@ -1,0 +1,32 @@
+{
+  "manifestVersion": 1,
+  "id": "pi-hole",
+  "name": "Pi-hole",
+  "version": "2026.06.0",
+  "category": "networking",
+  "description": "Block ads on your entire network",
+  "icon": "🌐",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "APP_PASSWORD",
+      "label": "password",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Mapped from Umbrel ${APP_PASSWORD}. Stored encrypted."
+    }
+  ],
+  "compose": "name: slashnode-pi-hole\nservices:\n  server:\n    image: pihole/pihole:2026.06.0\n    container_name: pi-hole\n    restart: unless-stopped\n    cap_add:\n      - NET_ADMIN\n    network_mode: host\n    environment:\n      FTLCONF_webserver_api_password: ${secret.APP_PASSWORD}\n      FTLCONF_webserver_port: 8082,[::]:8082\n      FTLCONF_dns_listeningMode: all\n    volumes:\n      - server_data-pihole:/etc/pihole/\n      - server_data-dnsmasq:/etc/dnsmasq.d/\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  server_data-pihole:\n    name: slashnode-pi-hole_server_data-pihole\n  server_data-dnsmasq:\n    name: slashnode-pi-hole_server_data-dnsmasq\n",
+  "web": {
+    "port": 8082,
+    "path": "/admin/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8082,
+    "path": "/"
+  },
+  "notes": "Ported from Umbrel (pi-hole). Upstream: https://pi-hole.net. Runs in host network mode and binds the host's DNS/web ports directly — it is NOT behind Caddy/Tor. Set its web password from the app's own settings. ⚠️ server: extra capabilities [\"NET_ADMIN\"]; server: host network mode — bypasses Caddy/Tor isolation, binds host interfaces directly. "
+}

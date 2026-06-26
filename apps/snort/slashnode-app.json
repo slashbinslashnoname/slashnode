@@ -1,0 +1,22 @@
+{
+  "manifestVersion": 1,
+  "id": "snort",
+  "name": "Snort",
+  "version": "v0.5.3",
+  "category": "social",
+  "description": "Fast Nostr UI",
+  "icon": "💬",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-snort\nservices:\n  web:\n    image: voidic/snort:v0.5.3\n    container_name: snort\n    restart: unless-stopped\n    networks:\n      - slashnode\n    init: true\n    ports:\n      - 127.0.0.1:52027:8080\nnetworks:\n  slashnode:\n    external: true\n",
+  "web": {
+    "port": 52027,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 52027,
+    "path": "/"
+  },
+  "notes": "Ported from Umbrel (snort). Upstream: https://snort.social. "
+}

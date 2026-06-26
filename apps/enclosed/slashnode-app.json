@@ -1,0 +1,22 @@
+{
+  "manifestVersion": 1,
+  "id": "enclosed",
+  "name": "Enclosed",
+  "version": "1.16.0",
+  "category": "files",
+  "description": "Send private and secure notes",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-enclosed\nservices:\n  web:\n    image: corentinth/enclosed:1.16.0-rootless\n    container_name: enclosed\n    restart: unless-stopped\n    networks:\n      - slashnode\n    user: '1000:1000'\n    volumes:\n      - web_data:/app/.data\n    ports:\n      - 127.0.0.1:8788:8787\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data:\n    name: slashnode-enclosed_web_data\n",
+  "web": {
+    "port": 8788,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8788,
+    "path": "/"
+  },
+  "notes": "Ported from Umbrel (enclosed). Upstream: https://enclosed.cc/. "
+}

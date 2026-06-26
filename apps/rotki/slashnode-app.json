@@ -1,0 +1,22 @@
+{
+  "manifestVersion": 1,
+  "id": "rotki",
+  "name": "rotki",
+  "version": "1.43.2",
+  "category": "finance",
+  "description": "Portfolio tracking, analytics, accounting and tax reporting",
+  "icon": "💰",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-rotki\nservices:\n  web:\n    image: rotki/rotki:v1.43.2\n    container_name: rotki\n    restart: unless-stopped\n    networks:\n      - slashnode\n    init: true\n    volumes:\n      - web_data-data:/data\n      - web_data-logs:/logs\n    ports:\n      - 127.0.0.1:8084:80\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data-data:\n    name: slashnode-rotki_web_data-data\n  web_data-logs:\n    name: slashnode-rotki_web_data-logs\n",
+  "web": {
+    "port": 8084,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8084,
+    "path": "/"
+  },
+  "notes": "Ported from Umbrel (rotki). Upstream: https://rotki.com. "
+}

@@ -1,0 +1,22 @@
+{
+  "manifestVersion": 1,
+  "id": "wordpress",
+  "name": "WordPress",
+  "version": "7.0",
+  "category": "social",
+  "description": "The open source publishing platform of choice for millions of websites worldwide",
+  "icon": "💬",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-wordpress\nservices:\n  app:\n    image: wordpress:7.0\n    container_name: wordpress-app\n    restart: unless-stopped\n    networks:\n      - slashnode\n    user: '1000:1000'\n    depends_on:\n      - db\n    environment:\n      WORDPRESS_DB_HOST: wordpress-db\n      WORDPRESS_DB_NAME: wordpress\n      WORDPRESS_DB_USER: umbrel\n      WORDPRESS_DB_PASSWORD: umbrelwordpress\n    volumes:\n      - app_data-wordpress:/var/www/html\n    ports:\n      - 127.0.0.1:8567:80\n  db:\n    image: mariadb:11.5.2\n    container_name: wordpress-db\n    restart: unless-stopped\n    networks:\n      - slashnode\n    user: '1000:1000'\n    environment:\n      MYSQL_ROOT_PASSWORD: umbrelwordpressroot\n      MYSQL_DATABASE: wordpress\n      MYSQL_USER: umbrel\n      MYSQL_PASSWORD: umbrelwordpress\n    volumes:\n      - db_data-db:/var/lib/mysql\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  app_data-wordpress:\n    name: slashnode-wordpress_app_data-wordpress\n  db_data-db:\n    name: slashnode-wordpress_db_data-db\n",
+  "web": {
+    "port": 8567,
+    "path": "/wp-admin"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8567,
+    "path": "/"
+  },
+  "notes": "Ported from Umbrel (wordpress). Upstream: https://wordpress.org/. "
+}

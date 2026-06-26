@@ -1,0 +1,22 @@
+{
+  "manifestVersion": 1,
+  "id": "librechat",
+  "name": "LibreChat",
+  "version": "0.8.7",
+  "category": "ai",
+  "description": "Enhanced ChatGPT Clone",
+  "icon": "🤖",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-librechat\nservices:\n  api:\n    image: ghcr.io/danny-avila/librechat:v0.8.7\n    container_name: librechat-api\n    restart: unless-stopped\n    networks:\n      - slashnode\n    user: '1000:1000'\n    command: npm run backend\n    depends_on:\n      - mongodb\n      - rag_api\n    environment:\n      HOST: 0.0.0.0\n      MONGO_URI: mongodb://librechat-mongodb:27017/LibreChat\n      MEILI_HOST: http://librechat-meilisearch:7700\n      RAG_PORT: '8000'\n      RAG_API_URL: http://librechat-rag_api:8000\n      OPENAI_API_KEY: user_provided\n      GOOGLE_KEY: user_provided\n      ANTHROPIC_API_KEY: user_provided\n      ASSISTANTS_API_KEY: user_provided\n      CREDS_KEY: f34be427ebb29de8d88c107a71546019685ed8b241d8f2ed00c3df97ad2566f0\n      CREDS_IV: e2341419ec3dd3d19b13a1a87fafcbfb\n      JWT_SECRET: 16f8c0ef4a5d391b26034086c628469d3f9f497f08163ab9b40137092f2909ef\n      JWT_REFRESH_SECRET: eaa5191f2914e30b9387fd84e254e4ba6fc51b4654968a9b0803b456a54b8418\n    volumes:\n      - api_data-api-librechat.yaml:/app/librechat.yaml\n      - api_data-api-images:/app/client/public/images\n      - api_data-api-uploads:/app/uploads\n      - api_data-api-logs:/app/api/logs\n    ports:\n      - 127.0.0.1:7050:3080\n  mongodb:\n    image: mongo:8.0.10\n    container_name: librechat-mongodb\n    restart: unless-stopped\n    networks:\n      - slashnode\n    user: '1000:1000'\n    command: mongod --noauth\n    volumes:\n      - mongodb_data-db:/data/db\n  meilisearch:\n    image: getmeili/meilisearch:v1.12.3\n    container_name: librechat-meilisearch\n    restart: unless-stopped\n    networks:\n      - slashnode\n    user: '1000:1000'\n    environment:\n      MEILI_HOST: http://librechat-meilisearch:7700\n      MEILI_NO_ANALYTICS: 'true'\n      MEILI_MASTER_KEY: DrhYf7zENyR6AlUCKmnz0eYASOQdl6zxH7s7MKFSfFCt\n    volumes:\n      - meilisearch_data-meilisearch:/meili_data\n  vectordb:\n    image: ankane/pgvector:v0.5.1\n    container_name: librechat-vectordb\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      POSTGRES_DB: mydatabase\n      POSTGRES_USER: myuser\n      POSTGRES_PASSWORD: mypassword\n    volumes:\n      - vectordb_data-vectordb:/var/lib/postgresql/data\n  rag_api:\n    image: ghcr.io/danny-avila/librechat-rag-api-dev-lite:v0.7.3\n    container_name: librechat-rag_api\n    restart: unless-stopped\n    networks:\n      - slashnode\n    depends_on:\n      - vectordb\n    environment:\n      DB_HOST: librechat-vectordb\n      RAG_PORT: '8000'\n      OPENAI_API_KEY: user_provided\n      GOOGLE_KEY: user_provided\n      ANTHROPIC_API_KEY: user_provided\n      ASSISTANTS_API_KEY: user_provided\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  api_data-api-librechat.yaml:\n    name: slashnode-librechat_api_data-api-librechat.yaml\n  api_data-api-images:\n    name: slashnode-librechat_api_data-api-images\n  api_data-api-uploads:\n    name: slashnode-librechat_api_data-api-uploads\n  api_data-api-logs:\n    name: slashnode-librechat_api_data-api-logs\n  mongodb_data-db:\n    name: slashnode-librechat_mongodb_data-db\n  meilisearch_data-meilisearch:\n    name: slashnode-librechat_meilisearch_data-meilisearch\n  vectordb_data-vectordb:\n    name: slashnode-librechat_vectordb_data-vectordb\n",
+  "web": {
+    "port": 7050,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 7050,
+    "path": "/"
+  },
+  "notes": "Ported from Umbrel (librechat). Upstream: https://librechat.ai/. Default login — user: \"umbrel@umbrel.local\", password: \"\". "
+}

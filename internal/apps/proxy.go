@@ -35,17 +35,13 @@ func ReloadProxy() error {
 	routes := []caddy.Route{{Host: host, UpstreamPort: cfg.HTTP.Port}}
 	for _, a := range LoadState().Installed {
 		if a.WebPort > 0 {
-			routes = append(routes, caddy.Route{
-				Host:         appSubdomain(a.ID) + "." + host,
-				UpstreamPort: a.WebPort,
-			})
-			// A custom domain is served in addition to the subdomain.
+			// Each app is served at exactly one host: its custom domain when set,
+			// otherwise its subdomain under the node host.
+			appHost := appSubdomain(a.ID) + "." + host
 			if a.Domain != "" {
-				routes = append(routes, caddy.Route{
-					Host:         a.Domain,
-					UpstreamPort: a.WebPort,
-				})
+				appHost = a.Domain
 			}
+			routes = append(routes, caddy.Route{Host: appHost, UpstreamPort: a.WebPort})
 		}
 	}
 

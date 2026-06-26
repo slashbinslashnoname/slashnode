@@ -22,6 +22,8 @@ const POST_ACTIONS = new Set([
   "update-latest",
   "set-version",
   "domain",
+  "hide",
+  "unhide",
 ]);
 
 async function proxy(

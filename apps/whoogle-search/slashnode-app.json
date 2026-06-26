@@ -1,0 +1,22 @@
+{
+  "manifestVersion": 1,
+  "id": "whoogle-search",
+  "name": "Whoogle Search",
+  "version": "1.2.4",
+  "category": "networking",
+  "description": "A self-hosted, ad-free, privacy-respecting metasearch engine",
+  "icon": "🌐",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-whoogle-search\nservices:\n  web:\n    image: benbusby/whoogle-search:1.2.4\n    container_name: whoogle-search\n    restart: unless-stopped\n    networks:\n      - slashnode\n    user: '927:927'\n    init: true\n    environment:\n      EXPOSE_PORT: '6420'\n    ports:\n      - 127.0.0.1:6420:6420\nnetworks:\n  slashnode:\n    external: true\n",
+  "web": {
+    "port": 6420,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 6420,
+    "path": "/"
+  },
+  "notes": "Ported from Umbrel (whoogle-search). Upstream: https://github.com/benbusby. "
+}

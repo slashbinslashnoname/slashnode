@@ -1,0 +1,22 @@
+{
+  "manifestVersion": 1,
+  "id": "ollama",
+  "name": "Ollama",
+  "version": "0.30.10",
+  "category": "ai",
+  "description": "Self-host open source AI models like DeepSeek-R1, Llama, and more",
+  "icon": "🤖",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-ollama\nservices:\n  ollama:\n    image: ollama/ollama:0.30.10\n    container_name: ollama\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      OLLAMA_ORIGINS: '*'\n      OLLAMA_CONTEXT_LENGTH: '8192'\n    volumes:\n      - ollama_data:/root/.ollama\n    ports:\n      - 127.0.0.1:11434:11434\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  ollama_data:\n    name: slashnode-ollama_ollama_data\n",
+  "web": {
+    "port": 11434,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 11434,
+    "path": "/"
+  },
+  "notes": "Ported from Umbrel (ollama). Upstream: https://ollama.com/. "
+}

@@ -1,0 +1,24 @@
+{
+  "manifestVersion": 1,
+  "id": "specter-desktop",
+  "name": "Specter Desktop",
+  "version": "2.1.9",
+  "category": "bitcoin",
+  "description": "Multisig with hardware wallets made easy",
+  "icon": "₿",
+  "dependencies": [
+    "bitcoind"
+  ],
+  "inputs": [],
+  "compose": "name: slashnode-specter-desktop\nservices:\n  web:\n    image: ghcr.io/cryptoadvance/specter-desktop:v2.1.9\n    container_name: specter-desktop\n    restart: unless-stopped\n    networks:\n      - slashnode\n    command:\n      - '--host=0.0.0.0'\n      - '--specter-data-folder=/data'\n    environment:\n      BTC_RPC_USER: ${bitcoind.exports.rpc.user}\n      BTC_RPC_PASSWORD: ${bitcoind.exports.rpc.password}\n      BTC_RPC_HOST: ${bitcoind.exports.rpc.host}\n      BTC_RPC_PORT: '8332'\n      BTC_RPC_PROTOCOL: http\n    volumes:\n      - web_data:/data\n    ports:\n      - 127.0.0.1:25441:25441\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data:\n    name: slashnode-specter-desktop_web_data\n",
+  "web": {
+    "port": 25441,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 25441,
+    "path": "/"
+  },
+  "notes": "Ported from Umbrel (specter-desktop). Upstream: https://specter.solutions. "
+}

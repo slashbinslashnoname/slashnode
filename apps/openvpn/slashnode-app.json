@@ -1,0 +1,33 @@
+{
+  "manifestVersion": 1,
+  "id": "openvpn",
+  "name": "OpenVPN",
+  "version": "2.14.3",
+  "category": "networking",
+  "description": "OpenVPN Access Server — run your own VPN with a built-in admin web UI and client config downloads. The free tier allows 2 simultaneous connections.",
+  "icon": "🔒",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: \"slashnode-openvpn\"\nservices:\n  openvpn:\n    image: \"openvpn/openvpn-as:2.14.3-5936bcd7-Ubuntu24\"\n    container_name: \"openvpn\"\n    restart: \"unless-stopped\"\n    networks:\n      - slashnode\n    cap_add:\n      - NET_ADMIN\n    devices:\n      - \"/dev/net/tun\"\n    ports:\n      - \"1194:1194/udp\"\n      - \"127.0.0.1:943:943\"\n    volumes:\n      - \"openvpn-data:/openvpn\"\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  openvpn-data:\n    name: \"slashnode-openvpn_openvpn_openvpn-data\"\n",
+  "probe": {
+    "type": "tcp",
+    "port": 943
+  },
+  "exports": {
+    "vpn.host": "openvpn",
+    "vpn.port": 1194
+  },
+  "endpoints": [
+    {
+      "label": "Admin UI",
+      "scheme": "https",
+      "port": 943,
+      "path": "/admin"
+    },
+    {
+      "label": "VPN",
+      "port": 1194
+    }
+  ],
+  "notes": "OpenVPN Access Server. The VPN listens on 1194/udp (public, so clients can connect). The admin UI is HTTPS on 943, published only on 127.0.0.1 — reach it via the app's .onion (https://<onion>:943/admin) or an SSH tunnel. On first start set the admin password: open the openvpn console and run  cd /usr/local/openvpn_as/scripts && ./sacli --user openvpn --new_pass='YOUR-STRONG-PASSWORD' SetLocalPassword && ./sacli start  — then log in to /admin as user 'openvpn' to create users and download client profiles."
+}
