@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { App } from "@/lib/api";
 import { InstallForm } from "@/components/InstallForm";
 import { CredsPanel } from "@/components/CredsPanel";
+import { EndpointsPanel } from "@/components/EndpointsPanel";
 import { VersionSelector } from "@/components/VersionSelector";
 
 // AppTabs splits an installed app's detail into two top-level tabs:
@@ -39,7 +40,14 @@ export function AppTabs({ app }: { app: App }) {
           <InstallForm app={app} />
         </div>
       ) : (
-        <CredsPanel id={app.id} endpoints={app.endpoints} />
+        <div className="flex flex-col gap-4">
+          <EndpointsPanel
+            endpoints={app.endpoints ?? []}
+            onion={app.onion}
+            web={app.web}
+          />
+          <CredsPanel id={app.id} />
+        </div>
       )}
     </div>
   );

@@ -73,6 +73,43 @@ func WriteUpdateUnits(servicePath, timerPath, binPath string) error {
 	return write(timerPath, UpdateTimerContent())
 }
 
+// PruneServiceContent renders the oneshot service that reclaims disk by removing
+// dangling docker images (stopped containers and volumes are preserved).
+func PruneServiceContent(binPath string) string {
+	return fmt.Sprintf(`[Unit]
+Description=SlashNode — docker image prune
+After=docker.service
+Wants=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=%s prune
+`, binPath)
+}
+
+// PruneTimerContent renders the daily prune timer.
+func PruneTimerContent() string {
+	return `[Unit]
+Description=SlashNode — daily docker image prune
+
+[Timer]
+OnCalendar=daily
+RandomizedDelaySec=1h
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+`
+}
+
+// WritePruneUnits writes the prune service and daily timer.
+func WritePruneUnits(servicePath, timerPath, binPath string) error {
+	if err := write(servicePath, PruneServiceContent(binPath)); err != nil {
+		return err
+	}
+	return write(timerPath, PruneTimerContent())
+}
+
 func write(path, content string) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err

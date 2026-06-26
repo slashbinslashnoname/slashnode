@@ -156,6 +156,14 @@ func UpStreamed(appID, composeFile string, w io.Writer) error {
 	return runStreamed(w, "docker", "compose", "-p", project(appID), "-f", composeFile, "up", "-d")
 }
 
+// Prune reclaims disk by removing dangling images (old layers left behind by
+// image/version updates). It deliberately does NOT touch containers (stopped
+// apps are preserved) or volumes (app data: chains, databases… are preserved).
+// Best-effort; output is streamed to w.
+func Prune(w io.Writer) error {
+	return runStreamed(w, "docker", "image", "prune", "-f")
+}
+
 // ImagesOutdated reports whether any of the app's images has a newer version in
 // its registry (remote manifest digest differs from the local one). Best-effort:
 // returns false on any error or for not-yet-pulled images.

@@ -18,10 +18,12 @@
   hardware; no third-party cloud, no middleman.
 - **Use a friendly interface** — a web App Store (light/dark theme) to install,
   configure, update and monitor each service.
-- **Stay privacy-first** — secrets encrypted at rest, a token-protected local
-  API, nothing exposed without an explicit action.
-- **Be Tor compliant** — every service can be published as a `.onion` hidden
-  service.
+- **Stay privacy-first** — credentials are kept server-side in root-only files
+  (mode `0600`), the admin password is hashed, the local API is token-protected,
+  and nothing is returned to the browser or logs without an explicit action.
+- **Reach it over Tor** — the SlashNode UI and any app with a web interface can
+  be served as `.onion` hidden services. (Raw service endpoints — Bitcoin
+  RPC/P2P, Electrum, Lightning… — are not exposed over Tor yet.)
 
 > Under the hood it's a Go daemon (`slashnoded`) — a single binary — that
 > installs on any existing Debian/Ubuntu in one line and orchestrates apps via
@@ -91,6 +93,7 @@ slashnoded serve          # Go API + supervised Next.js front end
 slashnoded status         # node status (--post-install: URL + credentials)
 slashnoded update         # apply the latest binary update (--to <tag>)
 slashnoded check-update   # check for an update (called by the timer; notify-only)
+slashnoded prune          # remove dangling docker images (daily timer; on bootstrap/updates)
 slashnoded uninstall      # remove service + binary (--purge: data too)
 ```
 

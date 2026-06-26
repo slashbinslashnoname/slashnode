@@ -66,10 +66,14 @@ export function InstallForm({ app }: { app: App }) {
       if (acc.includes("INSTALL FAILED")) {
         setError("install failed — see output below");
         setState("error");
+        router.refresh();
       } else {
+        // Install finished — head back to the home dashboard, where the app now
+        // shows up as a tile with its live status and connection URLs.
         setState("done");
+        router.push("/");
+        router.refresh();
       }
-      router.refresh();
     } catch {
       setError("daemon unreachable");
       setState("error");

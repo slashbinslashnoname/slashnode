@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/slashbinslashnoname/slashnode/internal/config"
 	"github.com/slashbinslashnoname/slashnode/internal/orchestrator"
 	"github.com/slashbinslashnoname/slashnode/internal/paths"
 )
@@ -55,9 +56,56 @@ func InstallStream(dir, id string, inputs, imageTags map[string]string, out io.W
 	}
 	fmt.Fprintln(out, "\n==> wiring reverse proxy & tor")
 	_ = ReloadProxy() // best-effort: refresh reverse-proxy routes
-	_ = ReloadTor()   // best-effort: refresh Tor hidden services
+	_ = ReloadTor(dir) // best-effort: refresh Tor hidden services
 	fmt.Fprintln(out, "==> done")
+	printServiceURLs(out, dir, id)
 	return nil
+}
+
+// PruneImages reclaims disk by removing dangling images (best-effort, no-op
+// without Docker). Run on updates, on bootstrap and by the daily timer — not on
+// install. Stopped containers and volumes are preserved.
+func PruneImages(out io.Writer) {
+	if orchestrator.Available() {
+		_ = orchestrator.Prune(out)
+	}
+}
+
+// printServiceURLs writes a bootstrap-style summary of how to reach the app: its
+// web UI and every declared endpoint, in clearnet form and (when Tor is enabled
+// and provisioned) over .onion.
+func printServiceURLs(out io.Writer, dir, id string) {
+	man, err := Find(dir, id)
+	if err != nil || (man.Web == nil && len(man.Endpoints) == 0) {
+		return
+	}
+	host := "slashnode.local"
+	if cfg, cerr := config.Load(paths.ConfigFile()); cerr == nil {
+		if cfg.Access.Mode == "server" && cfg.Access.Address != "" {
+			host = cfg.Access.Address
+		} else if cfg.Hostname != "" {
+			host = cfg.Hostname
+		}
+	}
+	onion := AppOnion(id)
+
+	fmt.Fprintln(out, "\n==> service URLs")
+	if man.Web != nil {
+		fmt.Fprintf(out, "    Web UI       http://%s:%d%s\n", host, man.Web.Port, man.Web.Path)
+		if onion != "" {
+			fmt.Fprintf(out, "      .onion     http://%s:%d%s\n", onion, man.Web.Port, man.Web.Path)
+		}
+	}
+	for _, e := range man.Endpoints {
+		scheme := ""
+		if e.Scheme == "http" || e.Scheme == "https" {
+			scheme = e.Scheme + "://"
+		}
+		fmt.Fprintf(out, "    %-12s %s%s:%d%s\n", e.Label, scheme, host, e.Port, e.Path)
+		if onion != "" {
+			fmt.Fprintf(out, "      .onion     %s%s:%d%s\n", scheme, onion, e.Port, e.Path)
+		}
+	}
 }
 
 // Reapply re-renders and recreates every installed app from the current
@@ -108,7 +156,8 @@ func Reapply(dir string) error {
 		}
 	}
 	_ = ReloadProxy()
-	_ = ReloadTor()
+	_ = ReloadTor(dir)
+	PruneImages(io.Discard) // reclaim disk after pulling updated images
 	return nil
 }
 
@@ -136,7 +185,8 @@ func ReapplyOne(dir, id string) error {
 		return err
 	}
 	_ = ReloadProxy()
-	_ = ReloadTor()
+	_ = ReloadTor(dir)
+	PruneImages(io.Discard) // reclaim disk after pulling the updated image
 	return nil
 }
 
@@ -248,7 +298,7 @@ func Uninstall(dir, id string, purge bool) error {
 		_ = os.RemoveAll(paths.AppRuntimeDir(id))
 	}
 	_ = ReloadProxy() // best-effort: refresh reverse-proxy routes
-	_ = ReloadTor()   // best-effort: refresh Tor hidden services
+	_ = ReloadTor(dir)   // best-effort: refresh Tor hidden services
 	return nil
 }
 

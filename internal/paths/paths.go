@@ -52,6 +52,8 @@ func BinPath() string              { return p("usr", "local", "bin", "slashnoded
 func SystemdUnit() string          { return p("etc", "systemd", "system", "slashnoded.service") }
 func SystemdUpdateService() string { return p("etc", "systemd", "system", "slashnoded-update.service") }
 func SystemdUpdateTimer() string   { return p("etc", "systemd", "system", "slashnoded-update.timer") }
+func SystemdPruneService() string  { return p("etc", "systemd", "system", "slashnoded-prune.service") }
+func SystemdPruneTimer() string    { return p("etc", "systemd", "system", "slashnoded-prune.timer") }
 func AvahiDir() string             { return p("etc", "avahi", "services") }
 func AvahiService() string         { return p("etc", "avahi", "services", "slashnode.service") }
 func CaddyfilePath() string        { return p("etc", "caddy", "Caddyfile") }

@@ -3,6 +3,7 @@ package cli
 import (
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"runtime"
 
@@ -140,6 +141,11 @@ func Init(args []string) error {
 		}
 		logf(*quiet, "→ update timer written (%s)", paths.SystemdUpdateTimer())
 
+		if err := systemd.WritePruneUnits(paths.SystemdPruneService(), paths.SystemdPruneTimer(), paths.BinPath()); err != nil {
+			return fmt.Errorf("writing prune units: %w", err)
+		}
+		logf(*quiet, "→ prune timer written (%s)", paths.SystemdPruneTimer())
+
 		// Initial reverse-proxy config (root host → front end).
 		if err := apps.ReloadProxy(); err != nil {
 			return fmt.Errorf("writing Caddyfile: %w", err)
@@ -147,7 +153,7 @@ func Init(args []string) error {
 		logf(*quiet, "→ Caddyfile written (%s)", paths.CaddyfilePath())
 
 		// Tor hidden services (best-effort; no-op unless enabled + tor present).
-		if err := apps.ReloadTor(); err != nil {
+		if err := apps.ReloadTor(resolveAppsDir()); err != nil {
 			logf(*quiet, "→ Tor reload skipped (%v)", err)
 		} else if cfg.Tor.Enabled {
 			logf(*quiet, "→ Tor hidden services written (%s)", paths.TorrcPath())
@@ -155,6 +161,13 @@ func Init(args []string) error {
 	} else {
 		logf(*quiet, "→ %s detected: systemd/Avahi skipped (Linux only)", runtime.GOOS)
 	}
+
+	// Reclaim disk from any prior install (best-effort; no-op without Docker).
+	pruneOut := io.Writer(os.Stdout)
+	if *quiet {
+		pruneOut = io.Discard
+	}
+	apps.PruneImages(pruneOut)
 
 	if !*quiet {
 		fmt.Println()

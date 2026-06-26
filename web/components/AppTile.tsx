@@ -125,8 +125,8 @@ export function AppTile({ app }: { app: App }) {
 
       {probe && <ProbeLine probe={probe} />}
 
-      {app.endpoints && app.endpoints.length > 0 && (
-        <EndpointsPanel endpoints={app.endpoints} />
+      {((app.endpoints && app.endpoints.length > 0) || app.onion) && (
+        <EndpointsPanel endpoints={app.endpoints ?? []} onion={app.onion} />
       )}
 
       <div className="flex flex-wrap gap-1.5">

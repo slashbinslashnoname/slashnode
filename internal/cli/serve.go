@@ -173,9 +173,12 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 		}
 		for i := range cat {
 			cat[i].URL = apps.AppURL(cfg, &cat[i].Manifest)
-			if cat[i].Installed && cat[i].Web != nil {
+			if cat[i].Installed {
 				if onion := apps.AppOnion(cat[i].ID); onion != "" {
-					cat[i].OnionURL = "http://" + onion
+					cat[i].Onion = onion
+					if cat[i].Web != nil {
+						cat[i].OnionURL = "http://" + onion
+					}
 				}
 			}
 		}
@@ -196,8 +199,9 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 		if installed {
 			entry.InstalledVersion = inst.Version
 			entry.UpdateAvailable = inst.Version != man.Version
-			if man.Web != nil {
-				if onion := apps.AppOnion(man.ID); onion != "" {
+			if onion := apps.AppOnion(man.ID); onion != "" {
+				entry.Onion = onion
+				if man.Web != nil {
 					entry.OnionURL = "http://" + onion
 				}
 			}

@@ -11,10 +11,17 @@ import (
 	"strings"
 )
 
-// Service is one hidden service: Name (subdir under the data dir) → local Port.
+// Service is one hidden service (Name = subdir under the data dir) exposing one
+// or more ports under a single .onion address.
 type Service struct {
-	Name string
-	Port int
+	Name  string
+	Ports []PortForward
+}
+
+// PortForward maps an onion-side virtual port to a local 127.0.0.1 port.
+type PortForward struct {
+	Virtual int // port reached on the .onion (e.g. 80 for web, 8332 for RPC)
+	Local   int // forwarded to 127.0.0.1:<Local>
 }
 
 // Available reports whether tor is installed (and not disabled via env).
@@ -37,7 +44,12 @@ func Torrc(dataDir string, services []Service) string {
 	for _, s := range sorted {
 		dir := filepath.Join(dataDir, s.Name)
 		fmt.Fprintf(&b, "HiddenServiceDir %s\n", dir)
-		fmt.Fprintf(&b, "HiddenServicePort 80 127.0.0.1:%d\n\n", s.Port)
+		ports := append([]PortForward(nil), s.Ports...)
+		sort.Slice(ports, func(i, j int) bool { return ports[i].Virtual < ports[j].Virtual })
+		for _, p := range ports {
+			fmt.Fprintf(&b, "HiddenServicePort %d 127.0.0.1:%d\n", p.Virtual, p.Local)
+		}
+		b.WriteString("\n")
 	}
 	return b.String()
 }

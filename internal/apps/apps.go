@@ -119,7 +119,8 @@ type CatalogEntry struct {
 	Images           map[string]string `json:"images,omitempty"` // service → currently resolved image ref
 	UpdateAvailable  bool              `json:"update_available"`
 	URL              string            `json:"url,omitempty"`       // reverse-proxy URL (set by the API layer)
-	OnionURL         string            `json:"onion_url,omitempty"` // Tor hidden-service URL (set by the API layer)
+	OnionURL         string            `json:"onion_url,omitempty"` // Tor hidden-service URL of the web UI (set by the API layer)
+	Onion            string            `json:"onion,omitempty"`     // raw .onion host of the app, web + endpoints (set by the API layer)
 }
 
 // LoadCatalog reads all manifests dir/*/slashnode-app.json, sorted by name.

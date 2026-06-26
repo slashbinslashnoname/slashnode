@@ -50,6 +50,7 @@ Commands:
   apps         Manage apps (list | install <id> [K=V…] | uninstall <id> [--purge])
   update       Apply the latest binary update (--to <tag>)
   check-update Check whether an update is available (notify-only)
+  prune        Remove dangling docker images to reclaim disk (daily timer)
   uninstall    Remove the service and binary (--purge also removes data)
   version      Print the version
   help         Show this help

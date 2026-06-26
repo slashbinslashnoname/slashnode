@@ -7,9 +7,12 @@ import (
 )
 
 // ReloadTor regenerates the torrc exposing the SlashNode UI and every installed
-// web app as Tor hidden services (.onion), then reloads tor. Best-effort and a
-// no-op unless Tor is enabled in the config and the tor binary is available.
-func ReloadTor() error {
+// app as Tor hidden services (.onion), then reloads tor. Each app gets a single
+// onion forwarding its web UI (onion:80 → web port) and every endpoint it
+// declares (onion:<port> → 127.0.0.1:<port>), so node services — RPC, P2P,
+// Electrum, Lightning… — are reachable over Tor, not just web UIs. Best-effort
+// and a no-op unless Tor is enabled and the tor binary is available.
+func ReloadTor(dir string) error {
 	cfg, err := config.Load(paths.ConfigFile())
 	if err != nil {
 		return nil
@@ -18,12 +21,29 @@ func ReloadTor() error {
 		return nil
 	}
 
-	// The UI itself, plus a hidden service per app with a web UI. The hidden
-	// service forwards onion:80 → 127.0.0.1:<port> (ports published on the host).
-	services := []tor.Service{{Name: "slashnode", Port: cfg.HTTP.Port}}
+	services := []tor.Service{{
+		Name:  "slashnode",
+		Ports: []tor.PortForward{{Virtual: 80, Local: cfg.HTTP.Port}},
+	}}
 	for _, a := range LoadState().Installed {
+		var ports []tor.PortForward
+		seen := map[int]bool{}
+		add := func(virtual, local int) {
+			if virtual > 0 && local > 0 && !seen[virtual] {
+				seen[virtual] = true
+				ports = append(ports, tor.PortForward{Virtual: virtual, Local: local})
+			}
+		}
 		if a.WebPort > 0 {
-			services = append(services, tor.Service{Name: a.ID, Port: a.WebPort})
+			add(80, a.WebPort)
+		}
+		if man, ferr := Find(dir, a.ID); ferr == nil {
+			for _, e := range man.Endpoints {
+				add(e.Port, e.Port) // endpoints are reachable on their published host port
+			}
+		}
+		if len(ports) > 0 {
+			services = append(services, tor.Service{Name: a.ID, Ports: ports})
 		}
 	}
 

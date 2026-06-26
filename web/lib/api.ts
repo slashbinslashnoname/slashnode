@@ -47,6 +47,7 @@ export type App = {
   update_available?: boolean;
   url?: string;
   onion_url?: string;
+  onion?: string;
   web?: { port: number; path?: string };
   endpoints?: AppEndpoint[];
   probe?: { type: string };

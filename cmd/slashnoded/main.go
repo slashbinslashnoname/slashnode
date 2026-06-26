@@ -43,6 +43,8 @@ func main() {
 		err = cli.Update(args)
 	case "check-update":
 		err = cli.CheckUpdate(args)
+	case "prune":
+		err = cli.Prune(args)
 	case "uninstall":
 		err = cli.Uninstall(args)
 	case "version", "-v", "--version":
