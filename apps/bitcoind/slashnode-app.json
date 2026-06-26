@@ -80,5 +80,6 @@
       "label": "P2P",
       "port": 8333
     }
-  ]
+  ],
+  "priority": 115
 }

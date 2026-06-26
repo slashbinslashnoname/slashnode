@@ -38,6 +38,7 @@ export type App = {
   version: string;
   images?: Record<string, string>;
   category: string[];
+  priority?: number;
   description?: string;
   icon?: string;
   dependencies?: string[];

@@ -37,10 +37,12 @@ export function StoreList({ apps }: { apps: App[] }) {
   const shown = matched
     .filter((a) => !a.hidden || showRemoved)
     .filter((a) => activeCats.length === 0 || catsOf(a).some((c) => activeCats.includes(c)));
-  // Installed apps float to the top; name order (from the API) is preserved
-  // within each group since Array.sort is stable.
+  // Ordering: explicit priority first (first-party apps rank above ported ones),
+  // then installed, then the API's name order (preserved by the stable sort).
   const filtered = [...shown].sort(
-    (a, b) => Number(!!b.installed) - Number(!!a.installed),
+    (a, b) =>
+      (b.priority ?? 0) - (a.priority ?? 0) ||
+      Number(!!b.installed) - Number(!!a.installed),
   );
 
   return (

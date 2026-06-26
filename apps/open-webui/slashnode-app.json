@@ -18,5 +18,6 @@
     "port": 3010,
     "path": "/"
   },
-  "notes": "On first launch, create the admin account. Add an Ollama URL or an OpenAI API key under Settings → Connections."
+  "notes": "On first launch, create the admin account. Add an Ollama URL or an OpenAI API key under Settings → Connections.",
+  "priority": 103
 }

@@ -10,7 +10,9 @@ export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const [data, update] = await Promise.all([getApps(), getUpdate()]);
-  const installed = (data?.apps ?? []).filter((a) => a.installed);
+  const installed = (data?.apps ?? [])
+    .filter((a) => a.installed)
+    .sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-5xl px-4 py-10">

@@ -122,6 +122,9 @@ type Manifest struct {
 	Category        CategoryList    `json:"category"`
 	Description     string          `json:"description"`
 	Icon            string          `json:"icon"`
+	// Priority orders apps in the store (higher shows first); 0 by default. The
+	// first-party apps are ranked above the ported catalog.
+	Priority        int             `json:"priority,omitempty"`
 	Dependencies    []string        `json:"dependencies"`
 	Inputs          []Input         `json:"inputs"`
 	// Compose is the app's docker-compose document (YAML). SlashNode templates

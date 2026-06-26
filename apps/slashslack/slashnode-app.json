@@ -17,5 +17,6 @@
     "type": "http",
     "port": 3000,
     "path": "/api/health"
-  }
+  },
+  "priority": 110
 }
