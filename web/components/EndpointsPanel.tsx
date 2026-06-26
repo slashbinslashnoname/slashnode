@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import type { AppEndpoint } from "@/lib/api";
 import { webClearnetUrl } from "@/lib/appUrl";
 
@@ -39,25 +39,38 @@ export function EndpointsPanel({
       <div className="mb-1 text-xs font-semibold text-muted">Endpoints</div>
 
       {web && (
-        <Row label="Web UI">
-          <Addr value={webClear || "…"} open={!!host} />
-          {webOnion && <Addr value={webOnion} open onionTag />}
-        </Row>
+        <>
+          <Row label="Web UI">
+            <Addr value={webClear || "…"} open={!!host} />
+          </Row>
+          {webOnion && (
+            <Row label="Web UI Tor">
+              <Addr value={webOnion} open />
+            </Row>
+          )}
+        </>
       )}
 
       {endpoints.map((e, i) => {
         // Endpoints are connection addresses (RPC, P2P, Electrum, S3…), reached
         // with a client — not browser pages — so they show as a bare host:port
         // with no scheme prefix and no "open" link (the Web UI row above is the
-        // only browser-navigable URL).
+        // only browser-navigable URL). The Tor address is its own row, labelled
+        // "<endpoint> Tor", aligned like the clearnet row above it.
         const suffix = e.path && e.path !== "/" ? e.path : "";
         const clear = `${host}:${e.port}${suffix}`;
         const onionAddr = onion ? `${onion}:${e.port}${suffix}` : "";
         return (
-          <Row key={`${e.label}-${e.port}-${i}`} label={e.label}>
-            <Addr value={host ? clear : "…"} />
-            {onionAddr && <Addr value={onionAddr} onionTag />}
-          </Row>
+          <Fragment key={`${e.label}-${e.port}-${i}`}>
+            <Row label={e.label}>
+              <Addr value={host ? clear : "…"} />
+            </Row>
+            {onionAddr && (
+              <Row label={`${e.label} Tor`}>
+                <Addr value={onionAddr} />
+              </Row>
+            )}
+          </Fragment>
         );
       })}
     </div>
@@ -82,15 +95,12 @@ function Row({
 function Addr({
   value,
   open,
-  onionTag,
 }: {
   value: string;
   open?: boolean;
-  onionTag?: boolean;
 }) {
   return (
     <span className="flex items-center gap-2">
-      {onionTag && <span className="text-[10px] text-muted">.onion</span>}
       <code className="break-all text-fg">{value}</code>
       <button
         onClick={() => navigator.clipboard?.writeText(value)}
