@@ -37,7 +37,7 @@ export type App = {
   name: string;
   version: string;
   images?: Record<string, string>;
-  category: string;
+  category: string[];
   description?: string;
   icon?: string;
   dependencies?: string[];

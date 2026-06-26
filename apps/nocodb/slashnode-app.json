@@ -3,7 +3,10 @@
   "id": "nocodb",
   "name": "NocoDB",
   "version": "2026.06.1",
-  "category": "files",
+  "category": [
+    "productivity",
+    "developer"
+  ],
   "description": "No-code platform for database management, self-hosted Airtable alternative",
   "icon": "📁",
   "dependencies": [],

@@ -7,16 +7,26 @@ import type { App } from "@/lib/api";
 
 // StoreList renders the searchable app grid: a search box filters by app name,
 // description and category as you type.
+const catsOf = (a: App): string[] => a.category ?? [];
+
 export function StoreList({ apps }: { apps: App[] }) {
   const [q, setQ] = useState("");
   const [showRemoved, setShowRemoved] = useState(false);
+  // Selected category filters (multi-select, OR semantics). Empty = all.
+  const [activeCats, setActiveCats] = useState<string[]>([]);
   const query = q.trim().toLowerCase();
   // Bitcoin Knots is intentionally not offered.
   const isKnots = /\bknots\b/.test(query);
   const removedCount = apps.filter((a) => a.hidden).length;
+
+  // All categories present in the catalog, sorted, for the filter chips.
+  const allCats = [...new Set(apps.flatMap(catsOf))].sort();
+  const toggleCat = (c: string) =>
+    setActiveCats((cur) => (cur.includes(c) ? cur.filter((x) => x !== c) : [...cur, c]));
+
   const matched = query
     ? apps.filter((a) =>
-        [a.name, a.description ?? "", a.category]
+        [a.name, a.description ?? "", ...catsOf(a)]
           .join(" ")
           .toLowerCase()
           .includes(query),
@@ -24,7 +34,9 @@ export function StoreList({ apps }: { apps: App[] }) {
     : apps;
   // Apps removed from the store are hidden unless "show removed" is on; they stay
   // out of the catalog while their already-installed instances keep running.
-  const shown = matched.filter((a) => !a.hidden || showRemoved);
+  const shown = matched
+    .filter((a) => !a.hidden || showRemoved)
+    .filter((a) => activeCats.length === 0 || catsOf(a).some((c) => activeCats.includes(c)));
   // Installed apps float to the top; name order (from the API) is preserved
   // within each group since Array.sort is stable.
   const filtered = [...shown].sort(
@@ -41,6 +53,19 @@ export function StoreList({ apps }: { apps: App[] }) {
         autoComplete="off"
         className="w-full rounded-lg border border-border bg-bg px-4 py-2.5 text-sm outline-none focus:border-primary"
       />
+
+      {allCats.length > 1 && (
+        <div className="flex flex-wrap gap-2">
+          <CatChip active={activeCats.length === 0} onClick={() => setActiveCats([])}>
+            all
+          </CatChip>
+          {allCats.map((c) => (
+            <CatChip key={c} active={activeCats.includes(c)} onClick={() => toggleCat(c)}>
+              {c}
+            </CatChip>
+          ))}
+        </div>
+      )}
 
       {removedCount > 0 && (
         <button
@@ -65,6 +90,29 @@ export function StoreList({ apps }: { apps: App[] }) {
         </div>
       )}
     </div>
+  );
+}
+
+function CatChip({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`cursor-pointer rounded-full border px-3 py-1 text-xs transition-colors ${
+        active
+          ? "border-primary bg-primary text-white"
+          : "border-border text-muted hover:border-primary hover:text-fg"
+      }`}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -93,7 +141,7 @@ function AppCard({ app }: { app: App }) {
         <div>
           <div className="font-semibold">{app.name}</div>
           <div className="text-xs text-muted">
-            {app.category} · v{app.version}
+            {catsOf(app).join(", ")} · v{app.version}
           </div>
         </div>
         {app.update_available ? (

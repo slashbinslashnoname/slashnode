@@ -3,7 +3,10 @@
   "id": "stirling-pdf",
   "name": "Stirling PDF",
   "version": "2.13.2",
-  "category": "files",
+  "category": [
+    "files",
+    "productivity"
+  ],
   "description": "Merge, split, rotate, and convert PDFs with ease",
   "icon": "📁",
   "dependencies": [],

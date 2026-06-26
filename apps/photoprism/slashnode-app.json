@@ -3,7 +3,10 @@
   "id": "photoprism",
   "name": "PhotoPrism",
   "version": "260305-fad9d5395",
-  "category": "files",
+  "category": [
+    "media",
+    "files"
+  ],
   "description": "Self-host your photo and video library",
   "icon": "📁",
   "dependencies": [],
