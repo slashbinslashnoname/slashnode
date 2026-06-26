@@ -29,10 +29,11 @@ export async function POST(req: Request) {
     return Response.json({ error: "daemon unreachable" }, { status: 502 });
   }
 
+  const secure = process.env.SLASHNODE_ACCESS_MODE === "server" ? "; Secure" : "";
   const response = Response.json({ status: "ok" });
   response.headers.append(
     "Set-Cookie",
-    `slashnode_session=${session}; HttpOnly; Path=/; SameSite=Lax; Max-Age=604800`,
+    `slashnode_session=${session}; HttpOnly; Path=/; SameSite=Lax; Max-Age=604800${secure}`,
   );
   return response;
 }

@@ -16,16 +16,17 @@ import (
 
 // consoleHandler serves an interactive shell into a container over a WebSocket
 // (xterm.js on the front, `docker exec -it` + PTY on the back). It is reached
-// through Caddy at /__console; auth mirrors the UI (session cookie when the node
-// is password-protected).
+// through Caddy at /__console. A container shell is the highest-privilege
+// operation, so it ALWAYS requires a valid session cookie — even in open
+// (non-password) mode, where the front issues the cookie to same-origin loads.
+// This blocks cross-site and non-browser clients from opening a shell.
 func consoleHandler(cfg *config.Config, sec *secrets.Secrets) http.HandlerFunc {
+	_ = cfg
 	return func(w http.ResponseWriter, r *http.Request) {
-		if cfg.Access.PasswordProtected {
-			c, err := r.Cookie("slashnode_session")
-			if err != nil || subtle.ConstantTimeCompare([]byte(c.Value), []byte(sec.SessionSecret)) != 1 {
-				http.Error(w, "unauthorized", http.StatusUnauthorized)
-				return
-			}
+		c, err := r.Cookie("slashnode_session")
+		if err != nil || subtle.ConstantTimeCompare([]byte(c.Value), []byte(sec.SessionSecret)) != 1 {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
 		}
 		container := r.URL.Query().Get("c")
 		if container == "" {
@@ -50,7 +51,9 @@ func runConsole(conn *websocket.Conn, container string) {
 
 	// -it gives the container process a PTY; the pty package provides the
 	// client-side PTY that `docker exec -t` requires.
-	cmd := exec.Command("docker", "exec", "-it", container, "sh", "-c",
+	// `--` stops flag parsing so a container name starting with '-' can't be
+	// interpreted as a docker exec flag (e.g. --privileged, --user).
+	cmd := exec.Command("docker", "exec", "-it", "--", container, "sh", "-c",
 		"exec $(command -v bash >/dev/null 2>&1 && echo bash || echo sh)")
 	ptmx, err := pty.Start(cmd)
 	if err != nil {

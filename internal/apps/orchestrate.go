@@ -426,6 +426,9 @@ func installOne(dir, appID string, provided, imageTagOverride map[string]string,
 		if in.MinLength > 0 && len(val) < in.MinLength {
 			return fmt.Errorf("%s: %d characters minimum", in.Key, in.MinLength)
 		}
+		if err := validateInput(in, val); err != nil {
+			return err
+		}
 		if in.Secret || in.Type == "password" {
 			secret[in.Key] = val
 		} else {
@@ -619,25 +622,80 @@ func resolveValue(s string, inputs, secrets map[string]string, registry map[stri
 func templateRefs(s string, inputs, secrets map[string]string, registry map[string]map[string]string) string {
 	return refRe.ReplaceAllStringFunc(s, func(m string) string {
 		inner := m[2 : len(m)-1]
+		// Values are escaped for the double-quoted YAML scalar context manifests
+		// use, so a value can't break out of the compose structure.
 		switch {
 		case strings.HasPrefix(inner, "input."):
 			if v, ok := inputs[inner[len("input."):]]; ok {
-				return v
+				return yamlEscape(v)
 			}
 		case strings.HasPrefix(inner, "secret."):
 			if v, ok := secrets[inner[len("secret."):]]; ok {
-				return v
+				return yamlEscape(v)
 			}
 		case strings.Contains(inner, ".exports."):
 			parts := strings.SplitN(inner, ".exports.", 2)
 			if e, ok := registry[parts[0]]; ok {
 				if v, ok := e[parts[1]]; ok {
-					return v
+					return yamlEscape(v)
 				}
 			}
 		}
 		return m // leave unknown refs untouched
 	})
+}
+
+// validateInput enforces an input's declared constraints server-side. This is a
+// security boundary, not just UX: a value is substituted verbatim into the
+// app's docker-compose document and config files, so a crafted value must not
+// be able to break out of the structure it lands in. Rejecting control
+// characters removes the newline primitive used to inject sibling YAML keys
+// (e.g. `privileged: true`, a host bind-mount) or extra config directives, and
+// option/number checks stop off-menu values.
+func validateInput(in Input, val string) error {
+	for _, r := range val {
+		if r < 0x20 || r == 0x7f {
+			return fmt.Errorf("%s: control characters are not allowed", in.Key)
+		}
+	}
+	switch in.Type {
+	case "select":
+		if len(in.Options) > 0 {
+			for _, o := range in.Options {
+				if o == val {
+					return nil
+				}
+			}
+			return fmt.Errorf("%s: %q is not an allowed option", in.Key, val)
+		}
+	case "number":
+		f, err := strconv.ParseFloat(strings.TrimSpace(val), 64)
+		if err != nil {
+			return fmt.Errorf("%s: must be a number", in.Key)
+		}
+		if in.Min != nil && f < *in.Min {
+			return fmt.Errorf("%s: must be >= %v", in.Key, *in.Min)
+		}
+		if in.Max != nil && f > *in.Max {
+			return fmt.Errorf("%s: must be <= %v", in.Key, *in.Max)
+		}
+	case "boolean":
+		if val != "true" && val != "false" {
+			return fmt.Errorf("%s: must be true or false", in.Key)
+		}
+	}
+	return nil
+}
+
+// yamlEscape escapes a value for safe inclusion inside a double-quoted YAML
+// scalar (the convention manifests use, e.g. KEY: "${input.X}"). Backslash and
+// quote are escaped so a value containing them can neither break the document
+// nor close the scalar early. Control characters are already rejected by
+// validateInput, so structural newline injection is impossible.
+func yamlEscape(s string) string {
+	s = strings.ReplaceAll(s, `\`, `\\`)
+	s = strings.ReplaceAll(s, `"`, `\"`)
+	return s
 }
 
 func randomToken(n int) (string, error) {

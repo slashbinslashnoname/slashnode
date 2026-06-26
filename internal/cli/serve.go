@@ -242,9 +242,17 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 	// bearer token the front adds server-side).
 	mux.Handle("POST /api/v1/password", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
 		var body struct {
+			Current  string `json:"current"`
 			Password string `json:"password"`
 		}
 		_ = json.NewDecoder(r.Body).Decode(&body)
+		// Require the current password so a mere UI/session holder can't silently
+		// take over or lock out the owner (open mode: the initial password is
+		// shown post-install; reset via `slashnoded init --force --password`).
+		if !sec.Verify(body.Current) {
+			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "current password is incorrect"})
+			return
+		}
 		if len(body.Password) < 8 {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "password must be at least 8 characters"})
 			return
