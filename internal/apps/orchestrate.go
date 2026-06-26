@@ -71,6 +71,21 @@ func PruneImages(out io.Writer) {
 	}
 }
 
+// nodeExports returns the node's own coordinates, exposed to manifests as
+// ${node.exports.host} so they can build their conventional reverse-proxy URL
+// (e.g. jitsi.<host>) without prompting the operator.
+func nodeExports() map[string]string {
+	host := "slashnode.local"
+	if cfg, err := config.Load(paths.ConfigFile()); err == nil {
+		if cfg.Access.Mode == "server" && cfg.Access.Address != "" {
+			host = cfg.Access.Address
+		} else if cfg.Hostname != "" {
+			host = cfg.Hostname
+		}
+	}
+	return map[string]string{"host": host}
+}
+
 // printServiceURLs writes a bootstrap-style summary of how to reach the app: its
 // web UI and every declared endpoint, in clearnet form and (when Tor is enabled
 // and provisioned) over .onion.
@@ -388,6 +403,11 @@ func installOne(dir, appID string, provided, imageTagOverride map[string]string,
 
 	registry := loadRegistry()
 
+	// Expose the node's own coordinates so manifests can build conventional URLs
+	// (e.g. jitsi's PUBLIC_URL = https://jitsi.${node.exports.host}) without
+	// asking the operator. Not persisted — stripped before saveRegistry.
+	registry["node"] = nodeExports()
+
 	// Resolve this app's exports from its own inputs/secrets.
 	exports := map[string]string{}
 	for k, v := range man.Exports {
@@ -462,7 +482,9 @@ func installOne(dir, appID string, provided, imageTagOverride map[string]string,
 		}
 	}
 
-	// Persist registry, secrets and installed state.
+	// Persist registry, secrets and installed state. The synthetic "node" entry
+	// is templating-only — never persist it.
+	delete(registry, "node")
 	registry[appID] = exports
 	if err := saveRegistry(registry); err != nil {
 		return err
