@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -270,6 +271,16 @@ func resolveImages(man *Manifest, tags map[string]string) (map[string]string, er
 	return out, nil
 }
 
+// loopbackPort rewrites a compose ports entry that publishes hostPort (in the
+// bare "hostPort:containerPort[/proto]" form) so the host side binds 127.0.0.1
+// only. Entries that already pin a host IP, or publish a different port, are left
+// untouched.
+func loopbackPort(content string, hostPort int) string {
+	p := strconv.Itoa(hostPort)
+	re := regexp.MustCompile(`(?m)^(\s*-\s*)"?` + p + `:(\d+)(/[A-Za-z]+)?"?\s*$`)
+	return re.ReplaceAllString(content, `${1}"127.0.0.1:`+p+`:${2}${3}"`)
+}
+
 // replaceTag swaps the tag of a docker image reference, preserving the registry
 // (which may itself contain a ':' for a port) and stripping any digest.
 func replaceTag(image, tag string) string {
@@ -484,6 +495,11 @@ func installOne(dir, appID string, provided, imageTagOverride map[string]string,
 		if t := imageTags[svc]; t != "" {
 			content = strings.Replace(content, img, replaceTag(img, t), 1)
 		}
+	}
+	// Bind the web-UI backend to loopback so it's reachable only through Caddy
+	// (HTTPS) and Tor — never directly over the network in plain HTTP.
+	if man.Web != nil && man.Web.Port > 0 {
+		content = loopbackPort(content, man.Web.Port)
 	}
 	if err := os.MkdirAll(paths.AppRuntimeDir(appID), 0o700); err != nil {
 		return err
