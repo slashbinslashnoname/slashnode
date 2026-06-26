@@ -51,6 +51,7 @@ export type App = {
   subdomain?: string;
   domain?: string;
   host?: string;
+  hidden?: boolean;
   web?: { port: number; path?: string };
   endpoints?: AppEndpoint[];
   probe?: { type: string };

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { App } from "@/lib/api";
 
@@ -8,9 +9,11 @@ import type { App } from "@/lib/api";
 // description and category as you type.
 export function StoreList({ apps }: { apps: App[] }) {
   const [q, setQ] = useState("");
+  const [showRemoved, setShowRemoved] = useState(false);
   const query = q.trim().toLowerCase();
   // Bitcoin Knots is intentionally not offered.
   const isKnots = /\bknots\b/.test(query);
+  const removedCount = apps.filter((a) => a.hidden).length;
   const matched = query
     ? apps.filter((a) =>
         [a.name, a.description ?? "", a.category]
@@ -19,9 +22,12 @@ export function StoreList({ apps }: { apps: App[] }) {
           .includes(query),
       )
     : apps;
+  // Apps removed from the store are hidden unless "show removed" is on; they stay
+  // out of the catalog while their already-installed instances keep running.
+  const shown = matched.filter((a) => !a.hidden || showRemoved);
   // Installed apps float to the top; name order (from the API) is preserved
   // within each group since Array.sort is stable.
-  const filtered = [...matched].sort(
+  const filtered = [...shown].sort(
     (a, b) => Number(!!b.installed) - Number(!!a.installed),
   );
 
@@ -35,6 +41,15 @@ export function StoreList({ apps }: { apps: App[] }) {
         autoComplete="off"
         className="w-full rounded-lg border border-border bg-bg px-4 py-2.5 text-sm outline-none focus:border-primary"
       />
+
+      {removedCount > 0 && (
+        <button
+          onClick={() => setShowRemoved((v) => !v)}
+          className="-mt-2 w-fit cursor-pointer text-xs text-muted hover:text-primary"
+        >
+          {showRemoved ? "hide" : "show"} {removedCount} removed app{removedCount > 1 ? "s" : ""}
+        </button>
+      )}
 
       {isKnots ? (
         <p className="rounded-lg border border-primary/40 bg-primary/10 px-4 py-3 text-sm font-medium text-primary">
@@ -54,10 +69,24 @@ export function StoreList({ apps }: { apps: App[] }) {
 }
 
 function AppCard({ app }: { app: App }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+
+  async function toggleStore(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setBusy(true);
+    await fetch(`/api/apps/${app.id}/${app.hidden ? "unhide" : "hide"}`, { method: "POST" });
+    setBusy(false);
+    router.refresh();
+  }
+
   return (
     <Link
       href={`/store/${app.id}`}
-      className="group flex flex-col gap-3 rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary"
+      className={`group relative flex flex-col gap-3 rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary ${
+        app.hidden ? "opacity-60" : ""
+      }`}
     >
       <div className="flex items-center gap-3">
         <span className="text-3xl">{app.icon ?? "📦"}</span>
@@ -78,6 +107,14 @@ function AppCard({ app }: { app: App }) {
         ) : null}
       </div>
       {app.description && <p className="text-sm text-muted">{app.description}</p>}
+      <button
+        onClick={toggleStore}
+        disabled={busy}
+        title={app.hidden ? "Restore to the store" : "Remove from the store (keeps installed instances)"}
+        className="w-fit cursor-pointer text-xs text-muted hover:text-primary disabled:opacity-50"
+      >
+        {busy ? "…" : app.hidden ? "↩ restore to store" : "✕ remove from store"}
+      </button>
     </Link>
   );
 }

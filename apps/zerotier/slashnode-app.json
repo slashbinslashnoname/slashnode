@@ -1,0 +1,13 @@
+{
+  "manifestVersion": 1,
+  "id": "zerotier",
+  "name": "ZeroTier",
+  "version": "1.14.2",
+  "category": "networking",
+  "description": "Peer-to-peer mesh VPN — join your node to a ZeroTier network and reach it securely from anywhere.",
+  "icon": "🌐",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: \"slashnode-zerotier\"\nservices:\n  zerotier:\n    image: \"zerotier/zerotier:1.14.2\"\n    container_name: \"zerotier\"\n    restart: \"unless-stopped\"\n    network_mode: \"host\"\n    cap_add:\n      - NET_ADMIN\n    devices:\n      - \"/dev/net/tun\"\n    volumes:\n      - \"zerotier-data:/var/lib/zerotier-one\"\nvolumes:\n  zerotier-data:\n    name: \"slashnode-zerotier_zerotier_zerotier-data\"\n",
+  "notes": "ZeroTier mesh-VPN client. It runs in host network mode and needs the NET_ADMIN capability and /dev/net/tun to manage the VPN tunnel — it is not behind Caddy/Tor. Open the zerotier console and run `zerotier-cli join <network-id>` to join a network, then authorize this node in your ZeroTier Central account. Check status with `zerotier-cli status` / `zerotier-cli listnetworks`."
+}

@@ -125,6 +125,7 @@ type CatalogEntry struct {
 	Subdomain        string            `json:"subdomain,omitempty"` // effective reverse-proxy subdomain (set by the API layer)
 	Domain           string            `json:"domain,omitempty"`    // custom domain override (set by the API layer)
 	Host             string            `json:"host,omitempty"`      // node base host apps live under (set by the API layer)
+	Hidden           bool              `json:"hidden,omitempty"`    // removed from the App Store (set by the API layer)
 }
 
 // LoadCatalog reads all manifests dir/*/slashnode-app.json, sorted by name.
@@ -179,6 +180,9 @@ type InstalledApp struct {
 // State is the installation state (var/lib/slashnode/apps.json).
 type State struct {
 	Installed map[string]InstalledApp `json:"installed"`
+	// Hidden lists catalog apps the operator removed from the App Store. They no
+	// longer appear for new installs but already-installed instances keep running.
+	Hidden []string `json:"hidden,omitempty"`
 }
 
 // LoadState reads the installation state (empty if absent).
