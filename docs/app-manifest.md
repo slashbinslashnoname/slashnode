@@ -157,3 +157,33 @@ block. The daemon resolves the references at install time. Zero manual config.
 References available in values: `${input.KEY}`, `${secret.KEY}`,
 `${<app>.exports.<key>}`. Any other `${VAR}` in `compose` is left for docker
 compose's own interpolation.
+
+## `migrations` (breaking app upgrades)
+
+When a new version of an app breaks compatibility with state an older version
+wrote (a renamed volume, a renamed input, a one-off data migration), declare it
+in `migrations`. The daemon applies pending migrations **in ascending version
+order, before re-rendering** the app (against the still-running old container),
+recording the applied version per app. Append only — never reorder or renumber.
+
+```jsonc
+"migrations": [
+  {
+    "version": 1,
+    "description": "rename data volume and config key",
+    "steps": [
+      { "renameVolume":  { "from": "old-data", "to": "app-data" } },
+      { "copyVolume":    { "from": "slashnode-app_app_old", "to": "slashnode-app_app_new" } },
+      { "renameInput":   { "from": "OLD_KEY", "to": "NEW_KEY" } },
+      { "renameSecret":  { "from": "OLD_PW", "to": "NEW_PW" } },
+      { "setInput":      { "key": "MODE", "value": "v2" } },
+      { "removeInput":   "DEPRECATED" },
+      { "exec":          { "service": "app", "command": "/migrate.sh" } }
+    ]
+  }
+]
+```
+
+Node-level state migrations (config/apps/registry schema) are Go-coded in
+`internal/migrate` and run on `init` and every `serve` start, with an automatic
+state snapshot + rollback on failure. Preview with `slashnoded migrate --dry-run`.

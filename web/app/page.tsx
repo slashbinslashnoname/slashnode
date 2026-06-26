@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { TopControls } from "@/components/TopControls";
 import { UpdateBanner } from "@/components/UpdateBanner";
+import { StorageBanner } from "@/components/SystemStatus";
 import { AppTile } from "@/components/AppTile";
 import { BitcoinPrice } from "@/components/BitcoinPrice";
 import { getApps, getStatus, getUpdate } from "@/lib/api";
@@ -33,6 +34,8 @@ export default async function Home() {
           <UpdateBanner current={update.current} latest={update.latest} />
         </div>
       )}
+
+      <StorageBanner />
 
       <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted">
         Your apps

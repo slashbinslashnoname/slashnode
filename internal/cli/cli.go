@@ -52,6 +52,7 @@ Commands:
   check-update Check whether an update is available (notify-only)
   prune        Remove dangling docker images to reclaim disk (daily timer)
   passwd       Set/reset the admin password (recover web UI access)
+  migrate      Apply pending schema migrations (--dry-run to preview)
   uninstall    Remove the service and binary (--purge also removes data)
   version      Print the version
   help         Show this help

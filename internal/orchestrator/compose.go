@@ -165,6 +165,24 @@ func Prune(w io.Writer) error {
 	return runStreamed(w, "docker", "image", "prune", "-f")
 }
 
+// ExecStreamed runs a one-off command inside a running service container (used
+// by per-app migrations), streaming output to w.
+func ExecStreamed(appID, composeFile, service, command string, w io.Writer) error {
+	return runStreamed(w, "docker", "compose", "-p", project(appID), "-f", composeFile,
+		"exec", "-T", service, "sh", "-c", command)
+}
+
+// CopyVolume copies the contents of the `from` docker volume into a new `to`
+// volume (used by migrations that rename a volume). The destination is created
+// if missing.
+func CopyVolume(from, to string) error {
+	if err := run("docker", "volume", "create", to); err != nil {
+		return err
+	}
+	return run("docker", "run", "--rm", "-v", from+":/from:ro", "-v", to+":/to",
+		"alpine", "sh", "-c", "cp -a /from/. /to/")
+}
+
 // ImagesOutdated reports whether any of the app's images has a newer version in
 // its registry (remote manifest digest differs from the local one). Best-effort:
 // returns false on any error or for not-yet-pulled images.
@@ -230,12 +248,15 @@ func ClearLogs(appID, composeFile string) error {
 		root = strings.TrimSpace(r)
 	}
 	cleared := 0
+	var lastErr error
 	for _, id := range ids {
 		// json-file driver exposes the log file path directly.
 		if lp, e := output("docker", "inspect", "--format", "{{.LogPath}}", id); e == nil {
 			if p := strings.TrimSpace(lp); p != "" {
-				if os.Truncate(p, 0) == nil {
+				if terr := os.Truncate(p, 0); terr == nil {
 					cleared++
+				} else {
+					lastErr = terr
 				}
 				continue
 			}
@@ -245,17 +266,26 @@ func ClearLogs(appID, composeFile string) error {
 		if root != "" {
 			if full, e := output("docker", "inspect", "--format", "{{.Id}}", id); e == nil {
 				dir := filepath.Join(root, "containers", strings.TrimSpace(full), "local-logs")
-				if files, _ := filepath.Glob(filepath.Join(dir, "*")); len(files) > 0 {
-					for _, f := range files {
-						_ = os.Truncate(f, 0)
+				files, _ := filepath.Glob(filepath.Join(dir, "*"))
+				for _, f := range files {
+					if terr := os.Truncate(f, 0); terr == nil {
+						cleared++
+					} else {
+						lastErr = terr
 					}
-					cleared++
 				}
 			}
 		}
 	}
 	if cleared == 0 {
-		return fmt.Errorf("could not clear logs (unsupported logging driver?)")
+		driver := "?"
+		if d, e := output("docker", "inspect", "--format", "{{.HostConfig.LogConfig.Type}}", ids[0]); e == nil {
+			driver = strings.TrimSpace(d)
+		}
+		if lastErr != nil {
+			return fmt.Errorf("clear logs failed (driver %s): %w", driver, lastErr)
+		}
+		return fmt.Errorf("clear logs: the %q logging driver keeps no truncatable file (try json-file/local)", driver)
 	}
 	return nil
 }

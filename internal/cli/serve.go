@@ -21,9 +21,11 @@ import (
 
 	"github.com/slashbinslashnoname/slashnode/internal/apps"
 	"github.com/slashbinslashnoname/slashnode/internal/config"
+	"github.com/slashbinslashnoname/slashnode/internal/migrate"
 	"github.com/slashbinslashnoname/slashnode/internal/paths"
 	"github.com/slashbinslashnoname/slashnode/internal/registry"
 	"github.com/slashbinslashnoname/slashnode/internal/secrets"
+	"github.com/slashbinslashnoname/slashnode/internal/system"
 	"github.com/slashbinslashnoname/slashnode/internal/updater"
 )
 
@@ -35,6 +37,12 @@ func Serve(args []string) error {
 	noWeb := fs.Bool("no-web", false, "do not launch the Next.js front (API only)")
 	if err := fs.Parse(args); err != nil {
 		return err
+	}
+
+	// Apply pending node-state migrations before loading config / serving — this
+	// is the freshly-updated binary migrating state written by the old one.
+	if err := migrate.Run(os.Stderr); err != nil {
+		return fmt.Errorf("migrations: %w", err)
 	}
 
 	cfg, err := config.Load(paths.ConfigFile())
@@ -141,6 +149,11 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 
 	mux.Handle("/api/v1/update", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, updater.CheckCached(Version, cfg.Update.Channel))
+	}))
+
+	// Host health indicators (disk/memory/load) for the UI; disk warning flags.
+	mux.Handle("/api/v1/system", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, http.StatusOK, system.Collect())
 	}))
 
 	mux.Handle("POST /api/v1/update/apply", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
@@ -406,12 +419,22 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 	}))
 
 	mux.Handle("GET /api/v1/apps/{id}/status", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
-		st, err := apps.Status(r.PathValue("id"))
+		id := r.PathValue("id")
+		st, err := apps.Status(id)
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return
 		}
-		writeJSON(w, http.StatusOK, map[string]any{"docker": apps.DockerAvailable(), "services": st})
+		// Include the .onion (and the proxy URL) so the front can show them once
+		// Tor finishes provisioning, without a page reload.
+		resp := map[string]any{"docker": apps.DockerAvailable(), "services": st}
+		if onion := apps.AppOnion(id); onion != "" {
+			resp["onion"] = onion
+			if man, ferr := apps.Find(appsDir, id); ferr == nil && man.Web != nil {
+				resp["onion_url"] = "http://" + onion
+			}
+		}
+		writeJSON(w, http.StatusOK, resp)
 	}))
 
 	mux.Handle("GET /api/v1/apps/{id}/credentials", bearer(sec, func(w http.ResponseWriter, r *http.Request) {

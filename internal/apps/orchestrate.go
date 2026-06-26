@@ -179,7 +179,10 @@ func Reapply(dir string) error {
 		}
 	}
 	for _, id := range order {
-		inst := state.Installed[id]
+		if err := runAppMigrations(dir, id, io.Discard); err != nil {
+			return fmt.Errorf("migrate %s: %w", id, err)
+		}
+		inst := LoadState().Installed[id] // reload — a migration may have changed inputs
 		provided := map[string]string{}
 		for k, v := range inst.Inputs {
 			provided[k] = v
@@ -210,6 +213,12 @@ func ReapplyOne(dir, id string) error {
 			return fmt.Errorf("docker network: %w", err)
 		}
 	}
+	// Apply any pending per-app migrations against the OLD state/containers before
+	// re-rendering with the new manifest.
+	if err := runAppMigrations(dir, id, io.Discard); err != nil {
+		return err
+	}
+	inst = LoadState().Installed[id] // reload — a migration may have changed inputs
 	provided := map[string]string{}
 	for k, v := range inst.Inputs {
 		provided[k] = v
@@ -620,13 +629,16 @@ func installOne(dir, appID string, provided, imageTagOverride map[string]string,
 		webPort = man.Web.Port
 	}
 	state := LoadState()
+	prev := state.Installed[appID]
 	state.Installed[appID] = InstalledApp{
-		ID:          appID,
-		Version:     man.Version,
-		ImageTags:   imageTags,
-		InstalledAt: time.Now().UTC().Format(time.RFC3339),
-		Inputs:      nonSecret,
-		WebPort:     webPort,
+		ID:               appID,
+		Version:          man.Version,
+		ImageTags:        imageTags,
+		Subdomain:        prev.Subdomain,          // preserve the subdomain override across updates
+		MigrationVersion: appMigrationLatest(man), // current after a successful install/reapply
+		InstalledAt:      time.Now().UTC().Format(time.RFC3339),
+		Inputs:           nonSecret,
+		WebPort:          webPort,
 	}
 	return saveState(state)
 }

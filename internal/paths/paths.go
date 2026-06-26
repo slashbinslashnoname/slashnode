@@ -33,6 +33,8 @@ func UpdateStateFile() string     { return p("var", "lib", "slashnode", "update.
 func AppsStateFile() string       { return p("var", "lib", "slashnode", "apps.json") }
 func AppSecretsFile() string      { return p("var", "lib", "slashnode", "app-secrets.json") }
 func RegistryFile() string        { return p("var", "lib", "slashnode", "registry.json") }
+func SchemaFile() string          { return p("var", "lib", "slashnode", "schema.json") }
+func BackupsDir() string          { return p("var", "lib", "slashnode", "backups") }
 
 // Per-app runtime directory (generated compose file, etc.).
 func AppRuntimeDir(id string) string { return p("var", "lib", "slashnode", "apps", id) }

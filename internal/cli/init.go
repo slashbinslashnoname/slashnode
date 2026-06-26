@@ -10,6 +10,7 @@ import (
 	"github.com/slashbinslashnoname/slashnode/internal/apps"
 	"github.com/slashbinslashnoname/slashnode/internal/avahi"
 	"github.com/slashbinslashnoname/slashnode/internal/config"
+	"github.com/slashbinslashnoname/slashnode/internal/migrate"
 	"github.com/slashbinslashnoname/slashnode/internal/paths"
 	"github.com/slashbinslashnoname/slashnode/internal/secrets"
 	"github.com/slashbinslashnoname/slashnode/internal/systemd"
@@ -139,6 +140,11 @@ func Init(args []string) error {
 		logf(*quiet, "→ admin password updated")
 	default:
 		logf(*quiet, "→ existing secrets kept (%s)", paths.SecretsFile())
+	}
+
+	// 3b. Apply pending node-state migrations (no-op on a brand-new node).
+	if err := migrate.Run(os.Stdout); err != nil {
+		return fmt.Errorf("migrations: %w", err)
 	}
 
 	// 4. System integration: Linux only (systemd + Avahi).
