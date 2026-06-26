@@ -7,6 +7,7 @@ import { useConsole } from "@/components/console/ConsoleProvider";
 import { CredsPanel } from "@/components/CredsPanel";
 import { EndpointsPanel } from "@/components/EndpointsPanel";
 import { webClearnetUrl } from "@/lib/appUrl";
+import { appVersion } from "@/lib/version";
 
 export function AppTile({ app }: { app: App }) {
   const router = useRouter();
@@ -109,7 +110,7 @@ export function AppTile({ app }: { app: App }) {
         <div className="min-w-0">
           <div className="font-semibold">{app.name}</div>
           <div className="text-xs text-muted">
-            v{app.installed_version || app.version}
+            v{appVersion(app)}
             {app.update_available && (
               <span className="text-primary"> → v{app.version}</span>
             )}

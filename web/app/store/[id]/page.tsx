@@ -5,6 +5,7 @@ import { AppTabs } from "@/components/AppTabs";
 import { UpdateAppButton } from "@/components/UpdateAppButton";
 import { UninstallButton } from "@/components/UninstallButton";
 import { getApp } from "@/lib/api";
+import { appVersion } from "@/lib/version";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,7 @@ export default async function AppDetail({
         <div>
           <h1 className="text-2xl font-bold">{app.name}</h1>
           <div className="text-sm text-muted">
-            {app.category} · v{app.version}
+            {app.category} · v{appVersion(app)}
             {app.installed && (
               <span className="ml-2 rounded-full bg-primary/15 px-2 py-0.5 text-xs font-semibold text-primary">
                 installed
