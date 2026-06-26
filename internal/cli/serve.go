@@ -174,6 +174,119 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	}))
 
+	// --- Settings ---
+	mux.Handle("GET /api/v1/config", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, http.StatusOK, cfg)
+	}))
+
+	// Update node settings (any provided field; omitted fields are left as-is),
+	// then refresh the reverse proxy + Tor so the change takes effect. Some
+	// fields (ports, hostname, password protection) also need a daemon restart.
+	mux.Handle("POST /api/v1/config", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Hostname *string `json:"hostname"`
+			Access   *struct {
+				Mode              *string `json:"mode"`
+				Address           *string `json:"address"`
+				PasswordProtected *bool   `json:"password_protected"`
+			} `json:"access"`
+			Tor *struct {
+				Enabled *bool `json:"enabled"`
+			} `json:"tor"`
+			Update *struct {
+				Policy  *string `json:"policy"`
+				Channel *string `json:"channel"`
+			} `json:"update"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid body"})
+			return
+		}
+		if body.Hostname != nil {
+			cfg.Hostname = *body.Hostname
+		}
+		if a := body.Access; a != nil {
+			if a.Mode != nil {
+				cfg.Access.Mode = *a.Mode
+			}
+			if a.Address != nil {
+				cfg.Access.Address = *a.Address
+			}
+			if a.PasswordProtected != nil {
+				cfg.Access.PasswordProtected = *a.PasswordProtected
+			}
+		}
+		if body.Tor != nil && body.Tor.Enabled != nil {
+			cfg.Tor.Enabled = *body.Tor.Enabled
+		}
+		if u := body.Update; u != nil {
+			if u.Policy != nil {
+				cfg.Update.Policy = *u.Policy
+			}
+			if u.Channel != nil {
+				cfg.Update.Channel = *u.Channel
+			}
+		}
+		if err := cfg.Save(paths.ConfigFile()); err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return
+		}
+		go func() {
+			_ = apps.ReloadProxy()
+			_ = apps.ReloadTor(appsDir)
+		}()
+		writeJSON(w, http.StatusOK, cfg)
+	}))
+
+	// Change the admin password (the session is already authenticated by the
+	// bearer token the front adds server-side).
+	mux.Handle("POST /api/v1/password", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Password string `json:"password"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		if len(body.Password) < 8 {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "password must be at least 8 characters"})
+			return
+		}
+		if err := sec.SetPassword(body.Password); err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return
+		}
+		if err := sec.Save(paths.SecretsFile()); err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	}))
+
+	// Maintenance actions.
+	mux.Handle("POST /api/v1/reload-caddy", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
+		if err := apps.ReloadProxy(); err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]string{"status": "reloaded"})
+	}))
+	mux.Handle("POST /api/v1/reload-tor", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
+		if err := apps.ReloadTor(appsDir); err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]string{"status": "reloaded"})
+	}))
+	mux.Handle("POST /api/v1/prune", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
+		go apps.PruneImages(io.Discard)
+		writeJSON(w, http.StatusAccepted, map[string]string{"status": "pruning"})
+	}))
+	mux.Handle("POST /api/v1/restart", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
+		go func() {
+			time.Sleep(500 * time.Millisecond) // let the response flush first
+			updater.Restart()
+		}()
+		writeJSON(w, http.StatusAccepted, map[string]string{"status": "restarting"})
+	}))
+
 	// --- App Store ---
 	mux.Handle("GET /api/v1/apps", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
 		cat, err := apps.Catalog(appsDir)

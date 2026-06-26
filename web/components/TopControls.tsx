@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ThemePicker } from "@/components/ThemePicker";
 import { NodeLinks } from "@/components/NodeLinks";
@@ -12,6 +13,14 @@ export function TopControls() {
   return (
     <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
       <NodeLinks />
+      <Link
+        href="/settings"
+        aria-label="Settings"
+        title="Settings"
+        className="cursor-pointer rounded-lg border border-border bg-card px-3 py-1.5 text-sm hover:border-primary transition-colors"
+      >
+        ⚙
+      </Link>
       <ThemeToggle />
       <ThemePicker />
       {protectedMode && <SignOutButton />}
