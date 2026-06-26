@@ -406,12 +406,22 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 	}))
 
 	mux.Handle("GET /api/v1/apps/{id}/status", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
-		st, err := apps.Status(r.PathValue("id"))
+		id := r.PathValue("id")
+		st, err := apps.Status(id)
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return
 		}
-		writeJSON(w, http.StatusOK, map[string]any{"docker": apps.DockerAvailable(), "services": st})
+		// Include the .onion (and the proxy URL) so the front can show them once
+		// Tor finishes provisioning, without a page reload.
+		resp := map[string]any{"docker": apps.DockerAvailable(), "services": st}
+		if onion := apps.AppOnion(id); onion != "" {
+			resp["onion"] = onion
+			if man, ferr := apps.Find(appsDir, id); ferr == nil && man.Web != nil {
+				resp["onion_url"] = "http://" + onion
+			}
+		}
+		writeJSON(w, http.StatusOK, resp)
 	}))
 
 	mux.Handle("GET /api/v1/apps/{id}/credentials", bearer(sec, func(w http.ResponseWriter, r *http.Request) {

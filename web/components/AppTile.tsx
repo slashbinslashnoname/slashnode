@@ -16,12 +16,17 @@ export function AppTile({ app }: { app: App }) {
   const [busy, setBusy] = useState("");
   const [imgUpdate, setImgUpdate] = useState(false);
   const [openUrl, setOpenUrl] = useState<string | null>(null);
+  // The .onion can take a few seconds to provision after install — poll it in
+  // via /status and update live instead of waiting for a page reload.
+  const [onion, setOnion] = useState<string | null>(app.onion ?? null);
   const consoles = useConsole();
 
   useEffect(() => {
     if (!app.web) return;
     setOpenUrl(webClearnetUrl(app.url, app.web.port));
   }, []);
+
+  const onionUrl = onion && app.web ? `http://${onion}` : null;
 
   // Docker image update check (no manifest bump needed).
   useEffect(() => {
@@ -36,6 +41,7 @@ export function AppTile({ app }: { app: App }) {
       const s = await fetch(`/api/apps/${app.id}/status`).then((r) => r.json());
       setServices(s.services ?? []);
       setDocker(s.docker ?? false);
+      if (s.onion) setOnion(s.onion);
     } catch {
       setServices([]);
     }
@@ -105,8 +111,8 @@ export function AppTile({ app }: { app: App }) {
 
       {probe && <ProbeLine probe={probe} />}
 
-      {((app.endpoints && app.endpoints.length > 0) || app.onion) && (
-        <EndpointsPanel endpoints={app.endpoints ?? []} onion={app.onion} />
+      {app.endpoints && app.endpoints.length > 0 && (
+        <EndpointsPanel endpoints={app.endpoints} />
       )}
 
       <div className="flex flex-wrap gap-1.5">
@@ -114,7 +120,7 @@ export function AppTile({ app }: { app: App }) {
           <button
             onClick={updateApp}
             disabled={busy === "update"}
-            className="rounded-md bg-primary px-2 py-1 text-xs font-semibold text-white disabled:opacity-60"
+            className="cursor-pointer rounded-md bg-primary px-2 py-1 text-xs font-semibold text-white disabled:opacity-60"
           >
             {busy === "update" ? "updating…" : "update"}
           </button>
@@ -129,28 +135,33 @@ export function AppTile({ app }: { app: App }) {
             {`console${(services ?? []).length > 1 ? `:${s.service}` : ""}`}
           </Btn>
         ))}
-        {openUrl && (
-          <a
-            href={openUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-md border border-border px-2 py-1 text-xs hover:border-primary"
-          >
-            open ↗
-          </a>
-        )}
-        {app.onion_url && (
-          <a
-            href={app.onion_url}
-            target="_blank"
-            rel="noreferrer"
-            title={app.onion_url}
-            className="rounded-md border border-border px-2 py-1 text-xs hover:border-primary"
-          >
-            open .onion ↗
-          </a>
-        )}
       </div>
+
+      {(openUrl || onionUrl) && (
+        <div className="flex flex-wrap gap-2">
+          {openUrl && (
+            <a
+              href={openUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="cursor-pointer rounded-md border border-border px-2 py-1 text-xs hover:border-primary"
+            >
+              open ↗
+            </a>
+          )}
+          {onionUrl && (
+            <a
+              href={onionUrl}
+              target="_blank"
+              rel="noreferrer"
+              title={onionUrl}
+              className="cursor-pointer rounded-md border border-border px-2 py-1 text-xs hover:border-primary"
+            >
+              open .onion ↗
+            </a>
+          )}
+        </div>
+      )}
     </div>
   );
 }
