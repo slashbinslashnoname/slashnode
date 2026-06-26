@@ -630,17 +630,17 @@ func templateRefs(s string, inputs, secrets map[string]string, registry map[stri
 		switch {
 		case strings.HasPrefix(inner, "input."):
 			if v, ok := inputs[inner[len("input."):]]; ok {
-				return yamlEscape(v)
+				return composeEscape(v)
 			}
 		case strings.HasPrefix(inner, "secret."):
 			if v, ok := secrets[inner[len("secret."):]]; ok {
-				return yamlEscape(v)
+				return composeEscape(v)
 			}
 		case strings.Contains(inner, ".exports."):
 			parts := strings.SplitN(inner, ".exports.", 2)
 			if e, ok := registry[parts[0]]; ok {
 				if v, ok := e[parts[1]]; ok {
-					return yamlEscape(v)
+					return composeEscape(v)
 				}
 			}
 		}
@@ -690,14 +690,17 @@ func validateInput(in Input, val string) error {
 	return nil
 }
 
-// yamlEscape escapes a value for safe inclusion inside a double-quoted YAML
-// scalar (the convention manifests use, e.g. KEY: "${input.X}"). Backslash and
-// quote are escaped so a value containing them can neither break the document
-// nor close the scalar early. Control characters are already rejected by
+// composeEscape escapes a value for safe inclusion inside a double-quoted YAML
+// scalar in a compose document (the convention manifests use, e.g.
+// KEY: "${input.X}"). Backslash and quote are escaped so a value containing them
+// can't break the document or close the scalar early; `$` is doubled so docker
+// compose's own ${VAR}/$VAR interpolation leaves the literal value intact (e.g.
+// a password like `pa$$w` survives). Control characters are already rejected by
 // validateInput, so structural newline injection is impossible.
-func yamlEscape(s string) string {
+func composeEscape(s string) string {
 	s = strings.ReplaceAll(s, `\`, `\\`)
 	s = strings.ReplaceAll(s, `"`, `\"`)
+	s = strings.ReplaceAll(s, `$`, `$$`)
 	return s
 }
 

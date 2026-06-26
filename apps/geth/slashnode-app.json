@@ -44,7 +44,7 @@
       "default": false
     }
   ],
-  "compose": "name: \"slashnode-geth\"\nservices:\n  geth:\n    image: \"ethereum/client-go:v1.14.0\"\n    container_name: \"geth\"\n    restart: \"unless-stopped\"\n    networks:\n      - slashnode\n    command: \"--datadir /data/.ethereum --http --http.addr 0.0.0.0 --http.api eth,net,web3 --http.vhosts=* --syncmode ${input.SYNC_MODE}\"\n    ports:\n      - \"30303:30303\"\n      - \"30303:30303/udp\"\n      - \"127.0.0.1:8545:8545\"\n    volumes:\n      - \"geth-data:/data/.ethereum\"\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  geth-data:\n    name: \"slashnode-geth_geth_geth-data\"\n",
+  "compose": "name: \"slashnode-geth\"\nservices:\n  geth:\n    image: \"ethereum/client-go:v1.14.0\"\n    container_name: \"geth\"\n    restart: \"unless-stopped\"\n    networks:\n      - slashnode\n    command:\n      - \"--datadir\"\n      - \"/data/.ethereum\"\n      - \"--http\"\n      - \"--http.addr\"\n      - \"0.0.0.0\"\n      - \"--http.api\"\n      - \"eth,net,web3\"\n      - \"--http.vhosts=*\"\n      - \"--syncmode\"\n      - \"${input.SYNC_MODE}\"\n    ports:\n      - \"30303:30303\"\n      - \"30303:30303/udp\"\n      - \"127.0.0.1:8545:8545\"\n    volumes:\n      - \"geth-data:/data/.ethereum\"\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  geth-data:\n    name: \"slashnode-geth_geth_geth-data\"\n",
   "probe": {
     "type": "rpc",
     "port": 8545,
