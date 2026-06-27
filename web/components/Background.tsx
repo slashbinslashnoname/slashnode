@@ -1,8 +1,14 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
-import { Starmind } from "@/components/Starmind";
 import { APOLLO_SRC, BG_EVENT, getBg, getCustom, type BgKind } from "@/lib/background";
+
+// The Starmind scene pulls in three.js — load it as its own client chunk only
+// when that background is actually selected.
+const Starmind = dynamic(() => import("@/components/Starmind").then((m) => m.Starmind), {
+  ssr: false,
+});
 
 // Background renders the selected decorative backdrop as a fixed full-screen
 // layer behind all content. It reacts to changes from the theme picker (a
