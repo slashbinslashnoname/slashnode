@@ -8,7 +8,7 @@
   "icon": "💬",
   "dependencies": [],
   "inputs": [],
-  "compose": "name: slashnode-thelounge\nservices:\n  web:\n    image: ghcr.io/thelounge/thelounge:v4.4.3\n    container_name: thelounge\n    restart: unless-stopped\n    networks:\n      - slashnode\n    user: '1000:1000'\n    volumes:\n      - web_data:/var/opt/thelounge\n    ports:\n      - 127.0.0.1:9003:9000\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data:\n    name: slashnode-thelounge_web_data\n",
+  "compose": "name: slashnode-thelounge\nservices:\n  web:\n    image: ghcr.io/thelounge/thelounge:v4.4.3\n    container_name: thelounge\n    restart: unless-stopped\n    networks:\n      - slashnode\n    volumes:\n      - web_data:/var/opt/thelounge\n    ports:\n      - 127.0.0.1:9003:9000\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data:\n    name: slashnode-thelounge_web_data\n",
   "web": {
     "port": 9003,
     "path": "/"

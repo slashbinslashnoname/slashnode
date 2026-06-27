@@ -8,7 +8,7 @@
   "icon": "📁",
   "dependencies": [],
   "inputs": [],
-  "compose": "name: slashnode-pingvin-share\nservices:\n  web:\n    image: stonith404/pingvin-share:v1.13.0\n    container_name: pingvin-share\n    restart: unless-stopped\n    networks:\n      - slashnode\n    user: '1000:1000'\n    volumes:\n      - web_data-backend:/opt/app/backend/data\n      - web_data-images:/opt/app/frontend/public/img\n    ports:\n      - 127.0.0.1:6453:3000\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data-backend:\n    name: slashnode-pingvin-share_web_data-backend\n  web_data-images:\n    name: slashnode-pingvin-share_web_data-images\n",
+  "compose": "name: slashnode-pingvin-share\nservices:\n  web:\n    image: stonith404/pingvin-share:v1.13.0\n    container_name: pingvin-share\n    restart: unless-stopped\n    networks:\n      - slashnode\n    volumes:\n      - web_data-backend:/opt/app/backend/data\n      - web_data-images:/opt/app/frontend/public/img\n    ports:\n      - 127.0.0.1:6453:3000\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data-backend:\n    name: slashnode-pingvin-share_web_data-backend\n  web_data-images:\n    name: slashnode-pingvin-share_web_data-images\n",
   "web": {
     "port": 6453,
     "path": "/"

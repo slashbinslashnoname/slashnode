@@ -8,7 +8,7 @@
   "icon": "📁",
   "dependencies": [],
   "inputs": [],
-  "compose": "name: slashnode-privatebin\nservices:\n  server:\n    image: privatebin/nginx-fpm-alpine:2.0.4\n    container_name: privatebin\n    restart: unless-stopped\n    networks:\n      - slashnode\n    user: '1000:1000'\n    volumes:\n      - server_data-privatebin-data:/srv/data\n    ports:\n      - 127.0.0.1:3070:8080\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  server_data-privatebin-data:\n    name: slashnode-privatebin_server_data-privatebin-data\n",
+  "compose": "name: slashnode-privatebin\nservices:\n  server:\n    image: privatebin/nginx-fpm-alpine:2.0.4\n    container_name: privatebin\n    restart: unless-stopped\n    networks:\n      - slashnode\n    volumes:\n      - server_data-privatebin-data:/srv/data\n    ports:\n      - 127.0.0.1:3070:8080\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  server_data-privatebin-data:\n    name: slashnode-privatebin_server_data-privatebin-data\n",
   "web": {
     "port": 3070,
     "path": "/"
