@@ -109,12 +109,29 @@ func Down(appID, composeFile string, removeVolumes bool) error {
 	return run("docker", args...)
 }
 
-// ContainerStatus is the status of one service container of an app.
+// ContainerStatus is the status of one service container of an app. Container is
+// the real Docker container name (needed to attach a console — it differs from
+// the service name for multi-service apps and extra instances).
 type ContainerStatus struct {
-	Service string `json:"service"`
-	State   string `json:"state"`
-	Status  string `json:"status"`
-	Health  string `json:"health,omitempty"`
+	Service   string `json:"service"`
+	Container string `json:"container"`
+	State     string `json:"state"`
+	Status    string `json:"status"`
+	Health    string `json:"health,omitempty"`
+}
+
+// composePS mirrors the fields `docker compose ps --format json` emits (matched
+// case-insensitively); Name is the container name.
+type composePS struct {
+	Service string
+	Name    string
+	State   string
+	Status  string
+	Health  string
+}
+
+func (c composePS) toStatus() ContainerStatus {
+	return ContainerStatus{Service: c.Service, Container: c.Name, State: c.State, Status: c.Status, Health: c.Health}
 }
 
 // Status returns the per-service container status (docker compose ps).
@@ -130,14 +147,16 @@ func Status(appID, composeFile string) ([]ContainerStatus, error) {
 		if line == "" {
 			continue
 		}
-		var c ContainerStatus
+		var c composePS
 		if err := json.Unmarshal([]byte(line), &c); err == nil && c.Service != "" {
-			res = append(res, c)
+			res = append(res, c.toStatus())
 			continue
 		}
-		var arr []ContainerStatus
+		var arr []composePS
 		if err := json.Unmarshal([]byte(line), &arr); err == nil {
-			res = append(res, arr...)
+			for _, a := range arr {
+				res = append(res, a.toStatus())
+			}
 		}
 	}
 	return res, nil

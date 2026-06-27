@@ -37,9 +37,15 @@ func ReloadTor(dir string) error {
 		if a.WebPort > 0 {
 			add(80, a.WebPort)
 		}
-		if man, ferr := Find(dir, a.ID); ferr == nil {
+		if man, _, ferr := ResolveBase(dir, a.ID); ferr == nil {
 			for _, e := range man.Endpoints {
-				add(e.Port, e.Port) // endpoints are reachable on their published host port
+				// Endpoints are reachable on their published host port; an extra
+				// instance publishes them on a reassigned port.
+				local := e.Port
+				if mapped, ok := a.Ports[e.Port]; ok {
+					local = mapped
+				}
+				add(e.Port, local)
 			}
 		}
 		if len(ports) > 0 {

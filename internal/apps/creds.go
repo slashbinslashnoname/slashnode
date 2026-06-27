@@ -18,7 +18,7 @@ func AppExports(id string) map[string]string {
 // Credentials returns the stored input/secret values of an installed app,
 // labelled from its manifest, so the frontend can display and reuse them.
 func Credentials(dir, id string) ([]CredField, error) {
-	man, err := Find(dir, id)
+	man, _, err := ResolveBase(dir, id)
 	if err != nil {
 		return nil, err
 	}

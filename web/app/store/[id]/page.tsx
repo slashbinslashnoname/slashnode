@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { TopControls } from "@/components/TopControls";
 import { AppTabs } from "@/components/AppTabs";
+import { InstanceTabs } from "@/components/InstanceTabs";
 import { UpdateAppButton } from "@/components/UpdateAppButton";
 import { UninstallButton } from "@/components/UninstallButton";
 import { getApp } from "@/lib/api";
@@ -65,6 +66,8 @@ export default async function AppDetail({
           {app.dependencies.join(", ")}
         </div>
       )}
+
+      <InstanceTabs app={app} />
 
       <AppTabs app={app} />
 

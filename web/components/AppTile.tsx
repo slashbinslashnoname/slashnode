@@ -126,7 +126,7 @@ export function AppTile({ app }: { app: App }) {
         <Btn onClick={() => consoles.openLogs(app.id, app.name)}>logs</Btn>
         <Btn onClick={() => consoles.openConfig(app.id, app.name)}>config</Btn>
         {(services ?? []).map((s) => (
-          <Btn key={s.service} onClick={() => consoles.open(s.service)}>
+          <Btn key={s.service} onClick={() => consoles.open(s.container || s.service)}>
             {`console${(services ?? []).length > 1 ? `:${s.service}` : ""}`}
           </Btn>
         ))}

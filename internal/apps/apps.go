@@ -13,7 +13,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/slashbinslashnoname/slashnode/internal/paths"
@@ -156,6 +158,8 @@ type CatalogEntry struct {
 	Domain           string            `json:"domain,omitempty"`    // custom domain override (set by the API layer)
 	Host             string            `json:"host,omitempty"`      // node base host apps live under (set by the API layer)
 	Hidden           bool              `json:"hidden,omitempty"`    // removed from the App Store (set by the API layer)
+	BaseID           string            `json:"base_id,omitempty"`   // manifest this (possibly instance) entry derives from
+	Instances        []InstanceRef     `json:"instances,omitempty"` // installed instances of the base (set by the API layer)
 }
 
 // LoadCatalog reads all manifests dir/*/slashnode-app.json, sorted by name.
@@ -194,6 +198,71 @@ func Find(dir, id string) (*Manifest, error) {
 	return nil, fmt.Errorf("unknown app: %s", id)
 }
 
+// instanceSuffixRe matches a derived instance id like "slashslack-2".
+var instanceSuffixRe = regexp.MustCompile(`^(.+)-([2-9]|[1-9][0-9]+)$`)
+
+// ResolveBase maps an install id to its base manifest and instance number. An id
+// that exactly matches a manifest is a base (n=1). Otherwise a trailing "-<N>"
+// (N>=2) is stripped and the remainder resolved to the base manifest (n=N). The
+// exact-match-first rule protects manifest ids that end in a digit (influxdb2).
+func ResolveBase(dir, id string) (*Manifest, int, error) {
+	if m, err := Find(dir, id); err == nil {
+		return m, 1, nil
+	}
+	if mm := instanceSuffixRe.FindStringSubmatch(id); mm != nil {
+		if m, err := Find(dir, mm[1]); err == nil {
+			n, _ := strconv.Atoi(mm[2])
+			return m, n, nil
+		}
+	}
+	return nil, 0, fmt.Errorf("unknown app: %s", id)
+}
+
+// InstanceName is the display name for instance n of a base manifest.
+func InstanceName(base *Manifest, n int) string {
+	if n >= 2 {
+		return fmt.Sprintf("%s %d", base.Name, n)
+	}
+	return base.Name
+}
+
+// InstanceRef is one installed instance of an app (for the detail-page tab bar).
+type InstanceRef struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+// InstancesOf lists the installed instances of a base manifest (base first),
+// each as {id, name}, ordered by instance number.
+func InstancesOf(dir, baseID string) []InstanceRef {
+	base, err := Find(dir, baseID)
+	if err != nil {
+		return nil
+	}
+	type ni struct {
+		n  int
+		id string
+	}
+	var found []ni
+	for id := range LoadState().Installed {
+		if id == baseID {
+			found = append(found, ni{1, id})
+			continue
+		}
+		if m := instanceSuffixRe.FindStringSubmatch(id); m != nil && m[1] == baseID {
+			n, _ := strconv.Atoi(m[2])
+			found = append(found, ni{n, id})
+		}
+	}
+	sort.Slice(found, func(i, j int) bool { return found[i].n < found[j].n })
+	out := make([]InstanceRef, 0, len(found))
+	for _, f := range found {
+		out = append(out, InstanceRef{ID: f.id, Name: InstanceName(base, f.n)})
+	}
+	return out
+}
+
+
 // InstalledApp is the persisted state of an installed app (secrets excluded).
 type InstalledApp struct {
 	ID          string            `json:"id"`
@@ -205,6 +274,13 @@ type InstalledApp struct {
 	InstalledAt      string            `json:"installed_at"`
 	Inputs      map[string]string `json:"inputs"`
 	WebPort     int               `json:"web_port,omitempty"` // host port of the app's web UI (for the reverse proxy)
+	// BaseID is the manifest this install derives from. For an extra instance
+	// (id "slashslack-2") it is the base manifest id ("slashslack"); for a base
+	// install it equals ID (or is empty).
+	BaseID string `json:"base_id,omitempty"`
+	// Ports maps a manifest host port to the host port actually allocated for this
+	// instance, so reconfigure/restart reuse the same ports. Empty for base installs.
+	Ports map[int]int `json:"ports,omitempty"`
 }
 
 // State is the installation state (var/lib/slashnode/apps.json).
@@ -236,6 +312,10 @@ func Catalog(dir string) ([]CatalogEntry, error) {
 		return nil, err
 	}
 	state := LoadState()
+	byID := map[string]Manifest{}
+	for _, m := range cat {
+		byID[m.ID] = m
+	}
 	out := make([]CatalogEntry, 0, len(cat))
 	for _, m := range cat {
 		inst, installed := state.Installed[m.ID]
@@ -245,6 +325,26 @@ func Catalog(dir string) ([]CatalogEntry, error) {
 			entry.Images, _ = resolveImages(&m, inst.ImageTags)
 			entry.UpdateAvailable = inst.Version != m.Version
 		}
+		out = append(out, entry)
+	}
+	// Surface extra instances (id "slashslack-2") as their own entries, built from
+	// the base manifest, so they appear in the store and on the dashboard.
+	for id, inst := range state.Installed {
+		base := inst.BaseID
+		if base == "" || base == id {
+			continue // base install, already emitted above
+		}
+		bm, ok := byID[base]
+		if !ok {
+			continue
+		}
+		_, n, _ := ResolveBase(dir, id)
+		im := bm
+		im.ID = id
+		im.Name = InstanceName(&bm, n)
+		entry := CatalogEntry{Manifest: im, Installed: true, InstalledVersion: inst.Version}
+		entry.Images, _ = resolveImages(&bm, inst.ImageTags)
+		entry.UpdateAvailable = inst.Version != bm.Version
 		out = append(out, entry)
 	}
 	return out, nil

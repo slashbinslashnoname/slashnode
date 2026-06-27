@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -108,7 +109,7 @@ func selfExports(man *Manifest) map[string]string {
 // web UI and every declared endpoint, in clearnet form and (when Tor is enabled
 // and provisioned) over .onion.
 func printServiceURLs(out io.Writer, dir, id string) {
-	man, err := Find(dir, id)
+	man, _, err := ResolveBase(dir, id)
 	if err != nil || (man.Web == nil && len(man.Endpoints) == 0) {
 		return
 	}
@@ -158,7 +159,7 @@ func Reapply(dir string) error {
 			return
 		}
 		seen[id] = true
-		if man, err := Find(dir, id); err == nil {
+		if man, _, err := ResolveBase(dir, id); err == nil {
 			for _, dep := range man.Dependencies {
 				if _, ok := state.Installed[dep]; ok {
 					visit(dep)
@@ -430,6 +431,85 @@ func loopbackPort(content string, hostPort int) string {
 	return re.ReplaceAllString(content, `${1}"127.0.0.1:`+p+`:${2}${3}"`)
 }
 
+// portsLineRe matches a compose published-port list entry, capturing an optional
+// host IP, the host port, the container port and an optional protocol.
+var portsLineRe = regexp.MustCompile(`(?m)^(\s*-\s*)"?(?:(\d+\.\d+\.\d+\.\d+):)?(\d+):(\d+)(/[A-Za-z]+)?"?\s*$`)
+
+// namespaceInstance rewrites a rendered base compose so it can run as a distinct
+// instance: a per-instance project name, container names (X → X-n), private
+// volumes (slashnode-<base>_ → slashnode-<instance>_), and reassigned host ports.
+// portMap (manifest host port → assigned host port) is reused when non-empty so
+// reconfigure keeps the same ports. Returns the rewritten compose and the port
+// map (with the web host port at key man.Web.Port if any).
+func namespaceInstance(content, baseID, instanceID string, n int, portMap map[int]int) (string, map[int]int) {
+	// Project name.
+	content = regexp.MustCompile(`(?m)^(name:\s*)"?slashnode-`+regexp.QuoteMeta(baseID)+`"?\s*$`).
+		ReplaceAllString(content, "${1}slashnode-"+instanceID)
+	// Container names: X -> X-n.
+	suffix := "-" + strconv.Itoa(n)
+	content = regexp.MustCompile(`(?m)^(\s*container_name:\s*)"?([A-Za-z0-9._-]+)"?\s*$`).
+		ReplaceAllString(content, "${1}\"${2}"+suffix+"\"")
+	// Private volumes.
+	content = strings.ReplaceAll(content, "slashnode-"+baseID+"_", "slashnode-"+instanceID+"_")
+
+	// Reassign host ports to free ones (reuse a prior allocation on reconfigure).
+	if portMap == nil {
+		portMap = map[int]int{}
+	}
+	used := usedHostPorts()
+	content = portsLineRe.ReplaceAllStringFunc(content, func(line string) string {
+		m := portsLineRe.FindStringSubmatch(line)
+		host, _ := strconv.Atoi(m[3])
+		assigned, ok := portMap[host]
+		if !ok {
+			assigned = freeHostPort(host, used)
+			portMap[host] = assigned
+		}
+		ip := ""
+		if m[2] != "" {
+			ip = m[2] + ":"
+		}
+		return fmt.Sprintf(`%s"%s%d:%s%s"`, m[1], ip, assigned, m[4], m[5])
+	})
+	return content, portMap
+}
+
+// usedHostPorts is the set of host ports already taken: the node's own ports and
+// every installed app/instance's web + allocated ports.
+func usedHostPorts() map[int]bool {
+	used := map[int]bool{80: true, 443: true}
+	if cfg, err := config.Load(paths.ConfigFile()); err == nil {
+		used[cfg.HTTP.Port] = true
+		used[cfg.HTTP.Port+10000] = true
+		used[cfg.HTTP.APIPort] = true
+	}
+	for _, a := range LoadState().Installed {
+		if a.WebPort > 0 {
+			used[a.WebPort] = true
+		}
+		for _, p := range a.Ports {
+			used[p] = true
+		}
+	}
+	return used
+}
+
+// freeHostPort returns the first free host port at or after start (skipping the
+// used set and any port the OS reports as bound), and marks it used.
+func freeHostPort(start int, used map[int]bool) int {
+	for p := start; p < 65535; p++ {
+		if used[p] {
+			continue
+		}
+		if l, err := net.Listen("tcp", fmt.Sprintf(":%d", p)); err == nil {
+			_ = l.Close()
+			used[p] = true
+			return p
+		}
+	}
+	return start
+}
+
 // replaceTag swaps the tag of a docker image reference, preserving the registry
 // (which may itself contain a ':' for a port) and stripping any digest.
 func replaceTag(image, tag string) string {
@@ -509,7 +589,7 @@ func installPlan(dir, id string) ([]string, error) {
 			return nil
 		}
 		seen[appID] = true
-		man, err := Find(dir, appID)
+		man, _, err := ResolveBase(dir, appID)
 		if err != nil {
 			return err
 		}
@@ -534,7 +614,7 @@ func installPlan(dir, id string) ([]string, error) {
 // required non-secret fields must have a default (else we bail and ask the
 // operator to install the dependency manually).
 func installOne(dir, appID string, provided, imageTagOverride map[string]string, isTarget bool, out io.Writer) error {
-	man, err := Find(dir, appID)
+	man, instanceN, err := ResolveBase(dir, appID)
 	if err != nil {
 		return err
 	}
@@ -591,7 +671,10 @@ func installOne(dir, appID string, provided, imageTagOverride map[string]string,
 	// without the app ever terminating TLS itself. Templating-only: both are
 	// stripped before saveRegistry.
 	registry["node"] = nodeExports()
-	registry["self"] = selfExports(man)
+	// self.* (the app's own public URL) must reflect this instance's id/subdomain.
+	selfMan := *man
+	selfMan.ID = appID
+	registry["self"] = selfExports(&selfMan)
 
 	// Resolve this app's exports from its own inputs/secrets.
 	exports := map[string]string{}
@@ -654,13 +737,28 @@ func installOne(dir, appID string, provided, imageTagOverride map[string]string,
 			content = strings.Replace(content, img, replaceTag(img, t), 1)
 		}
 	}
+	// For an extra instance (id "slashslack-2"), namespace the base compose:
+	// per-instance project/container/volume names and reassigned host ports, so
+	// it runs independently alongside the base. Ports are reused across reapplies.
+	webPort := 0
+	if man.Web != nil {
+		webPort = man.Web.Port
+	}
+	var ports map[int]int
+	if instanceN >= 2 {
+		ports = LoadState().Installed[appID].Ports
+		content, ports = namespaceInstance(content, man.ID, appID, instanceN, ports)
+		if man.Web != nil && man.Web.Port > 0 {
+			webPort = ports[man.Web.Port]
+		}
+	}
 	// In server mode (Caddy fronts each app at https://<id>.<host>), bind the
 	// web-UI backend to loopback so the plain-HTTP port isn't publicly exposed —
 	// only Caddy (HTTPS) and Tor reach it. In local mode the app subdomain isn't
 	// resolvable over mDNS, so the web port stays published for direct access.
-	if man.Web != nil && man.Web.Port > 0 {
+	if webPort > 0 {
 		if cfg, cerr := config.Load(paths.ConfigFile()); cerr == nil && cfg.Access.Mode == "server" {
-			content = loopbackPort(content, man.Web.Port)
+			content = loopbackPort(content, webPort)
 		}
 	}
 	if err := os.MkdirAll(paths.AppRuntimeDir(appID), 0o700); err != nil {
@@ -693,10 +791,6 @@ func installOne(dir, appID string, provided, imageTagOverride map[string]string,
 	if err := mergeAppSecrets(appID, secret); err != nil {
 		return err
 	}
-	webPort := 0
-	if man.Web != nil {
-		webPort = man.Web.Port
-	}
 	state := LoadState()
 	prev := state.Installed[appID]
 	state.Installed[appID] = InstalledApp{
@@ -709,6 +803,8 @@ func installOne(dir, appID string, provided, imageTagOverride map[string]string,
 		InstalledAt:      time.Now().UTC().Format(time.RFC3339),
 		Inputs:           nonSecret,
 		WebPort:          webPort,
+		BaseID:           man.ID,
+		Ports:            ports,
 	}
 	return saveState(state)
 }
