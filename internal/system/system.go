@@ -30,6 +30,8 @@ type Stats struct {
 	// DiskWarn/DiskCritical are convenience flags for the UI.
 	DiskWarn     bool `json:"disk_warn"`
 	DiskCritical bool `json:"disk_critical"`
+	// GPUAvailable is true when an NVIDIA GPU + driver is present on the host.
+	GPUAvailable bool `json:"gpu_available"`
 }
 
 const (
@@ -44,7 +46,19 @@ func Collect() Stats {
 	s.Load1 = loadAvg1()
 	s.DiskWarn = s.Disk.Percent >= warnPct
 	s.DiskCritical = s.Disk.Percent >= critPct
+	s.GPUAvailable = gpuAvailable()
 	return s
+}
+
+// gpuAvailable reports whether an NVIDIA GPU + driver is present (cheap: just
+// checks the device/proc nodes — no exec on the hot polling path).
+func gpuAvailable() bool {
+	for _, p := range []string{"/dev/nvidia0", "/proc/driver/nvidia/version"} {
+		if _, err := os.Stat(p); err == nil {
+			return true
+		}
+	}
+	return false
 }
 
 func diskUsage(path string) Disk {
