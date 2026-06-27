@@ -53,6 +53,8 @@ export type App = {
   domain?: string;
   host?: string;
   hidden?: boolean;
+  base_id?: string;
+  instances?: { id: string; name: string }[];
   web?: { port: number; path?: string };
   endpoints?: AppEndpoint[];
   probe?: { type: string };
@@ -68,6 +70,7 @@ export type AppEndpoint = {
 
 export type ServiceStatus = {
   service: string;
+  container?: string;
   state: string;
   status: string;
   health?: string;

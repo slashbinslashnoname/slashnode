@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { App } from "@/lib/api";
 
@@ -11,32 +10,30 @@ const catsOf = (a: App): string[] => a.category ?? [];
 
 export function StoreList({ apps }: { apps: App[] }) {
   const [q, setQ] = useState("");
-  const [showRemoved, setShowRemoved] = useState(false);
   // Selected category filters (multi-select, OR semantics). Empty = all.
   const [activeCats, setActiveCats] = useState<string[]>([]);
   const query = q.trim().toLowerCase();
   // Bitcoin Knots is intentionally not offered.
   const isKnots = /\bknots\b/.test(query);
-  const removedCount = apps.filter((a) => a.hidden).length;
 
+  // Developer-hidden apps are never offered in the store.
+  const visible = apps.filter((a) => !a.hidden);
   // All categories present in the catalog, sorted, for the filter chips.
-  const allCats = [...new Set(apps.flatMap(catsOf))].sort();
+  const allCats = [...new Set(visible.flatMap(catsOf))].sort();
   const toggleCat = (c: string) =>
     setActiveCats((cur) => (cur.includes(c) ? cur.filter((x) => x !== c) : [...cur, c]));
 
   const matched = query
-    ? apps.filter((a) =>
+    ? visible.filter((a) =>
         [a.name, a.description ?? "", ...catsOf(a)]
           .join(" ")
           .toLowerCase()
           .includes(query),
       )
-    : apps;
-  // Apps removed from the store are hidden unless "show removed" is on; they stay
-  // out of the catalog while their already-installed instances keep running.
-  const shown = matched
-    .filter((a) => !a.hidden || showRemoved)
-    .filter((a) => activeCats.length === 0 || catsOf(a).some((c) => activeCats.includes(c)));
+    : visible;
+  const shown = matched.filter(
+    (a) => activeCats.length === 0 || catsOf(a).some((c) => activeCats.includes(c)),
+  );
   // Ordering: explicit priority first (first-party apps rank above ported ones),
   // then installed, then the API's name order (preserved by the stable sort).
   const filtered = [...shown].sort(
@@ -67,15 +64,6 @@ export function StoreList({ apps }: { apps: App[] }) {
             </CatChip>
           ))}
         </div>
-      )}
-
-      {removedCount > 0 && (
-        <button
-          onClick={() => setShowRemoved((v) => !v)}
-          className="-mt-2 w-fit cursor-pointer text-xs text-muted hover:text-primary"
-        >
-          {showRemoved ? "hide" : "show"} {removedCount} removed app{removedCount > 1 ? "s" : ""}
-        </button>
       )}
 
       {isKnots ? (
@@ -119,24 +107,10 @@ function CatChip({
 }
 
 function AppCard({ app }: { app: App }) {
-  const router = useRouter();
-  const [busy, setBusy] = useState(false);
-
-  async function toggleStore(e: React.MouseEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    setBusy(true);
-    await fetch(`/api/apps/${app.id}/${app.hidden ? "unhide" : "hide"}`, { method: "POST" });
-    setBusy(false);
-    router.refresh();
-  }
-
   return (
     <Link
       href={`/store/${app.id}`}
-      className={`group relative flex flex-col gap-3 rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary ${
-        app.hidden ? "opacity-60" : ""
-      }`}
+      className="group flex flex-col gap-3 rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary"
     >
       <div className="flex items-center gap-3">
         <span className="text-3xl">{app.icon ?? "📦"}</span>
@@ -157,14 +131,6 @@ function AppCard({ app }: { app: App }) {
         ) : null}
       </div>
       {app.description && <p className="text-sm text-muted">{app.description}</p>}
-      <button
-        onClick={toggleStore}
-        disabled={busy}
-        title={app.hidden ? "Restore to the store" : "Remove from the store (keeps installed instances)"}
-        className="w-fit cursor-pointer text-xs text-muted hover:text-primary disabled:opacity-50"
-      >
-        {busy ? "…" : app.hidden ? "↩ restore to store" : "✕ remove from store"}
-      </button>
     </Link>
   );
 }

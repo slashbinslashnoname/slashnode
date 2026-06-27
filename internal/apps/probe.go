@@ -34,7 +34,7 @@ type ProbeResult struct {
 
 // RunProbe runs the manifest's probe and extracts the declared display fields.
 func RunProbe(dir, id string) (*ProbeResult, error) {
-	man, err := Find(dir, id)
+	man, n, err := ResolveBase(dir, id)
 	if err != nil {
 		return nil, err
 	}
@@ -42,6 +42,14 @@ func RunProbe(dir, id string) (*ProbeResult, error) {
 		return &ProbeResult{Type: "none"}, nil
 	}
 	p := man.Probe
+	// An extra instance publishes the probe's port on a reassigned host port.
+	if n >= 2 {
+		if mapped, ok := LoadState().Installed[id].Ports[p.Port]; ok {
+			pc := *p
+			pc.Port = mapped
+			p = &pc
+		}
+	}
 
 	var (
 		data   map[string]any

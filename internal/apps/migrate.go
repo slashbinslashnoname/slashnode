@@ -48,7 +48,7 @@ type execOp struct {
 func MigrationsPending(dir string) []string {
 	var out []string
 	for id, inst := range LoadState().Installed {
-		man, err := Find(dir, id)
+		man, _, err := ResolveBase(dir, id)
 		if err != nil {
 			continue
 		}
@@ -87,7 +87,7 @@ func pendingAppMigrations(man *Manifest, applied int) []AppMigration {
 // rolled back — those are logged). A no-op for a not-yet-installed app or when
 // nothing is pending.
 func runAppMigrations(dir, id string, out io.Writer) error {
-	man, err := Find(dir, id)
+	man, _, err := ResolveBase(dir, id)
 	if err != nil {
 		return err
 	}

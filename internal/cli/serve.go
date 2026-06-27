@@ -337,7 +337,6 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 		}
 		for i := range cat {
 			cat[i].URL = apps.AppURL(cfg, &cat[i].Manifest)
-			cat[i].Hidden = apps.IsHidden(cat[i].ID)
 			if cat[i].Installed {
 				if onion := apps.AppOnion(cat[i].ID); onion != "" {
 					cat[i].Onion = onion
@@ -351,23 +350,31 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 	}))
 
 	mux.Handle("GET /api/v1/apps/{id}", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
-		man, err := apps.Find(appsDir, r.PathValue("id"))
+		id := r.PathValue("id")
+		// Resolve base or extra-instance ("slashslack-2") ids to the base manifest.
+		base, n, err := apps.ResolveBase(appsDir, id)
 		if err != nil {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": err.Error()})
 			return
 		}
-		inst, installed := apps.LoadState().Installed[man.ID]
-		entry := apps.CatalogEntry{Manifest: *man, Installed: installed, URL: apps.AppURL(cfg, man), Hidden: apps.IsHidden(man.ID)}
+		// Present the entry under the requested install id and instance name.
+		man := *base
+		man.ID = id
+		man.Name = apps.InstanceName(base, n)
+		inst, installed := apps.LoadState().Installed[id]
+		entry := apps.CatalogEntry{Manifest: man, Installed: installed, URL: apps.AppURL(cfg, &man)}
+		entry.BaseID = base.ID
+		entry.Instances = apps.InstancesOf(appsDir, base.ID)
 		// Always expose the per-service image refs so the install form can offer a
 		// version picker before the app is installed (defaults applied).
-		entry.Images = apps.ResolvedImages(man, man.ID)
+		entry.Images = apps.ResolvedImages(base, id)
 		if installed {
 			entry.InstalledVersion = inst.Version
-			entry.UpdateAvailable = inst.Version != man.Version
-			entry.Subdomain = apps.AppSubdomain(man.ID)
+			entry.UpdateAvailable = inst.Version != base.Version
+			entry.Subdomain = apps.AppSubdomain(id)
 			entry.Domain = inst.Domain
 			entry.Host = apps.BaseHost(cfg)
-			if onion := apps.AppOnion(man.ID); onion != "" {
+			if onion := apps.AppOnion(id); onion != "" {
 				entry.Onion = onion
 				if man.Web != nil {
 					entry.OnionURL = "http://" + onion
@@ -590,23 +597,6 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 			}
 		}
 		writeJSON(w, http.StatusOK, map[string]string{"status": "domain-set"})
-	}))
-
-	// Remove an app from the App Store (already-installed instances keep running)
-	// and restore it.
-	mux.Handle("POST /api/v1/apps/{id}/hide", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
-		if err := apps.HideApp(r.PathValue("id")); err != nil {
-			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
-			return
-		}
-		writeJSON(w, http.StatusOK, map[string]string{"status": "hidden"})
-	}))
-	mux.Handle("POST /api/v1/apps/{id}/unhide", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
-		if err := apps.UnhideApp(r.PathValue("id")); err != nil {
-			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
-			return
-		}
-		writeJSON(w, http.StatusOK, map[string]string{"status": "restored"})
 	}))
 
 	mux.Handle("POST /api/v1/apps/{id}/start", bearer(sec, lifecycle(apps.Start, "started")))
