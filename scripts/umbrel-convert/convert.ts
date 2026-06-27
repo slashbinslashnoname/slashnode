@@ -295,7 +295,9 @@ async function convert(appId: string, ship = false): Promise<Report> {
     ns.container_name = containerName(svc);
     ns.restart = "unless-stopped";
     ns.networks = ["slashnode"];
-    if (s.user) ns.user = s.user;
+    // Drop Umbrel's `user: 1000:1000` — it's a bind-mount artifact that mismatches
+    // the image's real uid under our named volumes (and breaks LinuxServer images,
+    // which run as root + PUID/PGID). Let each image run as its built-in user.
     if (s.init) ns.init = s.init;
     if (s.command) ns.command = rwHosts(s.command);
     if (s.entrypoint) ns.entrypoint = rwHosts(s.entrypoint);
