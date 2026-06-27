@@ -277,39 +277,6 @@ func validImageTag(t string) bool { return imageTagRe.MatchString(t) }
 // AppSubdomain returns the effective reverse-proxy subdomain label for an app.
 func AppSubdomain(id string) string { return appSubdomain(id) }
 
-// IsHidden reports whether an app was removed from the App Store.
-func IsHidden(id string) bool {
-	for _, h := range LoadState().Hidden {
-		if h == id {
-			return true
-		}
-	}
-	return false
-}
-
-// HideApp removes an app from the App Store. Already-installed instances are
-// untouched and keep running; the app just stops being offered for new installs.
-func HideApp(id string) error {
-	state := LoadState()
-	if !IsHidden(id) {
-		state.Hidden = append(state.Hidden, id)
-	}
-	return saveState(state)
-}
-
-// UnhideApp restores an app to the App Store.
-func UnhideApp(id string) error {
-	state := LoadState()
-	out := state.Hidden[:0]
-	for _, h := range state.Hidden {
-		if h != id {
-			out = append(out, h)
-		}
-	}
-	state.Hidden = out
-	return saveState(state)
-}
-
 // appSubdomain returns the reverse-proxy subdomain label for an installed app:
 // the operator's override, or the app id by default.
 func appSubdomain(id string) string {

@@ -127,6 +127,9 @@ type Manifest struct {
 	// Priority orders apps in the store (higher shows first); 0 by default. The
 	// first-party apps are ranked above the ported catalog.
 	Priority        int             `json:"priority,omitempty"`
+	// Hidden removes the app from the App Store (developer-set in the manifest).
+	// Already-installed instances keep running; it's just not offered for install.
+	Hidden          bool            `json:"hidden,omitempty"`
 	Dependencies    []string        `json:"dependencies"`
 	Inputs          []Input         `json:"inputs"`
 	// Compose is the app's docker-compose document (YAML). SlashNode templates
@@ -157,7 +160,6 @@ type CatalogEntry struct {
 	Subdomain        string            `json:"subdomain,omitempty"` // effective reverse-proxy subdomain (set by the API layer)
 	Domain           string            `json:"domain,omitempty"`    // custom domain override (set by the API layer)
 	Host             string            `json:"host,omitempty"`      // node base host apps live under (set by the API layer)
-	Hidden           bool              `json:"hidden,omitempty"`    // removed from the App Store (set by the API layer)
 	BaseID           string            `json:"base_id,omitempty"`   // manifest this (possibly instance) entry derives from
 	Instances        []InstanceRef     `json:"instances,omitempty"` // installed instances of the base (set by the API layer)
 }
@@ -286,9 +288,6 @@ type InstalledApp struct {
 // State is the installation state (var/lib/slashnode/apps.json).
 type State struct {
 	Installed map[string]InstalledApp `json:"installed"`
-	// Hidden lists catalog apps the operator removed from the App Store. They no
-	// longer appear for new installs but already-installed instances keep running.
-	Hidden []string `json:"hidden,omitempty"`
 }
 
 // LoadState reads the installation state (empty if absent).
