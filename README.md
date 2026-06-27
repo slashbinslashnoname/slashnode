@@ -138,6 +138,40 @@ docker-compose-only project is compatible — paste its compose into the manifes
 Per-service image versions are selectable at install and afterwards. See
 **[docs/app-manifest.md](docs/app-manifest.md)** and the examples in `apps/`.
 
+## GPU acceleration (NVIDIA)
+
+Apps that can use a GPU show a **“Use NVIDIA GPU”** toggle on their install /
+reconfigure form: **ollama**, **localai**, **photoprism**, **librechat**. When
+enabled, SlashNode injects a GPU device reservation into the relevant compute
+service; it is **off by default**, so apps run CPU-only and unchanged on hosts
+without a GPU. The daemon detects the GPU and the form warns if you enable the
+toggle on a host where none is present.
+
+This only passes the GPU through — the **host** must provide it. On a server with
+an NVIDIA GPU (e.g. a rented GPU VPS), install the driver and the **NVIDIA
+Container Toolkit** once:
+
+```bash
+# 1. NVIDIA driver (use your distro's recommended driver), then:
+# 2. NVIDIA Container Toolkit
+curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey \
+  | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list \
+  | sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' \
+  | sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+sudo apt update && sudo apt install -y nvidia-container-toolkit
+sudo nvidia-ctk runtime configure --runtime=docker
+sudo systemctl restart docker
+
+# verify the GPU is visible to Docker:
+docker run --rm --gpus all nvidia/cuda:12.4.0-base-ubuntu22.04 nvidia-smi
+```
+
+Then turn on the GPU toggle for a supported app. Note that some images need a
+CUDA-enabled variant to actually use the GPU — e.g. for **LocalAI** pick a
+`-cublas-cuda12` image tag in the **Version** tab; **ollama** and **photoprism**
+use the GPU with their default images.
+
 ## License
 
 To be defined.
