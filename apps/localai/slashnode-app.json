@@ -7,7 +7,15 @@
   "description": "Drop-in OpenAI replacement",
   "icon": "🤖",
   "dependencies": [],
-  "inputs": [],
+  "inputs": [
+    {
+      "key": "USE_GPU",
+      "label": "Use NVIDIA GPU",
+      "type": "boolean",
+      "default": false,
+      "help": "Reserve an NVIDIA GPU for inference. Requires the host to have an NVIDIA GPU and the NVIDIA Container Toolkit installed; leave off to run on CPU."
+    }
+  ],
   "compose": "name: slashnode-localai\nservices:\n  api:\n    image: localai/localai:v4.5.0\n    container_name: localai\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      MODELS_PATH: /models\n      LOCALAI_BACKENDS_PATH: /backends\n      LOCALAI_EXTERNAL_BACKENDS: cpu-llama-cpp\n    volumes:\n      - api_data-models:/models:cached\n      - api_data-backends:/backends:cached\n      - api_data-data:/data:cached\n      - api_data-configuration:/configuration:cached\n      - api_data-images:/tmp/generated/images/\n    ports:\n      - 127.0.0.1:8793:8080\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  api_data-models:\n    name: slashnode-localai_api_data-models\n  api_data-backends:\n    name: slashnode-localai_api_data-backends\n  api_data-data:\n    name: slashnode-localai_api_data-data\n  api_data-configuration:\n    name: slashnode-localai_api_data-configuration\n  api_data-images:\n    name: slashnode-localai_api_data-images\n",
   "web": {
     "port": 8793,
@@ -18,5 +26,8 @@
     "port": 8793,
     "path": "/"
   },
-  "notes": "Ported from Umbrel (localai). Upstream: https://localai.io/. "
+  "notes": "Ported from Umbrel (localai). Upstream: https://localai.io/. ",
+  "gpu_services": [
+    "api"
+  ]
 }

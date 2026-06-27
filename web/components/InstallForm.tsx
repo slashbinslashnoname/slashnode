@@ -31,6 +31,19 @@ export function InstallForm({ app }: { app: App }) {
     setValues((prev) => ({ ...prev, [key]: v }));
   }
 
+  // If this app offers a GPU toggle, check whether the host actually has one so
+  // we can warn before an enable-without-GPU install fails at launch.
+  const hasGpuOption = (app.inputs ?? []).some((i) => i.key === "USE_GPU");
+  const [gpuHost, setGpuHost] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!hasGpuOption) return;
+    fetch("/api/system", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((j) => setGpuHost(!!j.gpu_available))
+      .catch(() => {});
+  }, [hasGpuOption]);
+  const gpuWarn = values["USE_GPU"] === "true" && gpuHost === false;
+
   // When reconfiguring an installed app, prefill the form with the stored
   // values (including secrets like the root password) so they aren't shown
   // blank and an unchanged reconfigure keeps them.
@@ -119,6 +132,13 @@ export function InstallForm({ app }: { app: App }) {
       {(app.inputs ?? []).map((input) => (
         <Field key={input.key} input={input} value={values[input.key] ?? ""} onChange={set} />
       ))}
+
+      {gpuWarn && (
+        <p className="rounded-lg border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-sm text-amber-500">
+          ⚠ No NVIDIA GPU detected on this host. Launching with GPU enabled will
+          fail unless an NVIDIA GPU and the NVIDIA Container Toolkit are installed.
+        </p>
+      )}
 
       {error && <p className="text-sm text-primary">{error}</p>}
 

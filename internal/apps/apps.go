@@ -144,6 +144,10 @@ type Manifest struct {
 	Probe           *Probe          `json:"probe,omitempty"`
 	Configs         []ConfigFile    `json:"configs,omitempty"`
 	Migrations      []AppMigration  `json:"migrations,omitempty"`
+	// GPUServices lists the compose services that can use an NVIDIA GPU. When the
+	// app is installed with the USE_GPU input enabled, a GPU device reservation is
+	// injected into these services. Empty → the app has no GPU option.
+	GPUServices     []string        `json:"gpu_services,omitempty"`
 	Notes           string          `json:"notes,omitempty"`
 }
 

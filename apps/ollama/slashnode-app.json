@@ -7,7 +7,15 @@
   "description": "Self-host open source AI models like DeepSeek-R1, Llama, and more",
   "icon": "🤖",
   "dependencies": [],
-  "inputs": [],
+  "inputs": [
+    {
+      "key": "USE_GPU",
+      "label": "Use NVIDIA GPU",
+      "type": "boolean",
+      "default": false,
+      "help": "Reserve an NVIDIA GPU for inference. Requires the host to have an NVIDIA GPU and the NVIDIA Container Toolkit installed; leave off to run on CPU."
+    }
+  ],
   "compose": "name: slashnode-ollama\nservices:\n  ollama:\n    image: ollama/ollama:0.30.10\n    container_name: ollama\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      OLLAMA_ORIGINS: '*'\n      OLLAMA_CONTEXT_LENGTH: '8192'\n    volumes:\n      - ollama_data:/root/.ollama\n    ports:\n      - 127.0.0.1:11434:11434\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  ollama_data:\n    name: slashnode-ollama_ollama_data\n",
   "web": {
     "port": 11434,
@@ -18,5 +26,8 @@
     "port": 11434,
     "path": "/"
   },
-  "notes": "Ported from Umbrel (ollama). Upstream: https://ollama.com/. "
+  "notes": "Ported from Umbrel (ollama). Upstream: https://ollama.com/. ",
+  "gpu_services": [
+    "ollama"
+  ]
 }

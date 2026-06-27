@@ -126,6 +126,7 @@ export type SystemStats = {
   load1: number;
   disk_warn: boolean;
   disk_critical: boolean;
+  gpu_available: boolean;
 };
 
 export const getStatus = () => apiGet<Status>("/api/v1/status");

@@ -441,6 +441,25 @@ func namespaceInstance(content, baseID, instanceID string, n int, portMap map[in
 	return content, portMap
 }
 
+// injectGPU adds an NVIDIA GPU device reservation as the first key of each named
+// service (inserted right after the "  <svc>:" header, at 4-space indent).
+func injectGPU(content string, services []string) string {
+	const block = "    deploy:\n" +
+		"      resources:\n" +
+		"        reservations:\n" +
+		"          devices:\n" +
+		"            - driver: nvidia\n" +
+		"              count: all\n" +
+		"              capabilities: [gpu]\n"
+	for _, svc := range services {
+		header := "  " + svc + ":\n"
+		if strings.Contains(content, header) {
+			content = strings.Replace(content, header, header+block, 1)
+		}
+	}
+	return content
+}
+
 // usedHostPorts is the set of host ports already taken: the node's own ports and
 // every installed app/instance's web + allocated ports.
 func usedHostPorts() map[int]bool {
@@ -704,6 +723,13 @@ func installOne(dir, appID string, provided, imageTagOverride map[string]string,
 			content = strings.Replace(content, img, replaceTag(img, t), 1)
 		}
 	}
+	// GPU passthrough: when the operator enabled USE_GPU on a GPU-capable app,
+	// reserve an NVIDIA GPU for the declared services. Off by default, so apps
+	// run CPU-only on hosts without a GPU.
+	if provided["USE_GPU"] == "true" && len(man.GPUServices) > 0 {
+		content = injectGPU(content, man.GPUServices)
+	}
+
 	// For an extra instance (id "slashslack-2"), namespace the base compose:
 	// per-instance project/container/volume names and reassigned host ports, so
 	// it runs independently alongside the base. Ports are reused across reapplies.
