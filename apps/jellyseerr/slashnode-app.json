@@ -8,7 +8,7 @@
   "icon": "🎬",
   "dependencies": [],
   "inputs": [],
-  "compose": "name: slashnode-jellyseerr\nservices:\n  server:\n    image: ghcr.io/seerr-team/seerr:v3.3.0\n    container_name: jellyseerr\n    restart: unless-stopped\n    networks:\n      - slashnode\n    init: true\n    volumes:\n      - server_data-config:/app/config\n    ports:\n      - 127.0.0.1:5056:5055\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  server_data-config:\n    name: slashnode-jellyseerr_server_data-config\n",
+  "compose": "name: slashnode-jellyseerr\nservices:\n  server:\n    image: ghcr.io/seerr-team/seerr:v3.3.0\n    container_name: jellyseerr\n    restart: unless-stopped\n    networks:\n      - slashnode\n    init: true\n    environment:\n      CONFIG_DIRECTORY: /config\n    volumes:\n      - server_data-config:/config\n    ports:\n      - 127.0.0.1:5056:5055\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  server_data-config:\n    name: slashnode-jellyseerr_server_data-config\n",
   "web": {
     "port": 5056,
     "path": "/"
