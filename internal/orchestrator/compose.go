@@ -258,12 +258,17 @@ func Logs(appID, composeFile string, tail int) (string, error) {
 	return output("docker", args...)
 }
 
-// ClearLogs clears an app's logs. Truncating the on-disk log file is futile for
-// a running, chatty container — Docker holds the file descriptor open and keeps
-// appending at its old offset, so the logs reappear instantly. The reliable
-// clear is therefore a "since" marker: Logs() filters to entries after this
-// instant, which works for every logging driver. Truncation is still attempted
-// as a best-effort disk reclaim.
+// ClearLogs clears an app's logs by recording a "since" marker: Logs() filters
+// to entries after this instant, which works for every logging driver.
+//
+// We deliberately do NOT truncate the container's on-disk log file. Docker holds
+// the file descriptor open and keeps writing at its old offset, so an in-place
+// truncate-to-zero leaves a hole of NUL bytes before the next entry. The
+// json-file/local readers then hit a corrupted leading "line", which makes
+// subsequent `docker compose logs` (i.e. the next refresh) return garbage or
+// nothing — so the truncation both fails to reclaim disk (the file keeps growing
+// from the old offset) and breaks reads. The marker alone is the reliable clear;
+// disk is bounded by the logging driver's rotation, not by us.
 func ClearLogs(appID, composeFile string) error {
 	// Host clock is shared with the daemon; RFC3339Nano is accepted by
 	// `docker compose logs --since`.
@@ -271,7 +276,6 @@ func ClearLogs(appID, composeFile string) error {
 	if err := writeLogsSince(composeFile, since); err != nil {
 		return fmt.Errorf("record clear marker: %w", err)
 	}
-	truncateContainerLogs(appID, composeFile) // best-effort, reclaims disk
 	return nil
 }
 
@@ -289,44 +293,6 @@ func readLogsSince(composeFile string) string {
 
 func writeLogsSince(composeFile, ts string) error {
 	return os.WriteFile(logsSinceFile(composeFile), []byte(ts), 0o600)
-}
-
-// truncateContainerLogs zeroes the on-disk log files of the app's containers to
-// reclaim space. Best-effort: errors are ignored because the "since" marker is
-// what actually clears the view.
-func truncateContainerLogs(appID, composeFile string) {
-	out, err := output("docker", "compose", "-p", project(appID), "-f", composeFile, "ps", "-q")
-	if err != nil {
-		return
-	}
-	ids := strings.Fields(out)
-	if len(ids) == 0 {
-		return
-	}
-	root := ""
-	if r, e := output("docker", "info", "--format", "{{.DockerRootDir}}"); e == nil {
-		root = strings.TrimSpace(r)
-	}
-	for _, id := range ids {
-		// json-file driver exposes the log file path directly.
-		if lp, e := output("docker", "inspect", "--format", "{{.LogPath}}", id); e == nil {
-			if p := strings.TrimSpace(lp); p != "" {
-				os.Truncate(p, 0)
-				continue
-			}
-		}
-		// local driver (Docker's default on many setups) doesn't expose LogPath;
-		// its files live under <root>/containers/<fullID>/local-logs/.
-		if root != "" {
-			if full, e := output("docker", "inspect", "--format", "{{.Id}}", id); e == nil {
-				dir := filepath.Join(root, "containers", strings.TrimSpace(full), "local-logs")
-				files, _ := filepath.Glob(filepath.Join(dir, "*"))
-				for _, f := range files {
-					os.Truncate(f, 0)
-				}
-			}
-		}
-	}
 }
 
 func project(appID string) string { return "slashnode-" + appID }
