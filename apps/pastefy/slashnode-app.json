@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "pastefy",
+  "name": "Pastefy",
+  "version": "7.1.6",
+  "category": "developer",
+  "description": "An easy paste for seamless sharing",
+  "icon": "💻",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-pastefy\nservices:\n  db:\n    image: mariadb:11.4.5\n    container_name: pastefy-db\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      MYSQL_ROOT_PASSWORD: tyooe\n      MYSQL_DATABASE: pastefy\n      MYSQL_USER: pastefy\n      MYSQL_PASSWORD: tyooe\n    volumes:\n      - db_data-db:/var/lib/mysql:rw\n  app:\n    image: interaapps/pastefy:7.1.6\n    container_name: pastefy-app\n    restart: unless-stopped\n    networks:\n      - slashnode\n    depends_on:\n      - db\n    environment:\n      HTTP_SERVER_CORS: '*'\n      DATABASE_DRIVER: mysql\n      DATABASE_NAME: pastefy\n      DATABASE_USER: pastefy\n      DATABASE_PASSWORD: tyooe\n      DATABASE_HOST: pastefy-db\n      DATABASE_PORT: '3306'\n      SERVER_NAME: http://${node.exports.host}:9900\n    ports:\n      - 127.0.0.1:9900:80\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  db_data-db:\n    name: slashnode-pastefy_db_data-db\n",
+  "web": {
+    "port": 9900,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 9900,
+    "path": "/"
+  }
+}

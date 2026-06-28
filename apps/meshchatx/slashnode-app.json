@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "meshchatx",
+  "name": "MeshChatX",
+  "version": "4.7.1",
+  "category": "social",
+  "description": "The future of off-grid communication. Secure, decentralized, and unstoppable",
+  "icon": "💬",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-meshchatx\nservices:\n  web:\n    image: ghcr.io/quad4-software/meshchatx:4.7.1\n    container_name: meshchatx\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      MESHCHAT_NO_HTTPS: 'true'\n    volumes:\n      - web_data:/config\n    ports:\n      - 127.0.0.1:8985:8000\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data:\n    name: slashnode-meshchatx_web_data\n",
+  "web": {
+    "port": 8985,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8985,
+    "path": "/"
+  }
+}

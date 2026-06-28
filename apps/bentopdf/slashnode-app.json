@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "bentopdf",
+  "name": "BentoPDF",
+  "version": "2.8.5",
+  "category": "files",
+  "description": "A Privacy First PDF Toolkit",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-bentopdf\nservices:\n  web:\n    image: ghcr.io/alam00000/bentopdf:v2.8.5\n    container_name: bentopdf\n    restart: unless-stopped\n    networks:\n      - slashnode\n    ports:\n      - 127.0.0.1:8730:8080\nnetworks:\n  slashnode:\n    external: true\n",
+  "web": {
+    "port": 8730,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8730,
+    "path": "/"
+  }
+}

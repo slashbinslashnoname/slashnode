@@ -8,7 +8,7 @@
   "icon": "🌐",
   "dependencies": [],
   "inputs": [],
-  "compose": "name: slashnode-librespeed\nservices:\n  server:\n    image: ghcr.io/librespeed/speedtest:6.1.0\n    container_name: librespeed\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      PUID: '1000'\n      PGID: '1000'\n    volumes:\n      - server_data-config:/config\n    ports:\n      - 127.0.0.1:3011:8080\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  server_data-config:\n    name: slashnode-librespeed_server_data-config\n",
+  "compose": "name: slashnode-librespeed\nservices:\n  server:\n    image: ghcr.io/librespeed/speedtest:6.1.0\n    container_name: librespeed\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      MODE: standalone\n      WEBPORT: \"8080\"\n      PUID: '1000'\n      PGID: '1000'\n    volumes:\n      - server_data-config:/config\n    ports:\n      - 127.0.0.1:3011:8080\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  server_data-config:\n    name: slashnode-librespeed_server_data-config\n",
   "web": {
     "port": 3011,
     "path": "/"

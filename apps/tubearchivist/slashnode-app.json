@@ -1,0 +1,32 @@
+{
+  "manifestVersion": 1,
+  "id": "tubearchivist",
+  "name": "Tube Archivist",
+  "version": "0.5.10",
+  "category": "media",
+  "description": "Self hosted YouTube media server",
+  "icon": "🎬",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "APP_PASSWORD",
+      "label": "password",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Stored encrypted."
+    }
+  ],
+  "compose": "name: slashnode-tubearchivist\nservices:\n  server:\n    image: bbilly1/tubearchivist:v0.5.10\n    container_name: tubearchivist-server\n    restart: unless-stopped\n    networks:\n      - slashnode\n    depends_on:\n      - elasticsearch\n      - redis\n    environment:\n      ES_URL: http://tubearchivist-elasticsearch:9200\n      REDIS_CON: redis://tubearchivist-redis:6379\n      HOST_UID: '1000'\n      HOST_GID: '1000'\n      TA_HOST: http://${node.exports.host}:8079\n      TA_USERNAME: admin\n      TA_PASSWORD: ${secret.APP_PASSWORD}\n      ELASTIC_PASSWORD: verysecret\n      TZ: UTC\n    volumes:\n      - server_data-media:/youtube\n      - server_data-cache:/cache\n    ports:\n      - 127.0.0.1:8079:8000\n  redis:\n    image: redis:8.2.2-bookworm\n    container_name: tubearchivist-redis\n    restart: unless-stopped\n    networks:\n      - slashnode\n    depends_on:\n      - elasticsearch\n    volumes:\n      - redis_data-redis:/data\n  elasticsearch:\n    image: elasticsearch:8.19.6\n    container_name: tubearchivist-elasticsearch\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      ELASTIC_PASSWORD: verysecret\n      ES_JAVA_OPTS: '-Xms1g -Xmx1g'\n      xpack.security.enabled: 'true'\n      discovery.type: single-node\n      path.repo: /usr/share/elasticsearch/data/snapshot\n    volumes:\n      - elasticsearch_data-elasticsearch:/usr/share/elasticsearch/data\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  server_data-media:\n    name: slashnode-tubearchivist_server_data-media\n  server_data-cache:\n    name: slashnode-tubearchivist_server_data-cache\n  redis_data-redis:\n    name: slashnode-tubearchivist_redis_data-redis\n  elasticsearch_data-elasticsearch:\n    name: slashnode-tubearchivist_elasticsearch_data-elasticsearch\n",
+  "web": {
+    "port": 8079,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8079,
+    "path": "/"
+  },
+  "notes": "Default login — user: \"admin\", password: \"\"."
+}

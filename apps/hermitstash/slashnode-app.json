@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "hermitstash",
+  "name": "HermitStash",
+  "version": "1.13.0",
+  "category": "files",
+  "description": "Post-quantum encrypted self-hosted file sharing",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-hermitstash\nservices:\n  web:\n    image: ghcr.io/dotcoocoo/hermitstash:1.13.0\n    container_name: hermitstash\n    restart: unless-stopped\n    networks:\n      - slashnode\n    init: true\n    environment:\n      UMASK: '022'\n      TZ: Etc/UTC\n      NODE_ENV: production\n      TRUST_PROXY: 'true'\n      RP_ORIGIN: http://${node.exports.host}:3081\n      EMAIL_VERIFICATION: 'false'\n    volumes:\n      - web_data-db:/app/data\n      - web_data-uploads:/app/uploads\n      - web_data-custom:/app/public/img/custom\n    ports:\n      - 127.0.0.1:3081:3000\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data-db:\n    name: slashnode-hermitstash_web_data-db\n  web_data-uploads:\n    name: slashnode-hermitstash_web_data-uploads\n  web_data-custom:\n    name: slashnode-hermitstash_web_data-custom\n",
+  "web": {
+    "port": 3081,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 3081,
+    "path": "/"
+  }
+}

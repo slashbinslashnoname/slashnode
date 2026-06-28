@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "yucca",
+  "name": "Yucca",
+  "version": "0.12.3",
+  "category": "automation",
+  "description": "Simple NVR video surveillance solution",
+  "icon": "🔧",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-yucca\nservices:\n  yucca:\n    image: yuccastream/yucca:0.12.3\n    container_name: yucca\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      YUCCA_SERVER_DATA_DIR: /opt/yucca/data\n      YUCCA_SMTP_SERVER_LISTEN_ADDRESS: ':10925'\n    volumes:\n      - yucca_data-data:/opt/yucca/data\n      - yucca_data-ffmpeg:/opt/yucca/ffmpeg\n    ports:\n      - 127.0.0.1:9910:9910\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  yucca_data-data:\n    name: slashnode-yucca_yucca_data-data\n  yucca_data-ffmpeg:\n    name: slashnode-yucca_yucca_data-ffmpeg\n",
+  "web": {
+    "port": 9910,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 9910,
+    "path": "/"
+  }
+}

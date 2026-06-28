@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "autobrr",
+  "name": "autobrr",
+  "version": "1.80.0",
+  "category": "media",
+  "description": "Modern, easy to use download automation for torrents and usenet",
+  "icon": "🎬",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-autobrr\nservices:\n  web:\n    image: ghcr.io/autobrr/autobrr:v1.80.0\n    container_name: autobrr\n    restart: unless-stopped\n    networks:\n      - slashnode\n    volumes:\n      - web_data:/config\n    ports:\n      - 127.0.0.1:7474:7474\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data:\n    name: slashnode-autobrr_web_data\n",
+  "web": {
+    "port": 7474,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 7474,
+    "path": "/"
+  }
+}

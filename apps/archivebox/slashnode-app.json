@@ -1,0 +1,32 @@
+{
+  "manifestVersion": 1,
+  "id": "archivebox",
+  "name": "ArchiveBox",
+  "version": "0.7.4",
+  "category": "files",
+  "description": "Open-source self-hosted web archiving",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "APP_PASSWORD",
+      "label": "password",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Stored encrypted."
+    }
+  ],
+  "compose": "name: slashnode-archivebox\nservices:\n  archivebox:\n    image: archivebox/archivebox:0.7.4\n    container_name: archivebox\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      ALLOWED_HOSTS: '*'\n      ADMIN_USERNAME: admin\n      ADMIN_PASSWORD: ${secret.APP_PASSWORD}\n      PUBLIC_INDEX: 'True'\n      PUBLIC_SNAPSHOTS: 'True'\n      PUBLIC_ADD_VIEW: 'False'\n    volumes:\n      - archivebox_data:/data\n    ports:\n      - 127.0.0.1:8006:8000\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  archivebox_data:\n    name: slashnode-archivebox_archivebox_data\n",
+  "web": {
+    "port": 8006,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8006,
+    "path": "/"
+  },
+  "notes": "Default login — user: \"admin\", password: \"\"."
+}

@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "vert",
+  "name": "VERT",
+  "version": "438f91a",
+  "category": "files",
+  "description": "A file conversion utility",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-vert\nservices:\n  web:\n    image: ghcr.io/vert-sh/vert:sha-438f91a\n    container_name: vert\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      PUB_HOSTNAME: http://${node.exports.host}:3884\n      PUB_VERTD_URL: http://${node.exports.host}:3884\n      PUB_ENV: production\n    ports:\n      - 127.0.0.1:3884:80\nnetworks:\n  slashnode:\n    external: true\n",
+  "web": {
+    "port": 3884,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 3884,
+    "path": "/"
+  }
+}

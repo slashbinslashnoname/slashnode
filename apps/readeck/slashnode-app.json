@@ -1,0 +1,31 @@
+{
+  "manifestVersion": 1,
+  "id": "readeck",
+  "name": "Readeck",
+  "version": "0.22.3",
+  "category": "files",
+  "description": "Save web pages to read and keep forever",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "APP_SEED",
+      "label": "seed",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Stored encrypted."
+    }
+  ],
+  "compose": "name: slashnode-readeck\nservices:\n  web:\n    image: codeberg.org/readeck/readeck:0.22.3\n    container_name: readeck\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      READECK_LOG_LEVEL: info\n      READECK_SERVER_HOST: 0.0.0.0\n      READECK_SERVER_PORT: '8000'\n      READECK_LOG_FORMAT: text\n      READECK_SECRET_KEY: ${secret.APP_SEED}\n    volumes:\n      - web_data:/readeck\n    ports:\n      - 127.0.0.1:8026:8000\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data:\n    name: slashnode-readeck_web_data\n",
+  "web": {
+    "port": 8026,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8026,
+    "path": "/"
+  }
+}

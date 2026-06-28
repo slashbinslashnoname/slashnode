@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "mqttx-web",
+  "name": "MQTTX Web",
+  "version": "1.13.0",
+  "category": "automation",
+  "description": "Your All-in-One MQTT Client Toolbox",
+  "icon": "🔧",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-mqttx-web\nservices:\n  app:\n    image: emqx/mqttx-web:v1.13.0\n    container_name: mqttx-web\n    restart: unless-stopped\n    networks:\n      - slashnode\n    ports:\n      - 127.0.0.1:9012:80\nnetworks:\n  slashnode:\n    external: true\n",
+  "web": {
+    "port": 9012,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 9012,
+    "path": "/"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "threema",
+  "name": "Threema Web",
+  "version": "2.6.4",
+  "category": "files",
+  "description": "An intuitive and secure web client for Threema users",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-threema\nservices:\n  web:\n    image: dennysubke/threema-web:v2.6.4\n    container_name: threema\n    restart: unless-stopped\n    networks:\n      - slashnode\n    ports:\n      - 127.0.0.1:8855:80\nnetworks:\n  slashnode:\n    external: true\n",
+  "web": {
+    "port": 8855,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8855,
+    "path": "/"
+  }
+}

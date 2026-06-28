@@ -1,0 +1,41 @@
+{
+  "manifestVersion": 1,
+  "id": "invio",
+  "name": "Invio",
+  "version": "2.1.1",
+  "category": "finance",
+  "description": "Invio is a self-hosted invoicing app without the bloat",
+  "icon": "💰",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "APP_PASSWORD",
+      "label": "password",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Stored encrypted."
+    },
+    {
+      "key": "APP_SEED",
+      "label": "seed",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Stored encrypted."
+    }
+  ],
+  "compose": "name: slashnode-invio\nservices:\n  backend:\n    image: ghcr.io/kittendevv/invio-backend:v2.1.1\n    container_name: invio-backend\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      ADMIN_USER: admin\n      ADMIN_PASS: ${secret.APP_PASSWORD}\n      JWT_SECRET: ${secret.APP_SEED}\n      SESSION_TTL_SECONDS: '43200'\n      SECURE_HEADERS_DISABLED: 'false'\n      ENABLE_HSTS: 'true'\n      DATABASE_PATH: /app/data/invio.db\n    volumes:\n      - backend_data:/app/data\n  frontend:\n    image: ghcr.io/kittendevv/invio-frontend:v2.1.1\n    container_name: invio-frontend\n    restart: unless-stopped\n    networks:\n      - slashnode\n    depends_on:\n      - backend\n    environment:\n      PORT: '8000'\n      BACKEND_URL: http://invio-backend:3000\n      COOKIE_SECURE: 'false'\n      FRONTEND_SECURE_HEADERS_DISABLED: 'false'\n      ENABLE_HSTS: 'false'\n      ORIGIN: http://${node.exports.host}:8003\n    ports:\n      - 127.0.0.1:8003:8000\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  backend_data:\n    name: slashnode-invio_backend_data\n",
+  "web": {
+    "port": 8003,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8003,
+    "path": "/"
+  },
+  "notes": "Default login — user: \"admin\", password: \"\"."
+}

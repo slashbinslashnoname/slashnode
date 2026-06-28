@@ -1,0 +1,31 @@
+{
+  "manifestVersion": 1,
+  "id": "hortusfox",
+  "name": "HortusFox",
+  "version": "5.8",
+  "category": "files",
+  "description": "A collaborative plant tracking and management application",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "APP_PASSWORD",
+      "label": "password",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Stored encrypted."
+    }
+  ],
+  "compose": "name: slashnode-hortusfox\nservices:\n  app:\n    image: ghcr.io/danielbrendel/hortusfox-web:v5.8\n    container_name: hortusfox-app\n    restart: unless-stopped\n    networks:\n      - slashnode\n    depends_on:\n      - db\n    environment:\n      APP_ADMIN_EMAIL: umbrel@umbrel.local\n      APP_ADMIN_PASSWORD: ${secret.APP_PASSWORD}\n      DB_HOST: hortusfox-db\n      DB_PORT: '3306'\n      DB_DATABASE: hortusfox\n      DB_USERNAME: user\n      DB_PASSWORD: password\n      DB_CHARSET: utf8mb4\n    volumes:\n      - app_data-images:/var/www/html/public/img\n      - app_data-logs:/var/www/html/app/logs\n      - app_data-backup:/var/www/html/public/backup\n      - app_data-themes:/var/www/html/public/themes\n      - app_data-migrate:/var/www/html/app/migrations\n    ports:\n      - 127.0.0.1:8838:80\n  db:\n    image: mariadb:11.4.7\n    container_name: hortusfox-db\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      MYSQL_ROOT_PASSWORD: my-secret-pw\n      MYSQL_DATABASE: hortusfox\n      MYSQL_USER: user\n      MYSQL_PASSWORD: password\n    volumes:\n      - db_data-db_data:/var/lib/mysql\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  app_data-images:\n    name: slashnode-hortusfox_app_data-images\n  app_data-logs:\n    name: slashnode-hortusfox_app_data-logs\n  app_data-backup:\n    name: slashnode-hortusfox_app_data-backup\n  app_data-themes:\n    name: slashnode-hortusfox_app_data-themes\n  app_data-migrate:\n    name: slashnode-hortusfox_app_data-migrate\n  db_data-db_data:\n    name: slashnode-hortusfox_db_data-db_data\n",
+  "web": {
+    "port": 8838,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8838,
+    "path": "/"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "manifestVersion": 1,
+  "id": "wealthfolio",
+  "name": "Wealthfolio",
+  "version": "3.5.3",
+  "category": "finance",
+  "description": "Private investment portfolio tracking",
+  "icon": "💰",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "APP_WEALTHFOLIO_SECRET_KEY",
+      "label": "wealthfolio secret key",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Stored encrypted."
+    }
+  ],
+  "compose": "name: slashnode-wealthfolio\nservices:\n  server:\n    image: wealthfolio/wealthfolio:3.5.3\n    container_name: wealthfolio\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      WF_LISTEN_ADDR: 0.0.0.0:8088\n      WF_DB_PATH: /data/wealthfolio.db\n      WF_AUTH_REQUIRED: 'false'\n      WF_AUTH_PASSWORD_HASH: ''\n      WF_AUTH_TOKEN_TTL_MINUTES: '60'\n      WF_CORS_ALLOW_ORIGINS: ''\n      WF_REQUEST_TIMEOUT_MS: '30000'\n      WF_SECRET_KEY: ${secret.APP_WEALTHFOLIO_SECRET_KEY}\n    volumes:\n      - server_data:/data\n    ports:\n      - 127.0.0.1:8880:8088\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  server_data:\n    name: slashnode-wealthfolio_server_data\n",
+  "web": {
+    "port": 8880,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8880,
+    "path": "/"
+  }
+}

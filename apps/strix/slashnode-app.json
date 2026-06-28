@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "strix",
+  "name": "Strix",
+  "version": "2.1.0",
+  "category": "automation",
+  "description": "IP camera stream discovery tool for Frigate",
+  "icon": "🔧",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-strix\nservices:\n  web:\n    image: eduard256/strix:2.1.0\n    container_name: strix\n    restart: unless-stopped\n    networks:\n      - slashnode\n    ports:\n      - 127.0.0.1:4567:4567\nnetworks:\n  slashnode:\n    external: true\n",
+  "web": {
+    "port": 4567,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 4567,
+    "path": "/"
+  }
+}

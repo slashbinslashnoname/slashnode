@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "dumbpad",
+  "name": "DumbPad",
+  "version": "1.0.4",
+  "category": "files",
+  "description": "A notepad with collaborative editing, fuzzy search, & markdown preview",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-dumbpad\nservices:\n  web:\n    image: dumbwareio/dumbpad:1.0.4\n    container_name: dumbpad\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      SITE_TITLE: DumbPad\n      BASE_URL: http://${node.exports.host}:3000\n    volumes:\n      - web_data:/app/data\n    ports:\n      - 127.0.0.1:8255:3000\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data:\n    name: slashnode-dumbpad_web_data\n",
+  "web": {
+    "port": 8255,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8255,
+    "path": "/"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "manifestVersion": 1,
+  "id": "appsmith",
+  "name": "Appsmith",
+  "version": "v2.1",
+  "category": "developer",
+  "description": "Platform to build admin panels, internal tools, and dashboards",
+  "icon": "💻",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "APP_PASSWORD",
+      "label": "password",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Stored encrypted."
+    }
+  ],
+  "compose": "name: slashnode-appsmith\nservices:\n  app:\n    image: appsmith/appsmith-ce:v2.1\n    container_name: appsmith\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      APPSMITH_ENCRYPTION_PASSWORD: ${secret.APP_PASSWORD}\n      APPSMITH_ENCRYPTION_SALT: ${secret.APP_PASSWORD}\n    volumes:\n      - app_data-app:/appsmith-stacks\n    ports:\n      - 127.0.0.1:8654:80\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  app_data-app:\n    name: slashnode-appsmith_app_data-app\n",
+  "web": {
+    "port": 8654,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8654,
+    "path": "/"
+  }
+}

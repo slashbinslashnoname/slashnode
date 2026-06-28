@@ -469,12 +469,22 @@ func usedHostPorts() map[int]bool {
 		used[cfg.HTTP.Port+10000] = true
 		used[cfg.HTTP.APIPort] = true
 	}
-	for _, a := range LoadState().Installed {
+	for id, a := range LoadState().Installed {
 		if a.WebPort > 0 {
 			used[a.WebPort] = true
 		}
 		for _, p := range a.Ports {
 			used[p] = true
+		}
+		// Also take every host port actually published in the app's rendered
+		// compose (covers non-web ports — P2P, RPC, stratum… — that aren't tracked
+		// in WebPort/Ports), so an extra instance never collides with them.
+		if b, rerr := os.ReadFile(paths.AppComposeFile(id)); rerr == nil {
+			for _, m := range portsLineRe.FindAllStringSubmatch(string(b), -1) {
+				if hp, perr := strconv.Atoi(m[3]); perr == nil {
+					used[hp] = true
+				}
+			}
 		}
 	}
 	return used

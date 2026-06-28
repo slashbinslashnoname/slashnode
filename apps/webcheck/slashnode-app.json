@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "webcheck",
+  "name": "WebCheck",
+  "version": "2.1.0",
+  "category": "networking",
+  "description": "An all-in-one Open Source Intelligence tool for analyzing any website",
+  "icon": "🌐",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-webcheck\nservices:\n  server:\n    image: ghcr.io/lissy93/web-check:2.1.0\n    container_name: webcheck\n    restart: unless-stopped\n    networks:\n      - slashnode\n    volumes:\n      - server_data:/app/data\n    ports:\n      - 127.0.0.1:3093:3000\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  server_data:\n    name: slashnode-webcheck_server_data\n",
+  "web": {
+    "port": 3093,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 3093,
+    "path": "/"
+  }
+}

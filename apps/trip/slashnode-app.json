@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "trip",
+  "name": "Trip",
+  "version": "1.45.2",
+  "category": "files",
+  "description": "Minimalist Map Tracker and Trip Planner",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-trip\nservices:\n  app:\n    image: ghcr.io/itskovacs/trip:1.45.2\n    container_name: trip\n    restart: unless-stopped\n    networks:\n      - slashnode\n    command:\n      - fastapi\n      - run\n      - /app/trip/main.py\n      - '--host'\n      - 0.0.0.0\n    volumes:\n      - app_data-app:/app/storage\n    ports:\n      - 127.0.0.1:8980:8000\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  app_data-app:\n    name: slashnode-trip_app_data-app\n",
+  "web": {
+    "port": 8980,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8980,
+    "path": "/"
+  }
+}

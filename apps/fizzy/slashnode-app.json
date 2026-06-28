@@ -1,0 +1,31 @@
+{
+  "manifestVersion": 1,
+  "id": "fizzy",
+  "name": "Fizzy",
+  "version": "5f45e54",
+  "category": "social",
+  "description": "Kanban as it should be. Not as it has been.",
+  "icon": "💬",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "APP_SEED",
+      "label": "seed",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Stored encrypted."
+    }
+  ],
+  "compose": "name: slashnode-fizzy\nservices:\n  server:\n    image: ghcr.io/mauricewipf/fizzy-umbrel:5f45e54\n    container_name: fizzy\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      RAILS_ENV: production\n      SECRET_KEY_BASE: ${secret.APP_SEED}\n      DATABASE_ADAPTER: sqlite\n      ACTIVE_STORAGE_SERVICE: local\n      SOLID_QUEUE_IN_PUMA: 'true'\n      FORCE_SSL: 'false'\n      ASSUME_SSL: 'false'\n    volumes:\n      - server_data-app:/rails/storage\n    ports:\n      - 127.0.0.1:8005:80\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  server_data-app:\n    name: slashnode-fizzy_server_data-app\n",
+  "web": {
+    "port": 8005,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8005,
+    "path": "/"
+  }
+}

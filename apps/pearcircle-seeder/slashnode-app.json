@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "pearcircle-seeder",
+  "name": "PearCircle Seeder",
+  "version": "1.0.17",
+  "category": "networking",
+  "description": "Keep your PearCircle circles online 24/7",
+  "icon": "🌐",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-pearcircle-seeder\nservices:\n  app:\n    image: ghcr.io/peerloomllc/pearcircle-seeder:1.0.17\n    container_name: pearcircle-seeder\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      SEEDER_HOST: 0.0.0.0\n      SEEDER_PORT: '8730'\n      SEEDER_NO_AUTH: '1'\n      SEEDER_NO_UPDATE_CHECK: '1'\n    volumes:\n      - app_data:/data\n    ports:\n      - 127.0.0.1:8731:8730\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  app_data:\n    name: slashnode-pearcircle-seeder_app_data\n",
+  "web": {
+    "port": 8731,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8731,
+    "path": "/"
+  }
+}

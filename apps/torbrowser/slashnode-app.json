@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "torbrowser",
+  "name": "Tor Browser",
+  "version": "15.0.1",
+  "category": "networking",
+  "description": "An invisible shield for your browsing experience",
+  "icon": "🌐",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-torbrowser\nservices:\n  web:\n    image: dennysubke/torbrowser:15.0.1\n    container_name: torbrowser\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      DARK_MODE: '1'\n      WEB_AUDIO: '1'\n    volumes:\n      - web_config:/config\n    ports:\n      - 127.0.0.1:5832:5800\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_config:\n    name: slashnode-torbrowser_web_config\n",
+  "web": {
+    "port": 5832,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 5832,
+    "path": "/"
+  }
+}

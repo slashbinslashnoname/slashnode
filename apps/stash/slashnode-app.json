@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "stash",
+  "name": "Stash",
+  "version": "1.0.1",
+  "category": "ai",
+  "description": "Hoard everything, find anything — your private on-device AI inbox",
+  "icon": "🤖",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-stash\nservices:\n  web:\n    image: savewithstash/stash:1.0.1\n    container_name: stash\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      PORT: '5173'\n    volumes:\n      - web_data-app:/app/data\n      - web_data-models:/app/models\n    ports:\n      - 127.0.0.1:5173:5173\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data-app:\n    name: slashnode-stash_web_data-app\n  web_data-models:\n    name: slashnode-stash_web_data-models\n",
+  "web": {
+    "port": 5173,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 5173,
+    "path": "/"
+  }
+}

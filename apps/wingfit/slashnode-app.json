@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "wingfit",
+  "name": "Wingfit",
+  "version": "5.3.1",
+  "category": "files",
+  "description": "An open-source minimalist fitness app",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-wingfit\nservices:\n  app:\n    image: ghcr.io/itskovacs/wingfit:5.3.1\n    container_name: wingfit\n    restart: unless-stopped\n    networks:\n      - slashnode\n    command:\n      - fastapi\n      - run\n      - /app/wingfit/main.py\n      - '--host'\n      - 0.0.0.0\n    volumes:\n      - app_data:/app/storage\n    ports:\n      - 127.0.0.1:8950:8000\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  app_data:\n    name: slashnode-wingfit_app_data\n",
+  "web": {
+    "port": 8950,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8950,
+    "path": "/"
+  }
+}

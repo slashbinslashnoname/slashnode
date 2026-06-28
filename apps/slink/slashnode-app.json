@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "slink",
+  "name": "Slink",
+  "version": "1.12.1",
+  "category": "files",
+  "description": "A powerful, privacy-first image sharing platform",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-slink\nservices:\n  web:\n    image: anirdev/slink:v1.12.1\n    container_name: slink\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      TZ: UTC\n      ORIGIN: http://${node.exports.host}:8811\n      REQUIRE_SSL: 'false'\n      USER_APPROVAL_REQUIRED: 'false'\n      USER_PASSWORD_MIN_LENGTH: '8'\n      USER_PASSWORD_REQUIREMENTS: '15'\n      IMAGE_MAX_SIZE: 15M\n      IMAGE_STRIP_EXIF_METADATA: 'true'\n      IMAGE_COMPRESSION_QUALITY: '80'\n      STORAGE_PROVIDER: local\n    volumes:\n      - web_data-var:/app/var/data\n      - web_data-images:/app/slink/images\n    ports:\n      - 127.0.0.1:8811:3000\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data-var:\n    name: slashnode-slink_web_data-var\n  web_data-images:\n    name: slashnode-slink_web_data-images\n",
+  "web": {
+    "port": 8811,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8811,
+    "path": "/"
+  }
+}

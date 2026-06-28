@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "snowflake",
+  "name": "Tor Snowflake Proxy",
+  "version": "v2.14.1",
+  "category": "networking",
+  "description": "Help defeat internet censorship",
+  "icon": "🌐",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-snowflake\nservices:\n  proxy:\n    image: thetorproject/snowflake-proxy:v2.14.1\n    container_name: snowflake-proxy\n    restart: unless-stopped\n    networks:\n      - slashnode\n    command: '-log /data/snowflake.log -verbose'\n    volumes:\n      - proxy_data:/data\n  web:\n    image: sorenisanerd/gotty:v1.6.0\n    container_name: snowflake-web\n    restart: unless-stopped\n    networks:\n      - slashnode\n    command: gotty --port 3800 --index \"/snowflake/index.html\" --title-format \"Tor Snowflake Proxy\" bash -c 'tail -n 10000 -f /snowflake/snowflake.log | grep \"Traffic Relayed\"'\n    volumes:\n      - proxy_data:/snowflake\n    ports:\n      - 127.0.0.1:3800:3800\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  proxy_data:\n    name: slashnode-snowflake_proxy_data\n  web_data:\n    name: slashnode-snowflake_web_data\n",
+  "web": {
+    "port": 3800,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 3800,
+    "path": "/"
+  }
+}

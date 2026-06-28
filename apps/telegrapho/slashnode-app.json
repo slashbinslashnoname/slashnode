@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "telegrapho",
+  "name": "Telegrapho",
+  "version": "1.0.1",
+  "category": "networking",
+  "description": "Private copy and paste between your devices",
+  "icon": "🌐",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-telegrapho\nservices:\n  app:\n    image: ghcr.io/egzola/telegrapho:1.0.1\n    container_name: telegrapho\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      PORT: '3712'\n    ports:\n      - 127.0.0.1:3712:3712\nnetworks:\n  slashnode:\n    external: true\n",
+  "web": {
+    "port": 3712,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 3712,
+    "path": "/"
+  }
+}

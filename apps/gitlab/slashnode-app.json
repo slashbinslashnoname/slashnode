@@ -1,0 +1,32 @@
+{
+  "manifestVersion": 1,
+  "id": "gitlab",
+  "name": "GitLab",
+  "version": "19.1.1",
+  "category": "developer",
+  "description": "Software. Faster.",
+  "icon": "💻",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "APP_PASSWORD",
+      "label": "password",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Stored encrypted."
+    }
+  ],
+  "compose": "name: slashnode-gitlab\nservices:\n  gitlab:\n    image: gitlab/gitlab-ce:19.1.1-ce.0\n    container_name: gitlab\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      PUID: '1000'\n      PGID: '1000'\n      GITLAB_OMNIBUS_CONFIG: |\n        # Add any other gitlab.rb configuration here, each on its own line\n        gitlab_rails['initial_root_password'] = '${secret.APP_PASSWORD}'\n        gitlab_rails['gitlab_shell_ssh_port'] = 2424\n        nginx['listen_port'] = 8929\n        nginx['listen_https'] = false\n    volumes:\n      - gitlab_data-config:/etc/gitlab\n      - gitlab_data-logs:/var/log/gitlab\n      - gitlab_data-data:/var/opt/gitlab\n    ports:\n      - 127.0.0.1:8929:8929\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  gitlab_data-config:\n    name: slashnode-gitlab_gitlab_data-config\n  gitlab_data-logs:\n    name: slashnode-gitlab_gitlab_data-logs\n  gitlab_data-data:\n    name: slashnode-gitlab_gitlab_data-data\n",
+  "web": {
+    "port": 8929,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8929,
+    "path": "/"
+  },
+  "notes": "Default login — user: \"root\", password: \"\"."
+}

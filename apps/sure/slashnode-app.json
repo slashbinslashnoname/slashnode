@@ -1,0 +1,31 @@
+{
+  "manifestVersion": 1,
+  "id": "sure",
+  "name": "Sure",
+  "version": "0.7.1",
+  "category": "finance",
+  "description": "The personal finance app for everyone",
+  "icon": "💰",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "APP_SEED",
+      "label": "seed",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Stored encrypted."
+    }
+  ],
+  "compose": "name: slashnode-sure\nservices:\n  web:\n    image: ghcr.io/we-promise/sure:0.7.1\n    container_name: sure-web\n    restart: unless-stopped\n    networks:\n      - slashnode\n    depends_on:\n      db:\n        condition: service_started\n      redis:\n        condition: service_started\n    environment:\n      POSTGRES_USER: sure_user\n      POSTGRES_PASSWORD: sure_password\n      POSTGRES_DB: sure_production\n      SECRET_KEY_BASE: ${secret.APP_SEED}\n      SELF_HOSTED: 'true'\n      RAILS_FORCE_SSL: 'false'\n      RAILS_ASSUME_SSL: 'false'\n      DB_HOST: sure-db\n      DB_PORT: '5432'\n      REDIS_URL: redis://sure-redis:6379/1\n    volumes:\n      - web_data-rails:/rails/storage\n    ports:\n      - 127.0.0.1:3064:3000\n  worker:\n    image: ghcr.io/we-promise/sure:0.7.1\n    container_name: sure-worker\n    restart: unless-stopped\n    networks:\n      - slashnode\n    command: bundle exec sidekiq\n    depends_on:\n      db:\n        condition: service_started\n      redis:\n        condition: service_started\n    environment:\n      POSTGRES_USER: sure_user\n      POSTGRES_PASSWORD: sure_password\n      POSTGRES_DB: sure_production\n      SECRET_KEY_BASE: ${secret.APP_SEED}\n      SELF_HOSTED: 'true'\n      RAILS_FORCE_SSL: 'false'\n      RAILS_ASSUME_SSL: 'false'\n      DB_HOST: sure-db\n      DB_PORT: '5432'\n      REDIS_URL: redis://sure-redis:6379/1\n    volumes:\n      - worker_data-rails:/rails/storage\n  db:\n    image: postgres:18.3-alpine\n    container_name: sure-db\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      POSTGRES_USER: sure_user\n      POSTGRES_PASSWORD: sure_password\n      POSTGRES_DB: sure_production\n      PGDATA: /data/pgdata\n    volumes:\n      - db_data-postgres:/data\n  redis:\n    image: redis:8.4.2\n    container_name: sure-redis\n    restart: unless-stopped\n    networks:\n      - slashnode\n    volumes:\n      - redis_data-redis:/data\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data-rails:\n    name: slashnode-sure_web_data-rails\n  worker_data-rails:\n    name: slashnode-sure_worker_data-rails\n  db_data-postgres:\n    name: slashnode-sure_db_data-postgres\n  redis_data-redis:\n    name: slashnode-sure_redis_data-redis\n",
+  "web": {
+    "port": 3064,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 3064,
+    "path": "/"
+  }
+}

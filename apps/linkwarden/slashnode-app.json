@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "linkwarden",
+  "name": "Linkwarden",
+  "version": "2.14.1",
+  "category": "social",
+  "description": "Bookmark Preservation for Individuals and Teams",
+  "icon": "💬",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-linkwarden\nservices:\n  postgres:\n    image: postgres:16-alpine\n    container_name: linkwarden-postgres\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      POSTGRES_PASSWORD: linkwarden\n    volumes:\n      - postgres_data-db:/var/lib/postgresql/data\n  app:\n    image: ghcr.io/linkwarden/linkwarden:v2.14.1\n    container_name: linkwarden-app\n    restart: unless-stopped\n    networks:\n      - slashnode\n    depends_on:\n      postgres:\n        condition: service_started\n    environment:\n      DATABASE_URL: postgresql://postgres:linkwarden@linkwarden-postgres:5432/postgres\n      NEXTAUTH_URL: http://${node.exports.host}:8233/api/v1/auth\n      NEXTAUTH_SECRET: linkwarden\n    volumes:\n      - app_data-app:/data/data\n    ports:\n      - 127.0.0.1:8233:3000\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  postgres_data-db:\n    name: slashnode-linkwarden_postgres_data-db\n  app_data-app:\n    name: slashnode-linkwarden_app_data-app\n",
+  "web": {
+    "port": 8233,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8233,
+    "path": "/"
+  }
+}

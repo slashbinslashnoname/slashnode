@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "perplexica",
+  "name": "Vane",
+  "version": "1.12.2",
+  "category": "ai",
+  "description": "An AI-powered answering engine",
+  "icon": "🤖",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-perplexica\nservices:\n  web:\n    image: itzcrazykns1337/vane:v1.12.2\n    container_name: perplexica\n    restart: unless-stopped\n    networks:\n      - slashnode\n    volumes:\n      - web_data-app_data:/home/vane/data\n      - web_data-uploads:/home/vane/uploads\n    ports:\n      - 127.0.0.1:3444:3000\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data-app_data:\n    name: slashnode-perplexica_web_data-app_data\n  web_data-uploads:\n    name: slashnode-perplexica_web_data-uploads\n",
+  "web": {
+    "port": 3444,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 3444,
+    "path": "/"
+  }
+}

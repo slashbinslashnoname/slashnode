@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "kokoro",
+  "name": "Kokoro",
+  "version": "0.5.0",
+  "category": "ai",
+  "description": "An intelligent, high-quality TTS solution",
+  "icon": "🤖",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-kokoro\nservices:\n  web:\n    image: ghcr.io/remsky/kokoro-fastapi-cpu:v0.5.0\n    container_name: kokoro\n    restart: unless-stopped\n    networks:\n      - slashnode\n    ports:\n      - 127.0.0.1:8877:8880\nnetworks:\n  slashnode:\n    external: true\n",
+  "web": {
+    "port": 8877,
+    "path": "/web"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8877,
+    "path": "/"
+  }
+}

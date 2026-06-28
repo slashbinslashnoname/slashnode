@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "element",
+  "name": "Element",
+  "version": "1.12.22",
+  "category": "social",
+  "description": "A glossy Matrix client compatible with Synapse",
+  "icon": "💬",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-element\nservices:\n  web:\n    image: vectorim/element-web:v1.12.22\n    container_name: element\n    restart: unless-stopped\n    networks:\n      - slashnode\n    ports:\n      - 127.0.0.1:8088:80\nnetworks:\n  slashnode:\n    external: true\n",
+  "web": {
+    "port": 8088,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8088,
+    "path": "/"
+  }
+}

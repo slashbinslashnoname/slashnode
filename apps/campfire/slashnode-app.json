@@ -1,0 +1,31 @@
+{
+  "manifestVersion": 1,
+  "id": "campfire",
+  "name": "Campfire",
+  "version": "1.4.3",
+  "category": "social",
+  "description": "Self-hosted chat for teams",
+  "icon": "💬",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "APP_SEED",
+      "label": "seed",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Stored encrypted."
+    }
+  ],
+  "compose": "name: slashnode-campfire\nservices:\n  server:\n    image: ghcr.io/basecamp/once-campfire:1.4.3\n    container_name: campfire-server\n    restart: unless-stopped\n    networks:\n      - slashnode\n    depends_on:\n      - redis\n    environment:\n      RAILS_ENV: production\n      SECRET_KEY_BASE: ${secret.APP_SEED}\n      REDIS_URL: redis://campfire-redis:6379\n      DISABLE_SSL: 'true'\n      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}\n      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}\n      SENTRY_DSN: ${SENTRY_DSN:-}\n    volumes:\n      - server_data-app:/rails/storage\n    ports:\n      - 127.0.0.1:8004:80\n  redis:\n    image: redis:7-alpine\n    container_name: campfire-redis\n    restart: unless-stopped\n    networks:\n      - slashnode\n    command: redis-server --save 60 1 --save 300 10 --save 900 100 --appendonly yes --loglevel warning\n    volumes:\n      - redis_data-redis:/data\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  server_data-app:\n    name: slashnode-campfire_server_data-app\n  redis_data-redis:\n    name: slashnode-campfire_redis_data-redis\n",
+  "web": {
+    "port": 8004,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8004,
+    "path": "/"
+  }
+}

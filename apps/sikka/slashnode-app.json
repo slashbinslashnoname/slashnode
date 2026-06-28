@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "sikka",
+  "name": "Sikka",
+  "version": "0.2.0",
+  "category": "crypto",
+  "description": "Feeless, quantum-safe cryptocurrency node",
+  "icon": "📦",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-sikka\nservices:\n  web:\n    image: ghcr.io/sikkalabs/sikka:0.2.0\n    container_name: sikka\n    restart: unless-stopped\n    networks:\n      - slashnode\n    volumes:\n      - web_data:/home/sikka/data\n    ports:\n      - 127.0.0.1:64552:64552\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data:\n    name: slashnode-sikka_web_data\n",
+  "web": {
+    "port": 64552,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 64552,
+    "path": "/"
+  }
+}

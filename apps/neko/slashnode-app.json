@@ -1,0 +1,31 @@
+{
+  "manifestVersion": 1,
+  "id": "neko",
+  "name": "Neko",
+  "version": "3.1.4",
+  "category": "networking",
+  "description": "A self-hosted virtual browser powered by WebRTC",
+  "icon": "🌐",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "APP_PASSWORD",
+      "label": "password",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Stored encrypted."
+    }
+  ],
+  "compose": "name: slashnode-neko\nservices:\n  web:\n    image: ghcr.io/m1k1o/neko/firefox:3.1.4\n    container_name: neko\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      PUID: '1000'\n      PGID: '1000'\n      NEKO_DESKTOP_SCREEN: 1920x1080@30\n      NEKO_MEMBER_MULTIUSER_USER_PASSWORD: neko\n      NEKO_MEMBER_MULTIUSER_ADMIN_PASSWORD: ${secret.APP_PASSWORD}\n      NEKO_WEBRTC_EPR: 52000-52100\n      NEKO_WEBRTC_ICELITE: '0'\n    ports:\n      - 127.0.0.1:3880:8080\nnetworks:\n  slashnode:\n    external: true\n",
+  "web": {
+    "port": 3880,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 3880,
+    "path": "/"
+  }
+}

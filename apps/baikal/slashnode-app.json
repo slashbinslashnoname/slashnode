@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "baikal",
+  "name": "Baikal",
+  "version": "0.11.1",
+  "category": "networking",
+  "description": "A lightweight calendar and contacts server",
+  "icon": "🌐",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-baikal\nservices:\n  web:\n    image: ghcr.io/aalmenar/baikal:0.11.1-nginx\n    container_name: baikal\n    restart: unless-stopped\n    networks:\n      - slashnode\n    volumes:\n      - web_data-config:/var/www/baikal/config\n      - web_data-Specific:/var/www/baikal/Specific\n    ports:\n      - 127.0.0.1:8890:80\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data-config:\n    name: slashnode-baikal_web_data-config\n  web_data-Specific:\n    name: slashnode-baikal_web_data-Specific\n",
+  "web": {
+    "port": 8890,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8890,
+    "path": "/"
+  }
+}

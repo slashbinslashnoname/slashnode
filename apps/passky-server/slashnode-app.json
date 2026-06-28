@@ -1,0 +1,32 @@
+{
+  "manifestVersion": 1,
+  "id": "passky-server",
+  "name": "Passky Server",
+  "version": "8.1.8",
+  "category": "files",
+  "description": "Simple, modern, lightweight, open source and secure password manager",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "APP_PASSWORD",
+      "label": "password",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Stored encrypted."
+    }
+  ],
+  "compose": "name: slashnode-passky-server\nservices:\n  server:\n    image: rabbitcompany/passky-server:8.1.8\n    container_name: passky-server\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      SERVER_LOCATION: US\n      SERVER_CORES: '1'\n      ADMIN_USERNAME: admin\n      ADMIN_PASSWORD: ${secret.APP_PASSWORD}\n      CF_TURNSTILE_SITE_KEY: 1x00000000000000000000AA\n      CF_TURNSTILE_SECRET_KEY: 1x0000000000000000000000000000000AA\n      DATABASE_ENGINE: sqlite\n      DATABASE_FILE: passky\n      MYSQL_HOST: ''\n      MYSQL_PORT: '3306'\n      MYSQL_DATABASE: passky\n      MYSQL_USER: passky\n      MYSQL_PASSWORD: ''\n      MYSQL_SSL: 'false'\n      MYSQL_SSL_CA: /etc/ssl/certs/ca-certificates.crt\n      MYSQL_CACHE_MODE: '0'\n      REDIS_HOST: 127.0.0.1\n      REDIS_PORT: '6379'\n      REDIS_PASSWORD: ''\n      REDIS_LOCAL_HOST: 127.0.0.1\n      REDIS_LOCAL_PORT: '6379'\n      REDIS_LOCAL_PASSWORD: ''\n      MAIL_ENABLED: 'false'\n      ACCOUNT_MAX: '100'\n      ACCOUNT_MAX_PASSWORDS: '1000'\n      ACCOUNT_PREMIUM: '-1'\n      YUBI_CLOUD: https://api.yubico.com/wsapi/2.0/verify\n      YUBI_ID: '67857'\n      LIMITER_ENABLED: 'true'\n      LIMITER_GET_INFO: '-1'\n      LIMITER_GET_STATS: '-1'\n      LIMITER_GET_TOKEN: '3'\n      LIMITER_GET_PASSWORDS: '2'\n      LIMITER_SAVE_PASSWORD: '2'\n      LIMITER_EDIT_PASSWORD: '2'\n      LIMITER_DELETE_PASSWORD: '2'\n      LIMITER_DELETE_PASSWORDS: '10'\n      LIMITER_CREATE_ACCOUNT: '10'\n      LIMITER_DELETE_ACCOUNT: '10'\n      LIMITER_IMPORT_PASSWORDS: '10'\n      LIMITER_FORGOT_USERNAME: '60'\n      LIMITER_ENABLE_2FA: '10'\n      LIMITER_DISABLE_2FA: '10'\n      LIMITER_ADD_YUBIKEY: '10'\n      LIMITER_REMOVE_YUBIKEY: '10'\n      LIMITER_UPGRADE_ACCOUNT: '10'\n      LIMITER_GET_REPORT: '-1'\n    volumes:\n      - server_data-passky:/var/www/html/databases\n    ports:\n      - 127.0.0.1:5050:80\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  server_data-passky:\n    name: slashnode-passky-server_server_data-passky\n",
+  "web": {
+    "port": 5050,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 5050,
+    "path": "/"
+  },
+  "notes": "Default login — user: \"admin\", password: \"\"."
+}

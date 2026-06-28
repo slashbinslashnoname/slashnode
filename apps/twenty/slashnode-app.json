@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "twenty",
+  "name": "Twenty",
+  "version": "2.16.1",
+  "category": "files",
+  "description": "An adaptable CRM solution for seamless team collaboration and growth",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-twenty\nservices:\n  server:\n    image: twentycrm/twenty:v2.16.1\n    container_name: twenty-server\n    restart: unless-stopped\n    networks:\n      - slashnode\n    depends_on:\n      db:\n        condition: service_started\n      redis:\n        condition: service_started\n    environment:\n      NODE_PORT: '3000'\n      PG_DATABASE_URL: postgres://postgres:postgres@twenty-db:5432/default\n      SERVER_URL: http://${node.exports.host}:2020\n      REDIS_URL: redis://twenty-redis:6379\n      APP_SECRET: 2Gn5puuVCH0SI386E9RqOqHm0hGIAyrB\n    volumes:\n      - server_data-server-local-data:/app/packages/twenty-server/.local-storage\n      - server_data-docker-data:/app/docker-data\n    ports:\n      - 127.0.0.1:2020:3000\n  worker:\n    image: twentycrm/twenty:v2.16.1\n    container_name: twenty-worker\n    restart: unless-stopped\n    networks:\n      - slashnode\n    command:\n      - yarn\n      - worker:prod\n    depends_on:\n      db:\n        condition: service_started\n      server:\n        condition: service_started\n    environment:\n      PG_DATABASE_URL: postgres://postgres:postgres@twenty-db:5432/default\n      SERVER_URL: http://${node.exports.host}:2020\n      REDIS_URL: redis://twenty-redis:6379\n      DISABLE_DB_MIGRATIONS: 'true'\n      DISABLE_CRON_JOBS_REGISTRATION: 'true'\n      APP_SECRET: 2Gn5puuVCH0SI386E9RqOqHm0hGIAyrB\n    volumes:\n      - worker_data-server-local-data:/app/packages/twenty-server/.local-storage\n  db:\n    image: postgres:16.8\n    container_name: twenty-db\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      POSTGRES_DB: default\n      POSTGRES_USER: postgres\n      POSTGRES_PASSWORD: postgres\n    volumes:\n      - db_data-db-data:/var/lib/postgresql/data\n  redis:\n    image: redis:7.4.2\n    container_name: twenty-redis\n    restart: unless-stopped\n    networks:\n      - slashnode\n    volumes:\n      - redis_data-redis:/data\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  server_data-server-local-data:\n    name: slashnode-twenty_server_data-server-local-data\n  server_data-docker-data:\n    name: slashnode-twenty_server_data-docker-data\n  worker_data-server-local-data:\n    name: slashnode-twenty_worker_data-server-local-data\n  db_data-db-data:\n    name: slashnode-twenty_db_data-db-data\n  redis_data-redis:\n    name: slashnode-twenty_redis_data-redis\n",
+  "web": {
+    "port": 2020,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 2020,
+    "path": "/"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "bark-wallet",
+  "name": "Bark Wallet",
+  "version": "0.2.6",
+  "category": "bitcoin",
+  "description": "One wallet for Lightning, Ark, and on-chain",
+  "icon": "₿",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-bark-wallet\nservices:\n  web:\n    image: secondark/bark-web:0.2.6\n    container_name: bark-wallet-web\n    restart: unless-stopped\n    networks:\n      - slashnode\n    depends_on:\n      - api\n      - barkd\n    ports:\n      - 127.0.0.1:4004:8080\n  api:\n    image: secondark/bark-web-api:0.2.6\n    container_name: bark-wallet-api\n    restart: unless-stopped\n    networks:\n      - slashnode\n    depends_on:\n      - barkd\n    environment:\n      PORT: '4001'\n      WALLET_DIR: /wallet-data/.bark\n      WALLET_DATA_PATH: /Apps/bark-wallet/data/wallet/.bark/\n      BARKD_URL: http://barkd:4000\n      ARK_SERVER: https://ark.second.tech\n      CHAIN_SOURCE: https://mempool.second.tech/api\n      BARK_NETWORK: mainnet\n    volumes:\n      - api_data-wallet:/wallet-data:ro\n  barkd:\n    image: secondark/bark:0.2.5\n    container_name: bark-wallet-barkd\n    restart: unless-stopped\n    networks:\n      - slashnode\n    command: |\n      sh -c \"mkdir -p /data/.bark && chown -R 1000:1000 /data && exec setpriv --reuid 1000 --regid 1000 --clear-groups /usr/local/bin/barkd --port 4000 --host 0.0.0.0 --datadir /data/.bark\"\n    volumes:\n      - barkd_data-wallet:/data\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  api_data-wallet:\n    name: slashnode-bark-wallet_api_data-wallet\n  barkd_data-wallet:\n    name: slashnode-bark-wallet_barkd_data-wallet\n",
+  "web": {
+    "port": 4004,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 4004,
+    "path": "/"
+  }
+}

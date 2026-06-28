@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "jotty",
+  "name": "Jotty",
+  "version": "1.25.1",
+  "category": "files",
+  "description": "A simple app, for your checklists and notes",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-jotty\nservices:\n  web:\n    image: ghcr.io/fccview/jotty:1.25.1\n    container_name: jotty\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      NODE_ENV: production\n    volumes:\n      - web_data-app:/app/data\n      - web_data-config:/app/config\n      - web_data-cache:/app/.next/cache\n    ports:\n      - 127.0.0.1:8345:3000\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data-app:\n    name: slashnode-jotty_web_data-app\n  web_data-config:\n    name: slashnode-jotty_web_data-config\n  web_data-cache:\n    name: slashnode-jotty_web_data-cache\n",
+  "web": {
+    "port": 8345,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8345,
+    "path": "/"
+  }
+}

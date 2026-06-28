@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "linkstack",
+  "name": "LinkStack",
+  "version": "4.8.6",
+  "category": "files",
+  "description": "A highly customizable link sharing platform",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-linkstack\nservices:\n  linkstack:\n    image: linkstackorg/linkstack:latest\n    container_name: linkstack\n    restart: unless-stopped\n    networks:\n      - slashnode\n    volumes:\n      - linkstack_linkstack_data:/htdocs\n    ports:\n      - 127.0.0.1:8190:80\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  linkstack_linkstack_data:\n    name: slashnode-linkstack_linkstack_linkstack_data\n",
+  "web": {
+    "port": 8190,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8190,
+    "path": "/"
+  }
+}

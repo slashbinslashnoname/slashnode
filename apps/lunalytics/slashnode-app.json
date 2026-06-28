@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "lunalytics",
+  "name": "Lunalytics",
+  "version": "0.10.23",
+  "category": "networking",
+  "description": "A monitoring tool for teams",
+  "icon": "🌐",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-lunalytics\nservices:\n  web:\n    image: ksjaay/lunalytics:0.10.23\n    container_name: lunalytics\n    restart: unless-stopped\n    networks:\n      - slashnode\n    volumes:\n      - web_data-lunalytics_data:/app/data:rw\n      - web_data-logs:/app/logs:rw\n    ports:\n      - 127.0.0.1:8183:2308\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data-lunalytics_data:\n    name: slashnode-lunalytics_web_data-lunalytics_data\n  web_data-logs:\n    name: slashnode-lunalytics_web_data-logs\n",
+  "web": {
+    "port": 8183,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8183,
+    "path": "/"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "deepsea",
+  "name": "DeepSea Dashboard",
+  "version": "2.0.4",
+  "category": "bitcoin",
+  "description": "Retro style Ocean dashboard",
+  "icon": "₿",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-deepsea\nservices:\n  deepsea:\n    image: ghcr.io/retropex/custom-dashboard-ocean:v2.0.4\n    container_name: deepsea\n    restart: unless-stopped\n    networks:\n      - slashnode\n    volumes:\n      - deepsea_data:/app/data/\n    ports:\n      - 127.0.0.1:5300:8000\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  deepsea_data:\n    name: slashnode-deepsea_deepsea_data\n",
+  "web": {
+    "port": 5300,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 5300,
+    "path": "/"
+  }
+}

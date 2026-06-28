@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "hermes-agent",
+  "name": "Hermes Agent",
+  "version": "2026.6.19-1",
+  "category": "ai",
+  "description": "The AI agent that grows with you",
+  "icon": "🤖",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-hermes-agent\nservices:\n  web:\n    image: ghcr.io/getumbrel/hermes-agent-umbrel:v2026.6.19-1\n    container_name: hermes-agent\n    restart: unless-stopped\n    networks:\n      - slashnode\n    command:\n      - gateway\n      - run\n    environment:\n      HERMES_UID: '1000'\n      HERMES_GID: '1000'\n      HERMES_DASHBOARD: '1'\n      HERMES_DASHBOARD_PORT: '18789'\n      HERMES_DASHBOARD_INSECURE: '1'\n      HERMES_TUI_DIR: /app/umbrel-tui\n      HERMES_UPSTREAM_TUI_ENTRY: /opt/hermes/ui-tui/dist/entry.js\n      HERMES_GATEWAY_BOOTSTRAP_STATE: running\n    volumes:\n      - web_data-hermes:/opt/data\n    ports:\n      - 127.0.0.1:18790:18789\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data-hermes:\n    name: slashnode-hermes-agent_web_data-hermes\n",
+  "web": {
+    "port": 18790,
+    "path": "/chat"
+  },
+  "probe": {
+    "type": "http",
+    "port": 18790,
+    "path": "/"
+  }
+}

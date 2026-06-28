@@ -1,0 +1,33 @@
+{
+  "manifestVersion": 1,
+  "id": "woofbot",
+  "name": "WoofBot (without Lightning)",
+  "version": "0.9.8",
+  "category": "bitcoin",
+  "description": "A chatbot for your personal node",
+  "icon": "₿",
+  "dependencies": [
+    "bitcoind"
+  ],
+  "inputs": [
+    {
+      "key": "APP_SEED",
+      "label": "seed",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Stored encrypted."
+    }
+  ],
+  "compose": "name: slashnode-woofbot\nservices:\n  web:\n    image: woofbot/woofbot:v0.9.8\n    container_name: woofbot-web\n    restart: unless-stopped\n    networks:\n      - slashnode\n    depends_on:\n      - mongodb\n    environment:\n      MONGODB_URI: mongodb://woofbot-mongodb:27017/woofbot\n      APP_PORT: '8080'\n      APP_SEED: ${secret.APP_SEED}\n      APP_BITCOIN_NODE_IP: ${bitcoind.exports.rpc.host}\n      APP_BITCOIN_RPC_USER: ${bitcoind.exports.rpc.user}\n      APP_BITCOIN_RPC_PASS: ${bitcoind.exports.rpc.password}\n      APP_BITCOIN_RPC_PORT: '8332'\n      SERVER_LOGS_FILEPATH: /app/logs/server.log\n    volumes:\n      - web_data-server-logs:/app/logs\n    ports:\n      - 127.0.0.1:8092:8080\n  mongodb:\n    image: mongo:4.4.6-bionic\n    container_name: woofbot-mongodb\n    restart: unless-stopped\n    networks:\n      - slashnode\n    volumes:\n      - mongodb_data-db:/data/db\n      - mongodb_data-db-diagnostic.data:/data/db/diagnostic.data\n      - mongodb_data-db-journal:/data/db/journal\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data-server-logs:\n    name: slashnode-woofbot_web_data-server-logs\n  mongodb_data-db:\n    name: slashnode-woofbot_mongodb_data-db\n  mongodb_data-db-diagnostic.data:\n    name: slashnode-woofbot_mongodb_data-db-diagnostic.data\n  mongodb_data-db-journal:\n    name: slashnode-woofbot_mongodb_data-db-journal\n",
+  "web": {
+    "port": 8092,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8092,
+    "path": "/"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "zoraxy",
+  "name": "Zoraxy",
+  "version": "3.3.3",
+  "category": "networking",
+  "description": "An efficient reverse proxy server with automated SSL management",
+  "icon": "🌐",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-zoraxy\nservices:\n  server:\n    image: zoraxydocker/zoraxy:v3.3.3\n    container_name: zoraxy\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      FASTGEOIP: 'false'\n      ZEROTIER: 'false'\n      DOCKER: 'false'\n      NOAUTH: 'true'\n    volumes:\n      - server_data-config:/opt/zoraxy/config\n      - /etc/localtime:/etc/localtime:ro\n    ports:\n      - 127.0.0.1:8400:8000\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  server_data-config:\n    name: slashnode-zoraxy_server_data-config\n",
+  "web": {
+    "port": 8400,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8400,
+    "path": "/"
+  }
+}

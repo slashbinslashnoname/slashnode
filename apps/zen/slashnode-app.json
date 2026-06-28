@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "zen",
+  "name": "Zen",
+  "version": "1.5.0",
+  "category": "files",
+  "description": "A simple app for focused and private note-taking",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-zen\nservices:\n  app:\n    image: ghcr.io/sheshbabu/zen/zen:1.5.0\n    container_name: zen\n    restart: unless-stopped\n    networks:\n      - slashnode\n    volumes:\n      - app_data-app:/data\n      - app_data-images:/images\n    ports:\n      - 127.0.0.1:8894:8080\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  app_data-app:\n    name: slashnode-zen_app_data-app\n  app_data-images:\n    name: slashnode-zen_app_data-images\n",
+  "web": {
+    "port": 8894,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8894,
+    "path": "/"
+  }
+}

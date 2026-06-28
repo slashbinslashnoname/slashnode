@@ -10,7 +10,7 @@
     "bitcoind"
   ],
   "inputs": [],
-  "compose": "name: \"slashnode-electrumx\"\nservices:\n  electrumx:\n    image: \"lukechilds/electrumx:v1.16.0\"\n    container_name: \"electrumx\"\n    restart: \"unless-stopped\"\n    networks:\n      - slashnode\n    environment:\n      DAEMON_URL: \"http://${bitcoind.exports.rpc.user}:${bitcoind.exports.rpc.password}@${bitcoind.exports.rpc.host}:8332\"\n      COIN: \"BitcoinSegwit\"\n      NET: \"mainnet\"\n      DB_DIRECTORY: \"/data\"\n      SERVICES: \"tcp://0.0.0.0:50001,rpc://0.0.0.0:8000\"\n    ports:\n      - \"50001:50001\"\n    volumes:\n      - \"electrumx-data:/data\"\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  electrumx-data:\n    name: \"slashnode-electrumx_electrumx_electrumx-data\"\n",
+  "compose": "name: \"slashnode-electrumx\"\nservices:\n  electrumx:\n    image: \"lukechilds/electrumx:v1.16.0\"\n    container_name: \"electrumx\"\n    restart: \"unless-stopped\"\n    networks:\n      - slashnode\n    environment:\n      DAEMON_URL: \"http://${bitcoind.exports.rpc.user}:${bitcoind.exports.rpc.password}@${bitcoind.exports.rpc.host}:8332\"\n      COIN: \"BitcoinSegwit\"\n      NET: \"mainnet\"\n      DB_DIRECTORY: \"/data\"\n      SERVICES: \"tcp://0.0.0.0:50001,rpc://0.0.0.0:8000\"\n    ports:\n      - \"50011:50001\"\n    volumes:\n      - \"electrumx-data:/data\"\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  electrumx-data:\n    name: \"slashnode-electrumx_electrumx_electrumx-data\"\n",
   "probe": {
     "type": "electrum",
     "port": 50001
@@ -22,7 +22,7 @@
   "endpoints": [
     {
       "label": "Electrum",
-      "port": 50001
+      "port": 50011
     }
   ],
   "notes": "An Electrum server (electrs-compatible). Point your Electrum wallet at it on port 50001 (clearnet host:50001 or the app's .onion). Initial indexing of the full chain takes a long time and needs a fully-synced Bitcoin Core with txindex. It syncs over RPC, so no extra bitcoind config is needed."

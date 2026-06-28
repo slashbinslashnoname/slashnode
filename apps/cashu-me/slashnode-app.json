@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "cashu-me",
+  "name": "Cashu.me Wallet",
+  "version": "0.1.1",
+  "category": "bitcoin",
+  "description": "An open-source Bitcoin ecash wallet",
+  "icon": "₿",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-cashu-me\nservices:\n  web:\n    image: rstmsn/cashu-me:0.1.1\n    container_name: cashu-me\n    restart: unless-stopped\n    networks:\n      - slashnode\n    ports:\n      - 127.0.0.1:3194:80\nnetworks:\n  slashnode:\n    external: true\n",
+  "web": {
+    "port": 3194,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 3194,
+    "path": "/"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "termix",
+  "name": "Termix",
+  "version": "2.4.1",
+  "category": "developer",
+  "description": "Manage your servers with built-in SSH, tunnels, and file access",
+  "icon": "💻",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-termix\nservices:\n  web:\n    image: ghcr.io/lukegus/termix:release-2.4.1\n    container_name: termix\n    restart: unless-stopped\n    networks:\n      - slashnode\n    volumes:\n      - web_data:/app/data\n    ports:\n      - 127.0.0.1:6444:8080\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data:\n    name: slashnode-termix_web_data\n",
+  "web": {
+    "port": 6444,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 6444,
+    "path": "/"
+  }
+}

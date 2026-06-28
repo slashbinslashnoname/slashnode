@@ -1,0 +1,23 @@
+{
+  "manifestVersion": 1,
+  "id": "firefly-iii-importer",
+  "name": "Firefly III Importer",
+  "version": "2.3.2",
+  "category": "finance",
+  "description": "Import your transactions into Firefly III",
+  "icon": "💰",
+  "dependencies": [
+    "firefly-iii"
+  ],
+  "inputs": [],
+  "compose": "name: slashnode-firefly-iii-importer\nservices:\n  importer:\n    image: fireflyiii/data-importer:version-2.3.2\n    container_name: firefly-iii-importer\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      FIREFLY_III_URL: http://firefly-iii-server:8080\n      VANITY_URL: http://${node.exports.host}:30009\n    ports:\n      - 127.0.0.1:30010:8080\nnetworks:\n  slashnode:\n    external: true\n",
+  "web": {
+    "port": 30010,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 30010,
+    "path": "/"
+  }
+}

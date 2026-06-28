@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "originless",
+  "name": "Originless",
+  "version": "0.1.0",
+  "category": "files",
+  "description": "Private, decentralized file sharing for Nostr and the web",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-originless\nservices:\n  app:\n    image: ghcr.io/besoeasy/originless:0.1.0\n    container_name: originless\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      NODE_ENV: production\n      STORAGE_MAX: ${STORAGE_MAX:-20GB}\n    volumes:\n      - app_data:/data\n    ports:\n      - 127.0.0.1:3232:3232\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  app_data:\n    name: slashnode-originless_app_data\n",
+  "web": {
+    "port": 3232,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 3232,
+    "path": "/"
+  }
+}

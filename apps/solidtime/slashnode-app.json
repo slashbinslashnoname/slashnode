@@ -1,0 +1,31 @@
+{
+  "manifestVersion": 1,
+  "id": "solidtime",
+  "name": "Solidtime",
+  "version": "0.15.1",
+  "category": "files",
+  "description": "A simple, secure, and private time tracking app",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "APP_KEY",
+      "label": "app key",
+      "type": "password",
+      "required": false,
+      "secret": true,
+      "generate": true,
+      "help": "Encryption key — auto-generated if left blank."
+    }
+  ],
+  "compose": "name: slashnode-solidtime\nservices:\n  app:\n    image: solidtime/solidtime:0.15.1\n    container_name: solidtime-app\n    restart: unless-stopped\n    networks:\n      - slashnode\n    depends_on:\n      db:\n        condition: service_started\n    environment:\n      APP_KEY: \"${secret.APP_KEY}\"\n      CONTAINER_MODE: http\n      AUTO_DB_MIGRATE: 'true'\n      APP_NAME: solidtime\n      VITE_APP_NAME: solidtime\n      APP_ENV: production\n      APP_DEBUG: 'false'\n      APP_URL: http://${node.exports.host}:8770\n      APP_FORCE_HTTPS: 'false'\n      TRUSTED_PROXIES: 0.0.0.0/0,2000:0:0:0:0:0:0:0/3\n      SUPER_ADMINS: umbrel@umbrel.local\n      LOG_CHANNEL: stderr_daily\n      LOG_LEVEL: debug\n      DB_CONNECTION: pgsql\n      DB_HOST: solidtime-db\n      DB_PORT: '5432'\n      DB_SSLMODE: require\n      DB_DATABASE: solidtime\n      DB_USERNAME: solidtime\n      DB_PASSWORD: solidtime\n      MAIL_MAILER: smtp\n      MAIL_HOST: ''\n      MAIL_PORT: ''\n      MAIL_ENCRYPTION: tls\n      MAIL_FROM_ADDRESS: no-reply@your-domain.com\n      MAIL_FROM_NAME: solidtime\n      MAIL_USERNAME: ''\n      MAIL_PASSWORD: ''\n      QUEUE_CONNECTION: database\n      FILESYSTEM_DISK: local\n      PUBLIC_FILESYSTEM_DISK: public\n      GOTENBERG_URL: http://solidtime-gotenberg:3000\n    volumes:\n      - app_data-app:/var/www/html/storage\n    ports:\n      - 127.0.0.1:8770:8000\n  scheduler:\n    image: solidtime/solidtime:0.15.1\n    container_name: solidtime-scheduler\n    restart: unless-stopped\n    networks:\n      - slashnode\n    depends_on:\n      db:\n        condition: service_started\n    environment:\n      APP_KEY: \"${secret.APP_KEY}\"\n      CONTAINER_MODE: scheduler\n      APP_NAME: solidtime\n      VITE_APP_NAME: solidtime\n      APP_ENV: production\n      APP_DEBUG: 'false'\n      APP_URL: http://${node.exports.host}:8770\n      APP_FORCE_HTTPS: 'false'\n      TRUSTED_PROXIES: 0.0.0.0/0,2000:0:0:0:0:0:0:0/3\n      SUPER_ADMINS: umbrel@umbrel.local\n      LOG_CHANNEL: stderr_daily\n      LOG_LEVEL: debug\n      DB_CONNECTION: pgsql\n      DB_HOST: solidtime-db\n      DB_PORT: '5432'\n      DB_SSLMODE: require\n      DB_DATABASE: solidtime\n      DB_USERNAME: solidtime\n      DB_PASSWORD: solidtime\n      MAIL_MAILER: smtp\n      MAIL_HOST: ''\n      MAIL_PORT: ''\n      MAIL_ENCRYPTION: tls\n      MAIL_FROM_ADDRESS: no-reply@your-domain.com\n      MAIL_FROM_NAME: solidtime\n      MAIL_USERNAME: ''\n      MAIL_PASSWORD: ''\n      QUEUE_CONNECTION: database\n      FILESYSTEM_DISK: local\n      PUBLIC_FILESYSTEM_DISK: public\n      GOTENBERG_URL: http://solidtime-gotenberg:3000\n    volumes:\n      - scheduler_data-app:/var/www/html/storage\n  queue:\n    image: solidtime/solidtime:0.15.1\n    container_name: solidtime-queue\n    restart: unless-stopped\n    networks:\n      - slashnode\n    depends_on:\n      db:\n        condition: service_started\n    environment:\n      APP_KEY: \"${secret.APP_KEY}\"\n      CONTAINER_MODE: worker\n      WORKER_COMMAND: php /var/www/html/artisan queue:work\n      APP_NAME: solidtime\n      VITE_APP_NAME: solidtime\n      APP_ENV: production\n      APP_DEBUG: 'false'\n      APP_URL: http://${node.exports.host}:8770\n      APP_FORCE_HTTPS: 'false'\n      TRUSTED_PROXIES: 0.0.0.0/0,2000:0:0:0:0:0:0:0/3\n      SUPER_ADMINS: umbrel@umbrel.local\n      LOG_CHANNEL: stderr_daily\n      LOG_LEVEL: debug\n      DB_CONNECTION: pgsql\n      DB_HOST: solidtime-db\n      DB_PORT: '5432'\n      DB_SSLMODE: require\n      DB_DATABASE: solidtime\n      DB_USERNAME: solidtime\n      DB_PASSWORD: solidtime\n      MAIL_MAILER: smtp\n      MAIL_HOST: ''\n      MAIL_PORT: ''\n      MAIL_ENCRYPTION: tls\n      MAIL_FROM_ADDRESS: no-reply@your-domain.com\n      MAIL_FROM_NAME: solidtime\n      MAIL_USERNAME: ''\n      MAIL_PASSWORD: ''\n      QUEUE_CONNECTION: database\n      FILESYSTEM_DISK: local\n      PUBLIC_FILESYSTEM_DISK: public\n      GOTENBERG_URL: http://solidtime-gotenberg:3000\n    volumes:\n      - queue_data-app:/var/www/html/storage\n  db:\n    image: postgres:17.3\n    container_name: solidtime-db\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      APP_KEY: \"${secret.APP_KEY}\"\n      PGPASSWORD: soldtime\n      POSTGRES_DB: solidtime\n      POSTGRES_USER: solidtime\n      POSTGRES_PASSWORD: solidtime\n    volumes:\n      - db_data-db:/var/lib/postgresql/data\n  gotenberg:\n    image: gotenberg/gotenberg:8.17.1\n    container_name: solidtime-gotenberg\n    restart: unless-stopped\n    networks:\n      - slashnode\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  app_data-app:\n    name: slashnode-solidtime_app_data-app\n  scheduler_data-app:\n    name: slashnode-solidtime_scheduler_data-app\n  queue_data-app:\n    name: slashnode-solidtime_queue_data-app\n  db_data-db:\n    name: slashnode-solidtime_db_data-db\n",
+  "web": {
+    "port": 8770,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8770,
+    "path": "/"
+  }
+}

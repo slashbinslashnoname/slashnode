@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "mainsail",
+  "name": "Mainsail",
+  "version": "2.18.0",
+  "category": "files",
+  "description": "Control and monitor your printer from everywhere, from any device",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-mainsail\nservices:\n  web:\n    image: ghcr.io/mainsail-crew/mainsail:v2.18.0\n    container_name: mainsail\n    restart: unless-stopped\n    networks:\n      - slashnode\n    volumes:\n      - web_data-config.json:/usr/share/nginx/html/config.json:ro\n    ports:\n      - 127.0.0.1:8070:80\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data-config.json:\n    name: slashnode-mainsail_web_data-config.json\n",
+  "web": {
+    "port": 8070,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8070,
+    "path": "/"
+  }
+}

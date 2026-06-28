@@ -1,0 +1,31 @@
+{
+  "manifestVersion": 1,
+  "id": "budibase",
+  "name": "Budibase",
+  "version": "3.39.22",
+  "category": "developer",
+  "description": "The low code platform you'll enjoy using",
+  "icon": "💻",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "APP_SEED",
+      "label": "seed",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Stored encrypted."
+    }
+  ],
+  "compose": "name: slashnode-budibase\nservices:\n  budibase:\n    image: budibase/budibase:3.39.22\n    container_name: budibase\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      JWT_SECRET: ${secret.APP_SEED}\n    volumes:\n      - budibase_data-budibase:/data\n    ports:\n      - 127.0.0.1:6733:80\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  budibase_data-budibase:\n    name: slashnode-budibase_budibase_data-budibase\n",
+  "web": {
+    "port": 6733,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 6733,
+    "path": "/"
+  }
+}

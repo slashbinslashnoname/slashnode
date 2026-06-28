@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "dropgate-server",
+  "name": "Dropgate Server",
+  "version": "3.0.13",
+  "category": "files",
+  "description": "Self-hosted, privacy-first file sharing with hosted upload and P2P transfer",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-dropgate-server\nservices:\n  web:\n    image: willtda/dropgate-server:3.0.13\n    container_name: dropgate-server\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      SERVER_PORT: '52443'\n      SERVER_NAME: Dropgate Server\n      ENABLE_WEB_UI: 'true'\n      ENABLE_UPLOAD: 'true'\n      UPLOAD_ENABLE_E2EE: 'true'\n      UPLOAD_PRESERVE_UPLOADS: 'false'\n      UPLOAD_MAX_FILE_SIZE_MB: '100'\n      UPLOAD_MAX_STORAGE_GB: '10'\n      UPLOAD_MAX_FILE_LIFETIME_HOURS: '24'\n      UPLOAD_MAX_FILE_DOWNLOADS: '1'\n      ENABLE_P2P: 'true'\n    volumes:\n      - web_data-uploads:/usr/src/app/uploads\n    ports:\n      - 127.0.0.1:52443:52443\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data-uploads:\n    name: slashnode-dropgate-server_web_data-uploads\n",
+  "web": {
+    "port": 52443,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 52443,
+    "path": "/"
+  }
+}

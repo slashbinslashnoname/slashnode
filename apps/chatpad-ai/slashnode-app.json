@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "chatpad-ai",
+  "name": "Chatpad AI",
+  "version": "bb5f4a",
+  "category": "ai",
+  "description": "Premium quality UI for ChatGPT",
+  "icon": "🤖",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-chatpad-ai\nservices:\n  web:\n    image: ghcr.io/deiucanta/chatpad:bb5f4abb36b45320df69dfccb64e734f36ca9bb3\n    container_name: chatpad-ai\n    restart: unless-stopped\n    networks:\n      - slashnode\n    ports:\n      - 127.0.0.1:10102:80\nnetworks:\n  slashnode:\n    external: true\n",
+  "web": {
+    "port": 10102,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 10102,
+    "path": "/"
+  }
+}

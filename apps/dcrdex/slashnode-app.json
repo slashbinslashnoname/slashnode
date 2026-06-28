@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "dcrdex",
+  "name": "Bison Wallet",
+  "version": "1.0.5",
+  "category": "crypto",
+  "description": "Multi-asset cryptocurrency wallet with integrated DEX",
+  "icon": "📦",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-dcrdex\nservices:\n  web:\n    image: decred/dcrdex:v1.0.5\n    container_name: dcrdex\n    restart: unless-stopped\n    networks:\n      - slashnode\n    entrypoint:\n      - /bin/sh\n      - '-c'\n      - exec ./bisonw --webaddr $(hostname -I|cut -d\\  -f1 ):5758\n    volumes:\n      - web_data:/dex/.dexc\n    ports:\n      - 127.0.0.1:5758:5758\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data:\n    name: slashnode-dcrdex_web_data\n",
+  "web": {
+    "port": 5758,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 5758,
+    "path": "/"
+  }
+}

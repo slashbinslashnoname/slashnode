@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "fossflow",
+  "name": "FossFLOW",
+  "version": "b69fc2e",
+  "category": "networking",
+  "description": "Make beautiful isometric infrastructure diagrams",
+  "icon": "🌐",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-fossflow\nservices:\n  web:\n    image: stnsmith/fossflow:master-b69fc2e\n    container_name: fossflow\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      NODE_ENV: production\n      ENABLE_SERVER_STORAGE: 'true'\n      STORAGE_PATH: /data/diagrams\n      ENABLE_GIT_BACKUP: 'false'\n    volumes:\n      - web_data-diagrams:/data/diagrams\n    ports:\n      - 127.0.0.1:8176:80\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data-diagrams:\n    name: slashnode-fossflow_web_data-diagrams\n",
+  "web": {
+    "port": 8176,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8176,
+    "path": "/"
+  }
+}

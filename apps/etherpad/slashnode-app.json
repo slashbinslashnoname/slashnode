@@ -1,0 +1,32 @@
+{
+  "manifestVersion": 1,
+  "id": "etherpad",
+  "name": "Etherpad",
+  "version": "3.3.2",
+  "category": "files",
+  "description": "An intuitive tool for real-time collaborative writing",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "APP_PASSWORD",
+      "label": "password",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Stored encrypted."
+    }
+  ],
+  "compose": "name: slashnode-etherpad\nservices:\n  app:\n    image: etherpad/etherpad:3.3.2\n    container_name: etherpad-app\n    restart: unless-stopped\n    networks:\n      - slashnode\n    depends_on:\n      - postgres\n    environment:\n      NODE_ENV: production\n      CI: 'true'\n      ADMIN_PASSWORD: ${secret.APP_PASSWORD}\n      DB_CHARSET: utf8mb4\n      DB_HOST: etherpad-postgres\n      DB_NAME: etherpad\n      DB_PASS: admin\n      DB_PORT: '5432'\n      DB_TYPE: postgres\n      DB_USER: admin\n      DEFAULT_PAD_TEXT: 'null'\n      DISABLE_IP_LOGGING: 'false'\n      LOGLEVEL: INFO\n      SOFFICE: 'null'\n      ALLOW_UNKNOWN_FILE_ENDS: 'true'\n      TRUST_PROXY: 'true'\n      SKIN_NAME: colibris\n      SKIN_VARIANTS: super-light-toolbar super-light-editor light-background\n      SHOW_SETTINGS_IN_ADMIN_PAGE: 'true'\n      SUPPRESS_ERRORS_IN_PAD_TEXT: 'false'\n    volumes:\n      - app_data-plugins:/opt/etherpad-lite/src/plugin_packages\n      - app_data-etherpad-var:/opt/etherpad-lite/var:rw\n    ports:\n      - 127.0.0.1:9002:9001\n  postgres:\n    image: postgres:15-alpine\n    container_name: etherpad-postgres\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      POSTGRES_DB: etherpad\n      POSTGRES_PASSWORD: admin\n      POSTGRES_PORT: '5432'\n      POSTGRES_USER: admin\n      PGDATA: /var/lib/postgresql/data/pgdata\n    volumes:\n      - postgres_data-postgres_data:/var/lib/postgresql/data/pgdata\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  app_data-plugins:\n    name: slashnode-etherpad_app_data-plugins\n  app_data-etherpad-var:\n    name: slashnode-etherpad_app_data-etherpad-var\n  postgres_data-postgres_data:\n    name: slashnode-etherpad_postgres_data-postgres_data\n",
+  "web": {
+    "port": 9002,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 9002,
+    "path": "/"
+  },
+  "notes": "Default login — user: \"admin\", password: \"\"."
+}

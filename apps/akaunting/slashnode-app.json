@@ -1,0 +1,31 @@
+{
+  "manifestVersion": 1,
+  "id": "akaunting",
+  "name": "Akaunting",
+  "version": "3.1.21",
+  "category": "finance",
+  "description": "An intuitive accounting solution for small businesses and freelancers",
+  "icon": "💰",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "APP_PASSWORD",
+      "label": "password",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Stored encrypted."
+    }
+  ],
+  "compose": "name: slashnode-akaunting\nservices:\n  app:\n    image: akaunting/akaunting:3.1.21\n    container_name: akaunting-app\n    restart: unless-stopped\n    networks:\n      - slashnode\n    depends_on:\n      - db\n    environment:\n      AKAUNTING_SETUP: 'true'\n      LOCALE: en-US\n      DB_HOST: akaunting-db\n      DB_PORT: '3306'\n      DB_NAME: akaunting\n      DB_USERNAME: admin\n      DB_PASSWORD: akaunting_password\n      DB_PREFIX: asd_\n      COMPANY_NAME: My Company\n      COMPANY_EMAIL: my@company.com\n      ADMIN_EMAIL: umbrel@umbrel.local\n      ADMIN_PASSWORD: ${secret.APP_PASSWORD}\n    ports:\n      - 127.0.0.1:8773:80\n  db:\n    image: mariadb:11.8.2\n    container_name: akaunting-db\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      MYSQL_DATABASE: akaunting\n      MYSQL_USER: admin\n      MYSQL_PASSWORD: akaunting_password\n      MYSQL_RANDOM_ROOT_PASSWORD: 'yes'\n    volumes:\n      - db_db:/var/lib/mysql\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  db_db:\n    name: slashnode-akaunting_db_db\n",
+  "web": {
+    "port": 8773,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8773,
+    "path": "/"
+  }
+}

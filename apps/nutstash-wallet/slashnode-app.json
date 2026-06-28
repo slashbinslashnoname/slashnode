@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "nutstash-wallet",
+  "name": "Nutstash Wallet",
+  "version": "0.1.10",
+  "category": "bitcoin",
+  "description": "Nutstash is a Cashu wallet for your browser",
+  "icon": "₿",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-nutstash-wallet\nservices:\n  web:\n    image: ghcr.io/gandlafbtc/nutstash-wallet:0.1.10\n    container_name: nutstash-wallet\n    restart: unless-stopped\n    networks:\n      - slashnode\n    ports:\n      - 127.0.0.1:4173:3000\nnetworks:\n  slashnode:\n    external: true\n",
+  "web": {
+    "port": 4173,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 4173,
+    "path": "/"
+  }
+}

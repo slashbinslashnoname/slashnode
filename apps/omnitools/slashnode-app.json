@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "omnitools",
+  "name": "OmniTools",
+  "version": "0.6.0",
+  "category": "files",
+  "description": "An all-in-one collection of powerful web-based tools for everyday tasks",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-omnitools\nservices:\n  app:\n    image: iib0011/omni-tools:0.6.0\n    container_name: omnitools\n    restart: unless-stopped\n    networks:\n      - slashnode\n    ports:\n      - 127.0.0.1:8678:80\nnetworks:\n  slashnode:\n    external: true\n",
+  "web": {
+    "port": 8678,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8678,
+    "path": "/"
+  }
+}

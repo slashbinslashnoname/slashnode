@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "myspeed",
+  "name": "MySpeed",
+  "version": "1.0.9",
+  "category": "networking",
+  "description": "Speed test analysis software that shows your internet speed for up to 30 days",
+  "icon": "🌐",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-myspeed\nservices:\n  web:\n    image: germannewsmaker/myspeed:1.0.9\n    container_name: myspeed\n    restart: unless-stopped\n    networks:\n      - slashnode\n    volumes:\n      - web_data-myspeed:/myspeed/data\n    ports:\n      - 127.0.0.1:5216:5216\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data-myspeed:\n    name: slashnode-myspeed_web_data-myspeed\n",
+  "web": {
+    "port": 5216,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 5216,
+    "path": "/"
+  }
+}
