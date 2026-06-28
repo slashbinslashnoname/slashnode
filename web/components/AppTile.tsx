@@ -1,69 +1,41 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { App, ServiceStatus, ProbeResult } from "@/lib/api";
+import type { App, ProbeResult } from "@/lib/api";
 import { useConsole } from "@/components/console/ConsoleProvider";
+import { useData } from "@/components/store/DataProvider";
 import { webClearnetUrl } from "@/lib/appUrl";
 import { appVersion } from "@/lib/version";
 
 export function AppTile({ app }: { app: App }) {
   const router = useRouter();
-  const [services, setServices] = useState<ServiceStatus[] | null>(null);
-  const [docker, setDocker] = useState(true);
-  const [probe, setProbe] = useState<ProbeResult | null>(null);
+  // Live status/probe/update-check come from the global store (polled in the
+  // layout), so this tile shows data instantly across navigations.
+  const { status, probe: probeMap, imgUpdate: imgUpdateMap, refresh } = useData();
   const [busy, setBusy] = useState("");
-  const [imgUpdate, setImgUpdate] = useState(false);
   const [openUrl, setOpenUrl] = useState<string | null>(null);
-  // The .onion can take a few seconds to provision after install — poll it in
-  // via /status and update live instead of waiting for a page reload.
-  const [onion, setOnion] = useState<string | null>(app.onion ?? null);
   const consoles = useConsole();
 
+  const st = status[app.id];
+  const services = st?.services ?? null;
+  const docker = st?.docker ?? true;
+  const onion = st?.onion ?? app.onion ?? null;
+  const probe = probeMap[app.id] ?? null;
+  const imgUpdate = !!imgUpdateMap[app.id];
+
+  // webClearnetUrl reads window.location, so defer to the client.
   useEffect(() => {
-    if (!app.web) return;
-    setOpenUrl(webClearnetUrl(app.url, app.web.port));
-  }, []);
+    if (app.web) setOpenUrl(webClearnetUrl(app.url, app.web.port));
+  }, [app.web, app.url]);
 
   const onionUrl = onion && app.web ? `http://${onion}` : null;
-
-  // Docker image update check (no manifest bump needed).
-  useEffect(() => {
-    fetch(`/api/apps/${app.id}/image-update`)
-      .then((r) => r.json())
-      .then((j) => setImgUpdate(!!j.available))
-      .catch(() => {});
-  }, [app.id]);
-
-  const refresh = useCallback(async () => {
-    try {
-      const s = await fetch(`/api/apps/${app.id}/status`).then((r) => r.json());
-      setServices(s.services ?? []);
-      setDocker(s.docker ?? false);
-      if (s.onion) setOnion(s.onion);
-    } catch {
-      setServices([]);
-    }
-    if (app.probe) {
-      try {
-        setProbe(await fetch(`/api/apps/${app.id}/probe`).then((r) => r.json()));
-      } catch {
-        setProbe(null);
-      }
-    }
-  }, [app.id, app.probe]);
-
-  useEffect(() => {
-    refresh();
-    const t = setInterval(refresh, 5000);
-    return () => clearInterval(t);
-  }, [refresh]);
 
   async function act(action: string) {
     setBusy(action);
     await fetch(`/api/apps/${app.id}/${action}`, { method: "POST" });
-    await refresh();
     setBusy("");
+    refresh();
     router.refresh();
   }
 
@@ -71,11 +43,9 @@ export function AppTile({ app }: { app: App }) {
     setBusy("update");
     await fetch(`/api/apps/${app.id}/update`, { method: "POST" });
     setBusy("");
-    setImgUpdate(false);
-    await refresh();
+    refresh();
     router.refresh();
   }
-
 
   const running = (services ?? []).some((s) => s.state === "running");
   const badge = !docker

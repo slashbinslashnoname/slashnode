@@ -1,16 +1,18 @@
+"use client";
+
 import Link from "next/link";
 import { TopControls } from "@/components/TopControls";
 import { UpdateBanner } from "@/components/UpdateBanner";
 import { StorageBanner } from "@/components/SystemStatus";
 import { AppTile } from "@/components/AppTile";
 import { BitcoinPrice } from "@/components/BitcoinPrice";
-import { getApps, getStatus, getUpdate } from "@/lib/api";
+import { useData } from "@/components/store/DataProvider";
 
-export const dynamic = "force-dynamic";
-
-export default async function Home() {
-  const [data, update] = await Promise.all([getApps(), getUpdate()]);
-  const installed = (data?.apps ?? [])
+export default function Home() {
+  // Apps + update live in the global store (polled in the layout), so navigating
+  // here from another page shows the data instantly — no reload.
+  const { apps, ready, update } = useData();
+  const installed = apps
     .filter((a) => a.installed)
     .sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
 
@@ -43,7 +45,7 @@ export default async function Home() {
         Your apps
       </h2>
 
-      {installed.length === 0 ? (
+      {ready && installed.length === 0 ? (
         <div className="rounded-xl border border-border bg-card p-8 text-center">
           <p className="text-muted">No apps launched yet.</p>
           <Link href="/store" className="mt-2 inline-block font-semibold text-primary">
