@@ -34,24 +34,30 @@ export function StoreList({ apps }: { apps: App[] }) {
   const shown = matched.filter(
     (a) => activeCats.length === 0 || catsOf(a).some((c) => activeCats.includes(c)),
   );
-  // Ordering: explicit priority first (first-party apps rank above ported ones),
-  // then installed, then the API's name order (preserved by the stable sort).
+  // Ordering: installed apps first, then explicit priority (first-party apps rank
+  // above ported ones), then the API's name order (preserved by the stable sort).
   const filtered = [...shown].sort(
     (a, b) =>
-      (b.priority ?? 0) - (a.priority ?? 0) ||
-      Number(!!b.installed) - Number(!!a.installed),
+      Number(!!b.installed) - Number(!!a.installed) ||
+      (b.priority ?? 0) - (a.priority ?? 0),
   );
+  const installedCount = visible.filter((a) => a.installed).length;
 
   return (
     <div className="flex flex-col gap-6">
-      <input
-        type="search"
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        placeholder="Search apps…"
-        autoComplete="off"
-        className="w-full rounded-lg border border-border bg-bg px-4 py-2.5 text-sm outline-none focus:border-primary"
-      />
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <input
+          type="search"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search apps…"
+          autoComplete="off"
+          className="min-w-0 flex-1 rounded-lg border border-border bg-bg px-4 py-2.5 text-sm outline-none focus:border-primary"
+        />
+        <span className="shrink-0 text-sm text-muted">
+          {visible.length} apps{installedCount > 0 ? ` · ${installedCount} installed` : ""}
+        </span>
+      </div>
 
       {allCats.length > 1 && (
         <div className="flex flex-wrap gap-2">
