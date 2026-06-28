@@ -369,6 +369,28 @@ async function convert(appId: string, ship = false): Promise<Report> {
     for (const s of [...security]) if (s.includes("default password")) security.delete(s);
   }
 
+  // Future-proof standard postgres services. postgres 18+ refuses to start when
+  // its data directory sits on the mount point itself (/var/lib/postgresql/data),
+  // which breaks any app whose image is bumped from 13–17 to 18 via the version
+  // picker. Mount the volume one level up (/var/lib/postgresql) and put the data
+  // in a subdirectory (PGDATA=/var/lib/postgresql/pgdata): valid on 13→18, no
+  // boundary error. Only standard `postgres:` images — Supabase/immich ship their
+  // own postgres builds with bespoke init and are left untouched.
+  const PG_DATA_RE = /:\/var\/lib\/postgresql\/data(?![\w/])/;
+  for (const ns of Object.values<any>(outServices)) {
+    if (!String(ns.image ?? "").startsWith("postgres:")) continue;
+    if (!Array.isArray(ns.volumes)) continue;
+    const i = ns.volumes.findIndex(
+      (v: any) => typeof v === "string" && PG_DATA_RE.test(v),
+    );
+    if (i < 0) continue;
+    ns.volumes[i] = ns.volumes[i].replace(PG_DATA_RE, ":/var/lib/postgresql");
+    ns.environment = {
+      PGDATA: "/var/lib/postgresql/pgdata",
+      ...(ns.environment ?? {}),
+    };
+  }
+
   const newCompose: any = {
     name: `slashnode-${appId}`,
     services: outServices,
