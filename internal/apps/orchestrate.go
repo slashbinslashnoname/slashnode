@@ -777,6 +777,10 @@ func installOne(dir, appID string, provided, imageTagOverride map[string]string,
 	if orchestrator.Available() {
 		fmt.Fprintf(out, "--> pulling images for %s\n", appID)
 		_ = orchestrator.PullStreamed(appID, paths.AppComposeFile(appID), out)
+		// Make fresh named volumes writable by each service's runtime user, so an
+		// image that runs as a non-root user (and whose data dir isn't baked in)
+		// can write its root-owned volume instead of crashing with EACCES.
+		orchestrator.PrepareVolumes(appID, paths.AppComposeFile(appID), out)
 		fmt.Fprintf(out, "--> starting %s\n", appID)
 		if err := orchestrator.UpStreamed(appID, paths.AppComposeFile(appID), out); err != nil {
 			return err
