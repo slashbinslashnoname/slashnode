@@ -8,7 +8,7 @@
   "icon": "💰",
   "dependencies": [],
   "inputs": [],
-  "compose": "name: slashnode-bitboard\nservices:\n  app:\n    image: ghcr.io/egzola/bitboard:1.0.0\n    container_name: bitboard\n    user: \"0:0\"\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      PORT: '3711'\n    volumes:\n      - app_data:/data\n    ports:\n      - 127.0.0.1:3711:3711\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  app_data:\n    name: slashnode-bitboard_app_data\n",
+  "compose": "name: slashnode-bitboard\nservices:\n  app:\n    image: ghcr.io/egzola/bitboard:1.0.0\n    container_name: bitboard\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      PORT: '3711'\n    volumes:\n      - app_data:/data\n    ports:\n      - 127.0.0.1:3711:3711\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  app_data:\n    name: slashnode-bitboard_app_data\n",
   "web": {
     "port": 3711,
     "path": "/"

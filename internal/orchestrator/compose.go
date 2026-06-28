@@ -295,6 +295,145 @@ func writeLogsSince(composeFile, ts string) error {
 	return os.WriteFile(logsSinceFile(composeFile), []byte(ts), 0o600)
 }
 
+// PrepareVolumes makes each of an app's named volumes writable by the user its
+// service actually runs as. Docker creates a fresh named volume owned by root
+// whenever the mount path is absent from the image; a service that runs as a
+// non-root user then gets EACCES on first write (e.g. an app whose image has no
+// pre-created /data dir). For every service that runs as a non-root uid and
+// mounts an EMPTY read-write named volume, chown the volume to that uid:gid so
+// the app can write it — removing the need for per-app `user: "0:0"` overrides.
+//
+// Empty-only: an already-populated volume is left untouched, so we never restamp
+// ownership of live data. Best-effort: any docker hiccup is logged-and-skipped,
+// leaving the prior behaviour. The image, volume name and uid all come from the
+// rendered compose (trusted catalog data) / `id` output (numeric), never from
+// request-time input, and are passed as exec args (no shell), so there is no
+// injection sink here.
+func PrepareVolumes(appID, composeFile string, out io.Writer) {
+	cfg, err := output("docker", "compose", "-p", project(appID), "-f", composeFile,
+		"config", "--format", "json")
+	if err != nil {
+		return
+	}
+	var doc composeConfig
+	if json.Unmarshal([]byte(cfg), &doc) != nil {
+		return
+	}
+	for _, svc := range doc.Services {
+		uid, gid := "", ""
+		resolved := false
+		for _, v := range svc.Volumes {
+			if v.Type != "volume" || v.ReadOnly {
+				continue
+			}
+			vol := resolveVolName(v.Source, doc.Volumes)
+			if vol == "" || !volumeEmpty(svc.Image, vol) {
+				continue
+			}
+			if !resolved {
+				uid, gid = resolveServiceUser(svc.Image, svc.User)
+				resolved = true
+			}
+			if !isUID(uid) || uid == "0" {
+				break // root or unresolved → the volume is already writable
+			}
+			if err := chownVolume(svc.Image, vol, uid, gid); err == nil {
+				fmt.Fprintf(out, "--> prepared volume %s (owner %s:%s)\n", vol, uid, gid)
+			}
+		}
+	}
+}
+
+type composeConfig struct {
+	Services map[string]composeService `json:"services"`
+	Volumes  map[string]composeVolume  `json:"volumes"`
+}
+
+type composeService struct {
+	Image   string         `json:"image"`
+	User    string         `json:"user"`
+	Volumes []composeMount `json:"volumes"`
+}
+
+type composeMount struct {
+	Type     string `json:"type"`
+	Source   string `json:"source"`
+	ReadOnly bool   `json:"read_only"`
+}
+
+type composeVolume struct {
+	Name string `json:"name"`
+}
+
+// resolveVolName maps a service mount's short volume name to its real docker
+// volume name via the compose top-level `volumes:` map (falling back to the
+// short name).
+func resolveVolName(short string, top map[string]composeVolume) string {
+	if v, ok := top[short]; ok && v.Name != "" {
+		return v.Name
+	}
+	return short
+}
+
+// resolveServiceUser returns the numeric uid:gid a service runs as: an explicit
+// numeric compose `user:` wins, otherwise the image's built-in default (probed
+// with `id`). Returns ("","") when it can't be determined numerically.
+func resolveServiceUser(image, userField string) (string, string) {
+	if userField != "" {
+		u, g, _ := strings.Cut(userField, ":")
+		if isUID(u) {
+			if !isUID(g) {
+				g = u
+			}
+			return u, g
+		}
+		return "", "" // a named user in compose — can't map safely, skip
+	}
+	u, err := output("docker", "run", "--rm", "--entrypoint", "id", image, "-u")
+	if err != nil {
+		return "", ""
+	}
+	g, err := output("docker", "run", "--rm", "--entrypoint", "id", image, "-g")
+	if err != nil {
+		return strings.TrimSpace(u), strings.TrimSpace(u)
+	}
+	return strings.TrimSpace(u), strings.TrimSpace(g)
+}
+
+// volumeEmpty reports whether a named volume has no entries. The probe runs as
+// root so directory permissions never hide content; on any error it returns
+// false so a volume we can't read is left untouched.
+func volumeEmpty(image, vol string) bool {
+	o, err := output("docker", "run", "--rm", "-u", "0:0",
+		"-v", vol+":/v", "--entrypoint", "ls", image, "-A", "/v")
+	if err != nil {
+		return false
+	}
+	return strings.TrimSpace(o) == ""
+}
+
+func chownVolume(image, vol, uid, gid string) error {
+	spec := uid
+	if isUID(gid) {
+		spec = uid + ":" + gid
+	}
+	_, err := output("docker", "run", "--rm", "-u", "0:0",
+		"-v", vol+":/v", "--entrypoint", "chown", image, "-R", spec, "/v")
+	return err
+}
+
+func isUID(s string) bool {
+	if s == "" {
+		return false
+	}
+	for _, r := range s {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
+}
+
 func project(appID string) string { return "slashnode-" + appID }
 
 func output(name string, args ...string) (string, error) {
