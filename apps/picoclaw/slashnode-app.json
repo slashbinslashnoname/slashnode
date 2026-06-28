@@ -8,7 +8,7 @@
   "icon": "🤖",
   "dependencies": [],
   "inputs": [],
-  "compose": "name: slashnode-picoclaw\nservices:\n  server:\n    image: docker.io/sipeed/picoclaw:v0.2.9-launcher\n    container_name: picoclaw\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      PICOCLAW_HOME: /data\n    volumes:\n      - server_data:/data\n    ports:\n      - 127.0.0.1:18800:18800\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  server_data:\n    name: slashnode-picoclaw_server_data\n",
+  "compose": "name: slashnode-picoclaw\nservices:\n  server:\n    image: docker.io/sipeed/picoclaw:v0.2.9-launcher\n    container_name: picoclaw\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      PICOCLAW_GATEWAY_HOST: \"0.0.0.0\"\n      PICOCLAW_HOME: /data\n    volumes:\n      - server_data:/data\n    ports:\n      - 127.0.0.1:18800:18800\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  server_data:\n    name: slashnode-picoclaw_server_data\n",
   "web": {
     "port": 18800,
     "path": "/"

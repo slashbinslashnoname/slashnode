@@ -8,7 +8,7 @@
   "icon": "💬",
   "dependencies": [],
   "inputs": [],
-  "compose": "name: slashnode-libreddit\nservices:\n  web:\n    image: ceramicwhite/libreddit:0.22.9\n    container_name: libreddit\n    restart: unless-stopped\n    networks:\n      - slashnode\n    init: true\n    environment:\n      PORT: '7420'\n    ports:\n      - 127.0.0.1:7420:7420\nnetworks:\n  slashnode:\n    external: true\n",
+  "compose": "name: slashnode-libreddit\nservices:\n  web:\n    image: quay.io/redlib/redlib:latest\n    container_name: libreddit\n    restart: unless-stopped\n    networks:\n      - slashnode\n    init: true\n    environment:\n      PORT: '7420'\n    ports:\n      - 127.0.0.1:7420:7420\nnetworks:\n  slashnode:\n    external: true\n",
   "web": {
     "port": 7420,
     "path": "/"

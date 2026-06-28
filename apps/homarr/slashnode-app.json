@@ -14,8 +14,10 @@
       "type": "password",
       "required": true,
       "secret": true,
-      "minLength": 12,
-      "help": "Stored encrypted."
+      "minLength": 64,
+      "help": "64-character hex encryption key. Generate with: openssl rand -hex 32",
+      "generate": false,
+      "maxLength": 64
     }
   ],
   "compose": "name: slashnode-homarr\nservices:\n  web:\n    image: ghcr.io/homarr-labs/homarr:v1.67.0\n    container_name: homarr\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      SECRET_ENCRYPTION_KEY: ${secret.APP_SEED}\n    volumes:\n      - web_data:/appdata\n    ports:\n      - 127.0.0.1:7575:7575\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data:\n    name: slashnode-homarr_web_data\n",

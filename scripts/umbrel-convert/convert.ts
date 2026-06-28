@@ -279,8 +279,14 @@ async function convert(appId: string, ship = false): Promise<Report> {
   // rewrite Umbrel's inter-service hostnames (<id>_<svc>_1) to the new names so
   // multi-service apps still resolve each other.
   const containerName = (svc: string) => (nonProxy.length === 1 ? appId : `${appId}-${svc}`);
-  const hostRewrites = nonProxy.map(
-    (svc) => [new RegExp(`${appId}_${svc}_1`, "g"), containerName(svc)] as const,
+  // Match both the plain (db_svc_1) and URL-encoded (db%5Fsvc%5F1, as found in
+  // DATABASE_URLs) forms of Umbrel's container hostnames.
+  const hostRewrites = nonProxy.flatMap(
+    (svc) =>
+      [
+        [new RegExp(`${appId}_${svc}_1`, "g"), containerName(svc)],
+        [new RegExp(`${appId}%5F${svc}%5F1`, "g"), containerName(svc)],
+      ] as const,
   );
   const rwHosts = (v: unknown): any => {
     if (typeof v === "string") return hostRewrites.reduce((a, [re, rep]) => a.replace(re, rep), v);
@@ -301,7 +307,14 @@ async function convert(appId: string, ship = false): Promise<Report> {
     if (s.init) ns.init = s.init;
     if (s.command) ns.command = rwHosts(s.command);
     if (s.entrypoint) ns.entrypoint = rwHosts(s.entrypoint);
-    if (s.depends_on) ns.depends_on = s.depends_on;
+    if (s.depends_on) {
+      // Umbrel pairs `condition: service_healthy` with healthchecks we don't copy;
+      // downgrade to service_started (the restart policy covers ordering) so
+      // `docker compose up` doesn't abort on a healthcheck-less dependency.
+      ns.depends_on = JSON.parse(
+        JSON.stringify(s.depends_on).replace(/service_healthy/g, "service_started"),
+      );
+    }
 
     // Elevated-privilege constructs: preserved (so the app still works) but
     // flagged, because they widen the attack surface beyond SlashNode's model.
