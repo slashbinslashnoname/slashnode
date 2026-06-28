@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "satoshi-dashboard",
+  "name": "Satoshi Dashboard",
+  "version": "1.1.0",
+  "category": "bitcoin",
+  "description": "Real-time Bitcoin analytics dashboard",
+  "icon": "₿",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-satoshi-dashboard\nservices:\n  web:\n    image: ghcr.io/satoshi-dashboard/main:v1.1.0\n    container_name: satoshi-dashboard\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      SERVE_STATIC: 'true'\n      API_PORT: '8410'\n      API_HOST: 0.0.0.0\n    volumes:\n      - web_data:/app/server/.runtime-cache\n    ports:\n      - 127.0.0.1:8410:8410\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data:\n    name: slashnode-satoshi-dashboard_web_data\n",
+  "web": {
+    "port": 8410,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8410,
+    "path": "/"
+  }
+}

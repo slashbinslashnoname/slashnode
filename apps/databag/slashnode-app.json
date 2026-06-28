@@ -1,0 +1,31 @@
+{
+  "manifestVersion": 1,
+  "id": "databag",
+  "name": "Databag",
+  "version": "0.1.18",
+  "category": "social",
+  "description": "A tiny self-hosted federated messenger for the decentralized web",
+  "icon": "💬",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "APP_PASSWORD",
+      "label": "password",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Stored encrypted."
+    }
+  ],
+  "compose": "name: slashnode-databag\nservices:\n  web:\n    image: balzack/databag:0.1.18\n    container_name: databag\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      ADMIN: ${secret.APP_PASSWORD}\n    volumes:\n      - web_data-databag:/var/lib/databag\n    ports:\n      - 127.0.0.1:7000:7000\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data-databag:\n    name: slashnode-databag_web_data-databag\n",
+  "web": {
+    "port": 7000,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 7000,
+    "path": "/"
+  }
+}

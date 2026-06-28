@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "chromium",
+  "name": "Chromium",
+  "version": "8d3cb5f1",
+  "category": "networking",
+  "description": "The open-source browser project",
+  "icon": "🌐",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-chromium\nservices:\n  chromium:\n    image: ghcr.io/linuxserver/chromium:version-8d3cb5f1\n    container_name: chromium\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      PUID: '1000'\n      PGID: '1000'\n    volumes:\n      - chromium_data:/config\n    ports:\n      - 127.0.0.1:30099:3000\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  chromium_data:\n    name: slashnode-chromium_chromium_data\n",
+  "web": {
+    "port": 30099,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 30099,
+    "path": "/"
+  }
+}

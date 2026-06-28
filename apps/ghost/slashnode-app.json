@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "ghost",
+  "name": "Ghost",
+  "version": "6.47.0",
+  "category": "files",
+  "description": "A platform for creators to publish, grow, and monetize their content",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-ghost\nservices:\n  web:\n    image: ghost:6.47.0\n    container_name: ghost-web\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      database__client: mysql\n      database__connection__host: ghost-db\n      database__connection__user: root\n      database__connection__password: umbrel\n      database__connection__database: ghost\n      url: http://${node.exports.host}:3368\n      security__staffDeviceVerification: 'false'\n    volumes:\n      - web_data-content:/var/lib/ghost/content:rw\n    ports:\n      - 127.0.0.1:3368:2368\n  db:\n    image: mysql:8.4.4\n    container_name: ghost-db\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      MYSQL_ROOT_PASSWORD: umbrel\n    volumes:\n      - db_data-db:/var/lib/mysql:rw\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data-content:\n    name: slashnode-ghost_web_data-content\n  db_data-db:\n    name: slashnode-ghost_db_data-db\n",
+  "web": {
+    "port": 3368,
+    "path": "/ghost"
+  },
+  "probe": {
+    "type": "http",
+    "port": 3368,
+    "path": "/"
+  }
+}

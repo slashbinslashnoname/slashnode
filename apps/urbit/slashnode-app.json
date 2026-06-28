@@ -1,0 +1,31 @@
+{
+  "manifestVersion": 1,
+  "id": "urbit",
+  "name": "Urbit",
+  "version": "v4.3",
+  "category": "networking",
+  "description": "Run Urbit on your node",
+  "icon": "🌐",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "APP_PASSWORD",
+      "label": "password",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Stored encrypted."
+    }
+  ],
+  "compose": "name: slashnode-urbit\nservices:\n  manager:\n    image: mopfelwinrux/urbit-umbrel:v4.3\n    container_name: urbit\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      APP_PASSWORD: ${secret.APP_PASSWORD}\n    volumes:\n      - manager_piers:/data/piers\n      - manager_keys:/data/keys\n    ports:\n      - 127.0.0.1:8090:8090\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  manager_piers:\n    name: slashnode-urbit_manager_piers\n  manager_keys:\n    name: slashnode-urbit_manager_keys\n",
+  "web": {
+    "port": 8090,
+    "path": "/launch"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8090,
+    "path": "/"
+  }
+}

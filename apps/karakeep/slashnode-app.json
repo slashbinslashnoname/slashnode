@@ -1,0 +1,31 @@
+{
+  "manifestVersion": 1,
+  "id": "karakeep",
+  "name": "Karakeep",
+  "version": "0.32.0",
+  "category": "files",
+  "description": "A bookmark-everything app",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "APP_SEED",
+      "label": "seed",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Stored encrypted."
+    }
+  ],
+  "compose": "name: slashnode-karakeep\nservices:\n  web:\n    image: ghcr.io/karakeep-app/karakeep:0.32.0\n    container_name: karakeep-web\n    restart: unless-stopped\n    networks:\n      - slashnode\n    depends_on:\n      - chrome\n      - meilisearch\n    environment:\n      MEILI_ADDR: http://karakeep-meilisearch:7700\n      MEILI_MASTER_KEY: ${secret.APP_SEED}\n      BROWSER_WEB_URL: http://karakeep-chrome:9222\n      DATA_DIR: /data\n      NEXTAUTH_SECRET: ${secret.APP_SEED}\n      NEXTAUTH_URL: http://${node.exports.host}:8620\n      KARAKEEP_VERSION: release\n    volumes:\n      - web_data-karakeep_data:/data\n    ports:\n      - 127.0.0.1:8620:3000\n  chrome:\n    image: zenika/alpine-chrome:124\n    container_name: karakeep-chrome\n    restart: unless-stopped\n    networks:\n      - slashnode\n    command:\n      - '--no-sandbox'\n      - '--disable-gpu'\n      - '--disable-dev-shm-usage'\n      - '--remote-debugging-address=0.0.0.0'\n      - '--remote-debugging-port=9222'\n      - '--hide-scrollbars'\n  meilisearch:\n    image: getmeili/meilisearch:v1.41.0\n    container_name: karakeep-meilisearch\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      MEILI_NO_ANALYTICS: 'true'\n      MEILI_MASTER_KEY: ${secret.APP_SEED}\n    volumes:\n      - meilisearch_data-meilisearch_data:/meili_data\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data-karakeep_data:\n    name: slashnode-karakeep_web_data-karakeep_data\n  meilisearch_data-meilisearch_data:\n    name: slashnode-karakeep_meilisearch_data-meilisearch_data\n",
+  "web": {
+    "port": 8620,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8620,
+    "path": "/"
+  }
+}

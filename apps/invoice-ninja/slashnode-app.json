@@ -1,0 +1,32 @@
+{
+  "manifestVersion": 1,
+  "id": "invoice-ninja",
+  "name": "Invoice Ninja",
+  "version": "5.13.26",
+  "category": "finance",
+  "description": "We'll help with the invoicing",
+  "icon": "💰",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "APP_PASSWORD",
+      "label": "password",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Stored encrypted."
+    }
+  ],
+  "compose": "name: slashnode-invoice-ninja\nservices:\n  nginx:\n    image: nginx:1.21-alpine\n    container_name: invoice-ninja-nginx\n    restart: unless-stopped\n    networks:\n      - slashnode\n    init: true\n    depends_on:\n      - app\n    volumes:\n      - nginx_config-nginx.conf:/etc/nginx/conf.d/nginx.conf:ro\n      - nginx_data-public:/var/www/html/public:ro\n      - nginx_data-fake-..-storage:/var/www/html/storage:ro\n    ports:\n      - 127.0.0.1:8676:80\n  app:\n    image: invoiceninja/invoiceninja-debian:5.13.26\n    container_name: invoice-ninja-app\n    restart: unless-stopped\n    networks:\n      - slashnode\n    depends_on:\n      db:\n        condition: service_healthy\n      redis:\n        condition: service_healthy\n    environment:\n      APP_URL: http://${node.exports.host}:8676\n      APP_KEY: ${APP_KEY:-unset}\n      APP_ENV: production\n      APP_DEBUG: 'false'\n      REQUIRE_HTTPS: 'false'\n      DB_HOST: invoice-ninja-db\n      DB_DATABASE: invoiceninja\n      DB_USERNAME: invoiceninja\n      DB_PASSWORD: moneyprintergobrrr\n      IN_USER_EMAIL: admin@example.com\n      IN_PASSWORD: ${secret.APP_PASSWORD}\n      IS_DOCKER: 'true'\n      CACHE_DRIVER: redis\n      QUEUE_CONNECTION: redis\n      SESSION_DRIVER: redis\n      REDIS_HOST: invoice-ninja-redis\n      REDIS_PASSWORD: 'null'\n      REDIS_PORT: '6379'\n      FILESYSTEM_DISK: debian_docker\n    volumes:\n      - app_data-public:/var/www/html/public\n      - app_data-fake-..-storage:/var/www/html/storage\n  db:\n    image: mariadb:11.4.5\n    container_name: invoice-ninja-db\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      MYSQL_ROOT_PASSWORD: invoiceninja\n      MYSQL_USER: invoiceninja\n      MYSQL_PASSWORD: moneyprintergobrrr\n      MYSQL_DATABASE: invoiceninja\n      MARIADB_AUTO_UPGRADE: 'true'\n    volumes:\n      - db_data-db:/var/lib/mysql\n  redis:\n    image: redis:7.4.3\n    container_name: invoice-ninja-redis\n    restart: unless-stopped\n    networks:\n      - slashnode\n    volumes:\n      - redis_data-redis:/data\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  nginx_config-nginx.conf:\n    name: slashnode-invoice-ninja_nginx_config-nginx.conf\n  nginx_data-public:\n    name: slashnode-invoice-ninja_nginx_data-public\n  nginx_data-fake-..-storage:\n    name: slashnode-invoice-ninja_nginx_data-fake-..-storage\n  app_data-public:\n    name: slashnode-invoice-ninja_app_data-public\n  app_data-fake-..-storage:\n    name: slashnode-invoice-ninja_app_data-fake-..-storage\n  db_data-db:\n    name: slashnode-invoice-ninja_db_data-db\n  redis_data-redis:\n    name: slashnode-invoice-ninja_redis_data-redis\n",
+  "web": {
+    "port": 8676,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8676,
+    "path": "/"
+  },
+  "notes": "Default login — user: \"admin@example.com\", password: \"\"."
+}

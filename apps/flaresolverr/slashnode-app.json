@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "flaresolverr",
+  "name": "flaresolverr",
+  "version": "3.5.0",
+  "category": "networking",
+  "description": "Proxy server to bypass Cloudflare and DDoS-GUARD protection",
+  "icon": "🌐",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-flaresolverr\nservices:\n  web:\n    image: mrsunglasses/flaresolverr-status:0.0.2\n    container_name: flaresolverr-web\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      URL: http://flaresolverr-server:8191/v1\n    ports:\n      - 127.0.0.1:8191:8000\n  server:\n    image: ghcr.io/flaresolverr/flaresolverr:v3.5.0\n    container_name: flaresolverr-server\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      LOG_LEVEL: info\nnetworks:\n  slashnode:\n    external: true\n",
+  "web": {
+    "port": 8191,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8191,
+    "path": "/"
+  }
+}

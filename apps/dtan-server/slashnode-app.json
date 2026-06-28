@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "dtan-server",
+  "name": "DTAN Server",
+  "version": "v0.2.0",
+  "category": "networking",
+  "description": "Nostr-based torrent distribution network",
+  "icon": "🌐",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-dtan-server\nservices:\n  web:\n    image: voidic/dtan-server:v0.2.0\n    container_name: dtan-server\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      RUST_LOG: info\n    volumes:\n      - web_data-app:/app/data\n      - web_data-config-config.yml:/app/config.yml\n    ports:\n      - 127.0.0.1:8022:8000\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data-app:\n    name: slashnode-dtan-server_web_data-app\n  web_data-config-config.yml:\n    name: slashnode-dtan-server_web_data-config-config.yml\n",
+  "web": {
+    "port": 8022,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8022,
+    "path": "/"
+  }
+}

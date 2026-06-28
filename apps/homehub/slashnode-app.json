@@ -1,0 +1,31 @@
+{
+  "manifestVersion": 1,
+  "id": "homehub",
+  "name": "HomeHub",
+  "version": "0.2.3.4",
+  "category": "files",
+  "description": "A modern hub for family organization",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "APP_SEED",
+      "label": "seed",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Stored encrypted."
+    }
+  ],
+  "compose": "name: slashnode-homehub\nservices:\n  web:\n    image: ghcr.io/surajverma/homehub:0.2.3.4\n    container_name: homehub\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      FLASK_ENV: production\n      SECRET_KEY: ${secret.APP_SEED}\n    volumes:\n      - web_data-uploads:/app/uploads\n      - web_data-media:/app/media\n      - web_data-pdfs:/app/pdfs\n      - web_data-app_data:/app/data\n      - web_data-config-config.yml:/app/config.yml:ro\n    ports:\n      - 127.0.0.1:5059:5000\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data-uploads:\n    name: slashnode-homehub_web_data-uploads\n  web_data-media:\n    name: slashnode-homehub_web_data-media\n  web_data-pdfs:\n    name: slashnode-homehub_web_data-pdfs\n  web_data-app_data:\n    name: slashnode-homehub_web_data-app_data\n  web_data-config-config.yml:\n    name: slashnode-homehub_web_data-config-config.yml\n",
+  "web": {
+    "port": 5059,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 5059,
+    "path": "/"
+  }
+}

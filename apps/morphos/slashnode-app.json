@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "morphos",
+  "name": "Morphos server",
+  "version": "0.6.0",
+  "category": "files",
+  "description": "Self-hosted file converter",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-morphos\nservices:\n  web:\n    image: ghcr.io/danvergara/morphos-server:0.6.0\n    container_name: morphos\n    restart: unless-stopped\n    networks:\n      - slashnode\n    ports:\n      - 127.0.0.1:3778:8080\nnetworks:\n  slashnode:\n    external: true\n",
+  "web": {
+    "port": 3778,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 3778,
+    "path": "/"
+  }
+}

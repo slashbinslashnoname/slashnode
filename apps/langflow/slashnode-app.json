@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "langflow",
+  "name": "Langflow",
+  "version": "1.10.1",
+  "category": "ai",
+  "description": "Build AI agents and workflows visually",
+  "icon": "🤖",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-langflow\nservices:\n  app:\n    image: langflowai/langflow:1.10.1\n    container_name: langflow-app\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      LANGFLOW_CONFIG_DIR: /app/langflow\n      DO_NOT_TRACK: 'true'\n      LANGFLOW_DATABASE_URL: postgresql://langflow:langflow@langflow-db:5432/langflow\n    volumes:\n      - app_data-app:/app/langflow\n    ports:\n      - 127.0.0.1:8862:7860\n  db:\n    image: postgres:16.14-trixie\n    container_name: langflow-db\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      POSTGRES_USER: langflow\n      POSTGRES_PASSWORD: langflow\n      POSTGRES_DB: langflow\n    volumes:\n      - db_data-db:/var/lib/postgresql/data\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  app_data-app:\n    name: slashnode-langflow_app_data-app\n  db_data-db:\n    name: slashnode-langflow_db_data-db\n",
+  "web": {
+    "port": 8862,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8862,
+    "path": "/"
+  }
+}

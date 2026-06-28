@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "mattermost",
+  "name": "Mattermost",
+  "version": "11.8.1",
+  "category": "social",
+  "description": "Team Chat, Open Source, Self-Hosted",
+  "icon": "💬",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-mattermost\nservices:\n  app:\n    image: alexlack/mattermost-app:v11.8.1\n    container_name: mattermost-app\n    restart: unless-stopped\n    networks:\n      - slashnode\n    depends_on:\n      db:\n        condition: service_healthy\n    environment:\n      MM_USERNAME: admin\n      MM_PASSWORD: admin\n      MM_DBNAME: mattermost\n      MM_SQLSETTINGS_DATASOURCE: postgres://admin:admin@mattermost-db:5432/mattermost?sslmode=disable&connect_timeout=10\n    volumes:\n      - app_data-app-mattermost-config:/mattermost/config:rw\n      - app_data-app-mattermost-data:/mattermost/data:rw\n      - app_data-app-mattermost-logs:/mattermost/logs:rw\n      - app_data-app-mattermost-plugins:/mattermost/plugins:rw\n      - app_data-app-mattermost-client-plugins:/mattermost/client/plugins:rw\n      - /etc/localtime:/etc/localtime:ro\n    ports:\n      - 127.0.0.1:8765:8000\n  db:\n    image: alexlack/mattermost-db:v11.8.1\n    container_name: mattermost-db\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      MM_USERNAME: admin\n      MM_PASSWORD: admin\n      MM_DBNAME: mattermost\n    volumes:\n      - db_data-db:/var/lib/postgresql/data\n      - /etc/localtime:/etc/localtime:ro\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  app_data-app-mattermost-config:\n    name: slashnode-mattermost_app_data-app-mattermost-config\n  app_data-app-mattermost-data:\n    name: slashnode-mattermost_app_data-app-mattermost-data\n  app_data-app-mattermost-logs:\n    name: slashnode-mattermost_app_data-app-mattermost-logs\n  app_data-app-mattermost-plugins:\n    name: slashnode-mattermost_app_data-app-mattermost-plugins\n  app_data-app-mattermost-client-plugins:\n    name: slashnode-mattermost_app_data-app-mattermost-client-plugins\n  db_data-db:\n    name: slashnode-mattermost_db_data-db\n",
+  "web": {
+    "port": 8765,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8765,
+    "path": "/"
+  }
+}

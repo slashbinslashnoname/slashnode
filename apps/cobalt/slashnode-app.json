@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "cobalt",
+  "name": "cobalt",
+  "version": "11.5",
+  "category": "media",
+  "description": "Best way to save what you love",
+  "icon": "🎬",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-cobalt\nservices:\n  web:\n    image: dennysubke/cobalt:11.5\n    container_name: cobalt\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      API_URL: http://${node.exports.host}:9013/\n      API_AUTH_REQUIRED: '0'\n      DURATION_LIMIT: '86400'\n    ports:\n      - 127.0.0.1:9009:9001\nnetworks:\n  slashnode:\n    external: true\n",
+  "web": {
+    "port": 9009,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 9009,
+    "path": "/"
+  }
+}

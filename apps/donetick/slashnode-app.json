@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "donetick",
+  "name": "Donetick",
+  "version": "0.1.75",
+  "category": "files",
+  "description": "An intelligent way to organize tasks and chores",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-donetick\nservices:\n  app:\n    image: donetick/donetick:v0.1.75\n    container_name: donetick\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      DT_ENV: selfhosted\n      DT_SQLITE_PATH: /donetick-data/donetick.db\n    volumes:\n      - app_data-app:/donetick-data\n      - app_data-config:/config\n    ports:\n      - 127.0.0.1:8121:2021\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  app_data-app:\n    name: slashnode-donetick_app_data-app\n  app_data-config:\n    name: slashnode-donetick_app_data-config\n",
+  "web": {
+    "port": 8121,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8121,
+    "path": "/"
+  }
+}

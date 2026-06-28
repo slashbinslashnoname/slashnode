@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "ipfs-podcasting",
+  "name": "IPFS Podcasting",
+  "version": "0.6",
+  "category": "files",
+  "description": "Crowd-host podcasts over IPFS",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-ipfs-podcasting\nservices:\n  web:\n    image: ipfspodcasting/podcastnode:v0.6\n    container_name: ipfs-podcasting\n    restart: unless-stopped\n    networks:\n      - slashnode\n    init: true\n    volumes:\n      - web_ipfs:/ipfs-podcasting/ipfs\n      - web_cfg:/ipfs-podcasting/cfg\n    ports:\n      - 127.0.0.1:8675:8675\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_ipfs:\n    name: slashnode-ipfs-podcasting_web_ipfs\n  web_cfg:\n    name: slashnode-ipfs-podcasting_web_cfg\n",
+  "web": {
+    "port": 8675,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8675,
+    "path": "/"
+  }
+}

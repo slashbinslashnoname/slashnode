@@ -1,0 +1,31 @@
+{
+  "manifestVersion": 1,
+  "id": "papra",
+  "name": "Papra",
+  "version": "26.5.0",
+  "category": "files",
+  "description": "The minimalistic document archiving platform",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "APP_SEED",
+      "label": "seed",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Stored encrypted."
+    }
+  ],
+  "compose": "name: slashnode-papra\nservices:\n  server:\n    image: ghcr.io/papra-hq/papra:26.5.0-rootless\n    container_name: papra\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      AUTH_SECRET: ${secret.APP_SEED}\n      APP_BASE_URL: http://${node.exports.host}:8112\n    volumes:\n      - server_data:/app/app-data\n    ports:\n      - 127.0.0.1:8112:1221\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  server_data:\n    name: slashnode-papra_server_data\n",
+  "web": {
+    "port": 8112,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8112,
+    "path": "/"
+  }
+}

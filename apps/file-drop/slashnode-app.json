@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "file-drop",
+  "name": "File Drop",
+  "version": "1.4.3",
+  "category": "files",
+  "description": "Decentralized, Anonymous, and Secure File Sharing",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-file-drop\nservices:\n  app:\n    image: ghcr.io/besoeasy/file-drop:1.4.3\n    container_name: file-drop\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      NODE_ENV: production\n      IPFS_TELEMETRY: 'off'\n    volumes:\n      - app_data:/data\n    ports:\n      - 127.0.0.1:3232:3232\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  app_data:\n    name: slashnode-file-drop_app_data\n",
+  "web": {
+    "port": 3232,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 3232,
+    "path": "/"
+  }
+}

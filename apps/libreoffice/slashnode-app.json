@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "libreoffice",
+  "name": "LibreOffice",
+  "version": "7.6.7",
+  "category": "files",
+  "description": "Do more - easier, quicker, smarter",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-libreoffice\nservices:\n  server:\n    image: linuxserver/libreoffice:7.6.7\n    container_name: libreoffice\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      PUID: '1000'\n      PGID: '1000'\n    volumes:\n      - server_data-config:/config\n    ports:\n      - 127.0.0.1:5001:3000\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  server_data-config:\n    name: slashnode-libreoffice_server_data-config\n",
+  "web": {
+    "port": 5001,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 5001,
+    "path": "/"
+  }
+}

@@ -416,7 +416,7 @@ async function convert(appId: string, ship = false): Promise<Report> {
     name: meta.name ?? appId,
     version: String(meta.version ?? "latest"),
     category: meta.category ?? "apps",
-    description: meta.tagline ?? meta.name ?? appId,
+    description: String(meta.tagline ?? meta.name ?? appId).replace(/\bUmbrel\b/g, "node"),
     icon: iconFor(meta.category),
     dependencies,
     inputs,

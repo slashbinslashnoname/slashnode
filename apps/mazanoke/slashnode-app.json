@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "mazanoke",
+  "name": "Mazanoke",
+  "version": "1.1.6",
+  "category": "files",
+  "description": "A self-hosted local image optimizer",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-mazanoke\nservices:\n  web:\n    image: ghcr.io/civilblur/mazanoke:v1.1.6\n    container_name: mazanoke\n    restart: unless-stopped\n    networks:\n      - slashnode\n    ports:\n      - 127.0.0.1:3474:80\nnetworks:\n  slashnode:\n    external: true\n",
+  "web": {
+    "port": 3474,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 3474,
+    "path": "/"
+  }
+}

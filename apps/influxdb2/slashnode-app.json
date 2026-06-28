@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "influxdb2",
+  "name": "InfluxDB 2",
+  "version": "2.9.1",
+  "category": "developer",
+  "description": "The leading platform for time series data",
+  "icon": "💻",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-influxdb2\nservices:\n  app:\n    image: influxdb:2.9.1-alpine\n    container_name: influxdb2\n    restart: unless-stopped\n    networks:\n      - slashnode\n    volumes:\n      - app_data-data:/var/lib/influxdb2\n      - app_data-config:/etc/influxdb2\n    ports:\n      - 127.0.0.1:8886:8086\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  app_data-data:\n    name: slashnode-influxdb2_app_data-data\n  app_data-config:\n    name: slashnode-influxdb2_app_data-config\n",
+  "web": {
+    "port": 8886,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8886,
+    "path": "/"
+  }
+}

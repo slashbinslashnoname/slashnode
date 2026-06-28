@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "libreddit",
+  "name": "LibReddit",
+  "version": "0.22.9",
+  "category": "social",
+  "description": "An alternative private front-end to Reddit",
+  "icon": "💬",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-libreddit\nservices:\n  web:\n    image: ceramicwhite/libreddit:0.22.9\n    container_name: libreddit\n    restart: unless-stopped\n    networks:\n      - slashnode\n    init: true\n    environment:\n      PORT: '7420'\n    ports:\n      - 127.0.0.1:7420:7420\nnetworks:\n  slashnode:\n    external: true\n",
+  "web": {
+    "port": 7420,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 7420,
+    "path": "/"
+  }
+}

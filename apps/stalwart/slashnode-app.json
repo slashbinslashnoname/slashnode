@@ -1,0 +1,32 @@
+{
+  "manifestVersion": 1,
+  "id": "stalwart",
+  "name": "Stalwart",
+  "version": "v0.16.11",
+  "category": "files",
+  "description": "All-in-one Mail & Collaboration server",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "APP_PASSWORD",
+      "label": "password",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Stored encrypted."
+    }
+  ],
+  "compose": "name: slashnode-stalwart\nservices:\n  server:\n    image: stalwartlabs/stalwart:v0.16.11\n    container_name: stalwart\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      STALWART_RECOVERY_ADMIN: admin:${secret.APP_PASSWORD}\n      STALWART_PUBLIC_URL: http://${node.exports.host}:8745\n    volumes:\n      - server_data-etc:/etc/stalwart\n      - server_data-server:/var/lib/stalwart\n    ports:\n      - 127.0.0.1:8745:8080\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  server_data-etc:\n    name: slashnode-stalwart_server_data-etc\n  server_data-server:\n    name: slashnode-stalwart_server_data-server\n",
+  "web": {
+    "port": 8745,
+    "path": "/admin"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8745,
+    "path": "/"
+  },
+  "notes": "Default login — user: \"admin\", password: \"\"."
+}

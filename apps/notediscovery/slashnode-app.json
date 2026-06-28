@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "notediscovery",
+  "name": "NoteDiscovery",
+  "version": "0.27.2",
+  "category": "files",
+  "description": "A lightweight, privacy-focused note-taking application",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-notediscovery\nservices:\n  web:\n    image: ghcr.io/gamosoft/notediscovery:0.27.2\n    container_name: notediscovery\n    restart: unless-stopped\n    networks:\n      - slashnode\n    volumes:\n      - web_data:/app/data\n    ports:\n      - 127.0.0.1:8736:8000\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data:\n    name: slashnode-notediscovery_web_data\n",
+  "web": {
+    "port": 8736,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8736,
+    "path": "/"
+  }
+}

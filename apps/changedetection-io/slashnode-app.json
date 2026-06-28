@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "changedetection-io",
+  "name": "changedetection.io",
+  "version": "0.55.7",
+  "category": "automation",
+  "description": "Website change detection and alerts",
+  "icon": "🔧",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-changedetection-io\nservices:\n  app:\n    image: ghcr.io/dgtlmoon/changedetection.io:0.55.7\n    container_name: changedetection-io\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      BASE_URL: http://${node.exports.host}:5037\n      USE_X_SETTINGS: '1'\n      HIDE_REFERER: 'true'\n      TZ: Etc/UTC\n      DISABLE_VERSION_CHECK: 'true'\n    volumes:\n      - app_data:/datastore\n    ports:\n      - 127.0.0.1:5037:5000\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  app_data:\n    name: slashnode-changedetection-io_app_data\n",
+  "web": {
+    "port": 5037,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 5037,
+    "path": "/"
+  }
+}

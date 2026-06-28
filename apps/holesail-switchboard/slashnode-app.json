@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "holesail-switchboard",
+  "name": "Holesail Switchboard",
+  "version": "2.0.8",
+  "category": "networking",
+  "description": "Manage multiple holesail P2P tunnels from a single dashboard",
+  "icon": "🌐",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-holesail-switchboard\nservices:\n  web:\n    image: orenz0/holesail-switchboard:v2.0.8\n    container_name: holesail-switchboard\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      HSSB_DATA_FILE: /data/data.json\n      HSSB_HOST: 0.0.0.0\n      HSSB_PORT: '3160'\n      HSSB_CLIENT_HOST: 0.0.0.0\n      HSSB_FIXED_CLIENT_PORTS: 3161-3170\n      HSSB_SUBTITLE: 'For more information, visit: https://github.com/oren-z0/holesail-switchboard/blob/main/docs/Umbrel.md'\n    volumes:\n      - web_data:/data\n    ports:\n      - 127.0.0.1:3160:3160\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data:\n    name: slashnode-holesail-switchboard_web_data\n",
+  "web": {
+    "port": 3160,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 3160,
+    "path": "/"
+  }
+}

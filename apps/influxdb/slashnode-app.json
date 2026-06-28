@@ -1,0 +1,32 @@
+{
+  "manifestVersion": 1,
+  "id": "influxdb",
+  "name": "InfluxDB",
+  "version": "1.12.4",
+  "category": "developer",
+  "description": "High performance time series database",
+  "icon": "💻",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "APP_PASSWORD",
+      "label": "password",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Stored encrypted."
+    }
+  ],
+  "compose": "name: slashnode-influxdb\nservices:\n  influxdb:\n    image: influxdb:1.12.4\n    container_name: influxdb-influxdb\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      INFLUXDB_ADMIN_USER: admin\n      INFLUXDB_ADMIN_PASSWORD: ${secret.APP_PASSWORD}\n      INFLUXDB_HTTP_AUTH_ENABLED: 'true'\n    volumes:\n      - influxdb_data-influxdb:/var/lib/influxdb\n  chronograf:\n    image: chronograf:1.11.2\n    container_name: influxdb-chronograf\n    restart: unless-stopped\n    networks:\n      - slashnode\n    depends_on:\n      - influxdb\n    environment:\n      INFLUXDB_URL: http://influxdb-influxdb:8086\n      INFLUXDB_USERNAME: admin\n      INFLUXDB_PASSWORD: ${secret.APP_PASSWORD}\n    volumes:\n      - chronograf_data-chronograf:/var/lib/chronograf\n    ports:\n      - 127.0.0.1:8888:8888\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  influxdb_data-influxdb:\n    name: slashnode-influxdb_influxdb_data-influxdb\n  chronograf_data-chronograf:\n    name: slashnode-influxdb_chronograf_data-chronograf\n",
+  "web": {
+    "port": 8888,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8888,
+    "path": "/"
+  },
+  "notes": "Default login — user: \"admin\", password: \"\"."
+}

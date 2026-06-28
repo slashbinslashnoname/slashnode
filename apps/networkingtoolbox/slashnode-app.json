@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "networkingtoolbox",
+  "name": "Networking Toolbox",
+  "version": "1.6.0",
+  "category": "developer",
+  "description": "The all-in-one offline-first networking toolbox for sysadmins",
+  "icon": "💻",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-networkingtoolbox\nservices:\n  app:\n    image: ghcr.io/lissy93/networking-toolbox:1.6.0\n    container_name: networkingtoolbox\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      NODE_ENV: production\n      PORT: '3000'\n      HOST: 0.0.0.0\n    ports:\n      - 127.0.0.1:3686:3000\nnetworks:\n  slashnode:\n    external: true\n",
+  "web": {
+    "port": 3686,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 3686,
+    "path": "/"
+  }
+}

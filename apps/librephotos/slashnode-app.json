@@ -1,0 +1,41 @@
+{
+  "manifestVersion": 1,
+  "id": "librephotos",
+  "name": "LibrePhotos",
+  "version": "2026w14",
+  "category": "files",
+  "description": "A photo management service",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "APP_SEED",
+      "label": "seed",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Stored encrypted."
+    },
+    {
+      "key": "APP_PASSWORD",
+      "label": "password",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Stored encrypted."
+    }
+  ],
+  "compose": "name: slashnode-librephotos\nservices:\n  proxy:\n    image: reallibrephotos/librephotos-proxy:2026w14\n    container_name: librephotos-proxy\n    restart: unless-stopped\n    networks:\n      - slashnode\n    depends_on:\n      - backend\n      - frontend\n    volumes:\n      - proxy_data-photos:/data\n      - proxy_data-protected_media:/protected_media\n    ports:\n      - 127.0.0.1:8150:80\n  db:\n    image: pgautoupgrade/pgautoupgrade:17-alpine3.22\n    container_name: librephotos-db\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      POSTGRES_USER: librephotos\n      POSTGRES_PASSWORD: librephotos\n      POSTGRES_DB: librephotos\n    volumes:\n      - db_data-db:/var/lib/postgresql/data\n  frontend:\n    image: reallibrephotos/librephotos-frontend:2026w14\n    container_name: librephotos-frontend\n    restart: unless-stopped\n    networks:\n      - slashnode\n  backend:\n    image: reallibrephotos/librephotos:2026w14\n    container_name: librephotos-backend\n    restart: unless-stopped\n    networks:\n      - slashnode\n    depends_on:\n      db:\n        condition: service_healthy\n    environment:\n      SECRET_KEY: ${secret.APP_SEED}\n      BACKEND_HOST: backend\n      ADMIN_EMAIL: admin@admin.com\n      ADMIN_USERNAME: admin\n      ADMIN_PASSWORD: ${secret.APP_PASSWORD}\n      DB_BACKEND: postgresql\n      DB_NAME: librephotos\n      DB_USER: librephotos\n      DB_PASS: librephotos\n      DB_HOST: librephotos-db\n      DB_PORT: '5432'\n      MAPBOX_API_KEY: ''\n      WEB_CONCURRENCY: '2'\n      HEAVYWEIGHT_PROCESS: '1'\n      FIXPERMISSIONS: 'true'\n      SKIP_PATTERNS: ''\n      ALLOW_UPLOAD: 'true'\n      CSRF_TRUSTED_ORIGINS: ''\n      DEBUG: '0'\n    volumes:\n      - backend_data-photos:/data\n      - backend_data-protected_media:/protected_media\n      - backend_data-logs:/logs\n      - backend_data-cache:/root/.cache\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  proxy_data-photos:\n    name: slashnode-librephotos_proxy_data-photos\n  proxy_data-protected_media:\n    name: slashnode-librephotos_proxy_data-protected_media\n  db_data-db:\n    name: slashnode-librephotos_db_data-db\n  backend_data-photos:\n    name: slashnode-librephotos_backend_data-photos\n  backend_data-protected_media:\n    name: slashnode-librephotos_backend_data-protected_media\n  backend_data-logs:\n    name: slashnode-librephotos_backend_data-logs\n  backend_data-cache:\n    name: slashnode-librephotos_backend_data-cache\n",
+  "web": {
+    "port": 8150,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8150,
+    "path": "/"
+  },
+  "notes": "Default login — user: \"admin\", password: \"\"."
+}

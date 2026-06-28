@@ -1,0 +1,31 @@
+{
+  "manifestVersion": 1,
+  "id": "homebox",
+  "name": "HomeBox",
+  "version": "0.26.2",
+  "category": "files",
+  "description": "An inventory and organization system built for the home user",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "APP_SEED",
+      "label": "seed",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Stored encrypted."
+    }
+  ],
+  "compose": "name: slashnode-homebox\nservices:\n  web:\n    image: ghcr.io/sysadminsmedia/homebox:0.26.2\n    container_name: homebox\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      HBOX_LOG_LEVEL: info\n      HBOX_LOG_FORMAT: text\n      HBOX_WEB_MAX_UPLOAD_SIZE: '10'\n      HBOX_AUTH_API_KEY_PEPPER: ${secret.APP_SEED}\n    volumes:\n      - web_data:/data/\n    ports:\n      - 127.0.0.1:7745:7745\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data:\n    name: slashnode-homebox_web_data\n",
+  "web": {
+    "port": 7745,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 7745,
+    "path": "/"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "manifestVersion": 1,
+  "id": "blinko",
+  "name": "Blinko",
+  "version": "1.8.8",
+  "category": "files",
+  "description": "An AI-powered hub for your ideas and notes",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "APP_SEED",
+      "label": "seed",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Stored encrypted."
+    }
+  ],
+  "compose": "name: slashnode-blinko\nservices:\n  db:\n    image: postgres:17.3\n    container_name: blinko-db\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      POSTGRES_DB: blinko\n      POSTGRES_USER: blinkouser\n      POSTGRES_PASSWORD: blinkopass\n    volumes:\n      - db_data-db:/var/lib/postgresql/data:rw\n  app:\n    image: blinkospace/blinko:1.8.8\n    container_name: blinko-app\n    restart: unless-stopped\n    networks:\n      - slashnode\n    depends_on:\n      db:\n        condition: service_healthy\n    environment:\n      NODE_ENV: production\n      NEXTAUTH_URL: http://${node.exports.host}:1111\n      NEXT_PUBLIC_BASE_URL: http://${node.exports.host}:1111\n      NEXTAUTH_SECRET: ${secret.APP_SEED}\n      DATABASE_URL: postgresql://blinkouser:blinkopass@blinko-db:5432/blinko\n    volumes:\n      - app_data-app:/app/.blinko:rw\n    ports:\n      - 127.0.0.1:1111:1111\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  db_data-db:\n    name: slashnode-blinko_db_data-db\n  app_data-app:\n    name: slashnode-blinko_app_data-app\n",
+  "web": {
+    "port": 1111,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 1111,
+    "path": "/"
+  }
+}

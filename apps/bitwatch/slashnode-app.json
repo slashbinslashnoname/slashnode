@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "bitwatch",
+  "name": "Bitwatch",
+  "version": "1.7.2",
+  "category": "bitcoin",
+  "description": "Monitor Bitcoin addresses in real-time",
+  "icon": "₿",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-bitwatch\nservices:\n  web:\n    image: ghcr.io/zapomatic/bitwatch:v1.7.2\n    container_name: bitwatch\n    restart: unless-stopped\n    networks:\n      - slashnode\n    volumes:\n      - web_data:/app/server/data\n    ports:\n      - 127.0.0.1:3117:3117\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data:\n    name: slashnode-bitwatch_web_data\n",
+  "web": {
+    "port": 3117,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 3117,
+    "path": "/"
+  }
+}

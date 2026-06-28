@@ -1,0 +1,31 @@
+{
+  "manifestVersion": 1,
+  "id": "yuvomi",
+  "name": "Yuvomi",
+  "version": "0.77.4",
+  "category": "files",
+  "description": "Self-hosted family planner — calendar, tasks, shopping, meals & budget",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "APP_SEED",
+      "label": "seed",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Stored encrypted."
+    }
+  ],
+  "compose": "name: slashnode-yuvomi\nservices:\n  web:\n    image: ghcr.io/ulsklyc/yuvomi:0.77.4\n    container_name: yuvomi\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      NODE_ENV: production\n      PORT: '3000'\n      DB_PATH: /data/yuvomi.db\n      BACKUP_DIR: /backups\n      SESSION_SECRET: ${secret.APP_SEED}\n      SESSION_SECURE: 'false'\n    volumes:\n      - web_data-app:/data\n      - web_data-backups:/backups\n    ports:\n      - 127.0.0.1:8180:3000\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data-app:\n    name: slashnode-yuvomi_web_data-app\n  web_data-backups:\n    name: slashnode-yuvomi_web_data-backups\n",
+  "web": {
+    "port": 8180,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8180,
+    "path": "/"
+  }
+}

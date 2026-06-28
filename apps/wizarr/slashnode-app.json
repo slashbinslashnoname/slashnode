@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "wizarr",
+  "name": "Wizarr",
+  "version": "2026.4.0",
+  "category": "media",
+  "description": "An advanced invitation and management system for media servers",
+  "icon": "🎬",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-wizarr\nservices:\n  app:\n    image: ghcr.io/wizarrrr/wizarr:v2026.4.0\n    container_name: wizarr\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      PUID: '1000'\n      PGID: '1000'\n      DISABLE_BUILTIN_AUTH: 'false'\n      TZ: UTC\n    volumes:\n      - app_data:/data\n    ports:\n      - 127.0.0.1:5690:5690\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  app_data:\n    name: slashnode-wizarr_app_data\n",
+  "web": {
+    "port": 5690,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 5690,
+    "path": "/"
+  }
+}

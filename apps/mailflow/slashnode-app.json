@@ -1,0 +1,31 @@
+{
+  "manifestVersion": 1,
+  "id": "mailflow",
+  "name": "MailFlow",
+  "version": "1.7.2",
+  "category": "networking",
+  "description": "Unified self-hosted webmail client",
+  "icon": "🌐",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "APP_SEED",
+      "label": "seed",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Stored encrypted."
+    }
+  ],
+  "compose": "name: slashnode-mailflow\nservices:\n  frontend:\n    image: ghcr.io/maathimself/mailflow-frontend:1.7.2\n    container_name: mailflow-frontend\n    restart: unless-stopped\n    networks:\n      - slashnode\n    depends_on:\n      backend:\n        condition: service_healthy\n    ports:\n      - 127.0.0.1:3395:80\n  backend:\n    image: ghcr.io/maathimself/mailflow-backend:1.7.2\n    container_name: mailflow-backend\n    restart: unless-stopped\n    networks:\n      - slashnode\n    depends_on:\n      postgres:\n        condition: service_healthy\n      redis:\n        condition: service_healthy\n    environment:\n      NODE_ENV: production\n      PORT: '3000'\n      APP_URL: http://${node.exports.host}:3395\n      FRONTEND_URL: http://${node.exports.host}:3395\n      SESSION_SECRET: ${secret.APP_SEED}\n      ENCRYPTION_KEY: ${secret.APP_SEED}\n      DB_HOST: mailflow-postgres\n      DB_NAME: mailflow\n      DB_USER: mailflow\n      DB_PASSWORD: mailflow\n      REDIS_URL: redis://mailflow-redis:6379\n      GOOGLE_CLIENT_ID: ''\n      GOOGLE_CLIENT_SECRET: ''\n      VAPID_PUBLIC_KEY: ''\n      VAPID_PRIVATE_KEY: ''\n      VAPID_SUBJECT: ''\n  postgres:\n    image: postgres:16-alpine\n    container_name: mailflow-postgres\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      POSTGRES_DB: mailflow\n      POSTGRES_USER: mailflow\n      POSTGRES_PASSWORD: mailflow\n    volumes:\n      - postgres_data-postgres:/var/lib/postgresql/data\n  redis:\n    image: redis:7-alpine\n    container_name: mailflow-redis\n    restart: unless-stopped\n    networks:\n      - slashnode\n    command: redis-server --save 60 1 --loglevel warning\n    volumes:\n      - redis_data-redis:/data\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  postgres_data-postgres:\n    name: slashnode-mailflow_postgres_data-postgres\n  redis_data-redis:\n    name: slashnode-mailflow_redis_data-redis\n",
+  "web": {
+    "port": 3395,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 3395,
+    "path": "/"
+  }
+}

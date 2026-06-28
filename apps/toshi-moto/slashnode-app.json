@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "toshi-moto",
+  "name": "Toshi Moto",
+  "version": "1.37.3",
+  "category": "finance",
+  "description": "Secure Bitcoin portfolio monitoring with privacy-first design",
+  "icon": "💰",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-toshi-moto\nservices:\n  api_web:\n    image: toshimoto821/toshi-moto-api:1.8.4\n    container_name: toshi-moto-api_web\n    restart: unless-stopped\n    networks:\n      - slashnode\n    depends_on:\n      - mongodb\n    environment:\n      PORT: '8121'\n      MONGODB_URI: mongodb://toshi-moto-mongodb:27017/toshi-moto\n  web:\n    image: toshimoto821/toshi-moto:1.37.3\n    container_name: toshi-moto-web\n    restart: unless-stopped\n    networks:\n      - slashnode\n    depends_on:\n      - api_web\n    environment:\n      PORT: '8021'\n    volumes:\n      - web_data-proxy-nginx.conf:/etc/nginx/conf.d/default.conf:ro\n    ports:\n      - 127.0.0.1:8021:8021\n  mongodb:\n    image: mongo:8.0.10\n    container_name: toshi-moto-mongodb\n    restart: unless-stopped\n    networks:\n      - slashnode\n    command: mongod --noauth\n    volumes:\n      - mongodb_data-db:/data/db\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data-proxy-nginx.conf:\n    name: slashnode-toshi-moto_web_data-proxy-nginx.conf\n  mongodb_data-db:\n    name: slashnode-toshi-moto_mongodb_data-db\n",
+  "web": {
+    "port": 8021,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8021,
+    "path": "/"
+  }
+}

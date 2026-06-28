@@ -1,0 +1,22 @@
+{
+  "manifestVersion": 1,
+  "id": "reitti",
+  "name": "Reitti",
+  "version": "4.0.5-1",
+  "category": "files",
+  "description": "A location tracking and analysis application",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-reitti\nservices:\n  app:\n    image: dedicatedcode/reitti:4.0.5\n    container_name: reitti-app\n    restart: unless-stopped\n    networks:\n      - slashnode\n    depends_on:\n      postgis:\n        condition: service_healthy\n        restart: true\n      redis:\n        condition: service_healthy\n      tile-cache:\n        condition: service_healthy\n    environment:\n      POSTGIS_USER: reitti\n      POSTGIS_PASSWORD: reitti\n      POSTGIS_DB: reittidb\n      POSTGIS_HOST: reitti-postgis\n    volumes:\n      - app_data-app:/app/data\n    ports:\n      - 127.0.0.1:8744:8080\n  postgis:\n    image: imresamu/postgis:17-3.5-alpine\n    container_name: reitti-postgis\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      POSTGRES_USER: reitti\n      POSTGRES_PASSWORD: reitti\n      POSTGRES_DB: reittidb\n    volumes:\n      - postgis_data-postgis:/var/lib/postgresql/data\n  redis:\n    image: redis:7.4.9-alpine\n    container_name: reitti-redis\n    restart: unless-stopped\n    networks:\n      - slashnode\n    volumes:\n      - redis_data-redis:/data\n  tile-cache:\n    image: dedicatedcode/reitti-tile-cache:4.0.5\n    container_name: reitti-tile-cache\n    restart: unless-stopped\n    networks:\n      - slashnode\n    volumes:\n      - tile-cache_data-title-cache:/var/cache/nginx\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  app_data-app:\n    name: slashnode-reitti_app_data-app\n  postgis_data-postgis:\n    name: slashnode-reitti_postgis_data-postgis\n  redis_data-redis:\n    name: slashnode-reitti_redis_data-redis\n  tile-cache_data-title-cache:\n    name: slashnode-reitti_tile-cache_data-title-cache\n",
+  "web": {
+    "port": 8744,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8744,
+    "path": "/"
+  },
+  "notes": "Default login — user: \"admin\", password: \"\"."
+}

@@ -1,0 +1,32 @@
+{
+  "manifestVersion": 1,
+  "id": "picsur",
+  "name": "Picsur",
+  "version": "0.5.6",
+  "category": "files",
+  "description": "An easy to use image sharing service",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "APP_PASSWORD",
+      "label": "password",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Stored encrypted."
+    }
+  ],
+  "compose": "name: slashnode-picsur\nservices:\n  db:\n    image: postgres:17.4\n    container_name: picsur-db\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      POSTGRES_DB: picsur\n      POSTGRES_USER: picsuruser\n      POSTGRES_PASSWORD: picsurpass\n    volumes:\n      - db_data-db:/var/lib/postgresql/data:rw\n  web:\n    image: ghcr.io/caramelfur/picsur:0.5.6\n    container_name: picsur-web\n    restart: unless-stopped\n    networks:\n      - slashnode\n    depends_on:\n      db:\n        condition: service_healthy\n    environment:\n      PICSUR_PORT: '8286'\n      PICSUR_DB_HOST: picsur-db\n      PICSUR_DB_PORT: '5432'\n      PICSUR_DB_USERNAME: picsuruser\n      PICSUR_DB_PASSWORD: picsurpass\n      PICSUR_DB_DATABASE: picsur\n      PICSUR_ADMIN_PASSWORD: ${secret.APP_PASSWORD}\n      PICSUR_MAX_FILE_SIZE: '128000000000'\n    ports:\n      - 127.0.0.1:8286:8286\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  db_data-db:\n    name: slashnode-picsur_db_data-db\n",
+  "web": {
+    "port": 8286,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8286,
+    "path": "/"
+  },
+  "notes": "Default login — user: \"admin\", password: \"\"."
+}

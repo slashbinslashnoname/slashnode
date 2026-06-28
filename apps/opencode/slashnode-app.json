@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "opencode",
+  "name": "OpenCode",
+  "version": "1.17.11",
+  "category": "ai",
+  "description": "The open source AI coding agent",
+  "icon": "🤖",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-opencode\nservices:\n  app:\n    image: ghcr.io/anomalyco/opencode:1.17.11\n    container_name: opencode\n    restart: unless-stopped\n    networks:\n      - slashnode\n    command:\n      - serve\n      - '--hostname'\n      - 0.0.0.0\n      - '--port'\n      - '4096'\n    environment:\n      HOME: /home/opencode\n    volumes:\n      - app_data-opencode:/home/opencode/\n    ports:\n      - 127.0.0.1:4096:4096\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  app_data-opencode:\n    name: slashnode-opencode_app_data-opencode\n",
+  "web": {
+    "port": 4096,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 4096,
+    "path": "/"
+  }
+}

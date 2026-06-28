@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "lnbits-holesail-proxy",
+  "name": "LNbits Holesail Proxy",
+  "version": "1.0.7",
+  "category": "bitcoin",
+  "description": "A Holesail proxy to connect remotely to your LNbits",
+  "icon": "₿",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-lnbits-holesail-proxy\nservices:\n  web:\n    image: orenz0/holesail-server-manager:v1.0.7\n    container_name: lnbits-holesail-proxy\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      HSM_DATA_FILE: /data/hsm.json\n      HSM_HOST: 0.0.0.0\n      HSM_PORT: '3107'\n      HSM_TITLE: LNbits Holesail Proxy\n      HSM_TARGET_ADDRESS: lnbits_web_1\n      HSM_TARGET_PORT: '3007'\n    volumes:\n      - web_data:/data\n    ports:\n      - 127.0.0.1:3107:3107\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data:\n    name: slashnode-lnbits-holesail-proxy_web_data\n",
+  "web": {
+    "port": 3107,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 3107,
+    "path": "/"
+  }
+}

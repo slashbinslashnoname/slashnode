@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "restreamer",
+  "name": "Restreamer",
+  "version": "2.12.0",
+  "category": "files",
+  "description": "An easy to use open source video server",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-restreamer\nservices:\n  web:\n    image: datarhei/restreamer:2.12.0\n    container_name: restreamer\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      PUID: '1000'\n      PGID: '1000'\n    volumes:\n      - web_config:/core/config\n      - web_data:/core/data\n    ports:\n      - 127.0.0.1:8135:8080\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_config:\n    name: slashnode-restreamer_web_config\n  web_data:\n    name: slashnode-restreamer_web_data\n",
+  "web": {
+    "port": 8135,
+    "path": "/ui"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8135,
+    "path": "/"
+  }
+}

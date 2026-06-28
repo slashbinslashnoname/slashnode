@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "firefox",
+  "name": "Firefox",
+  "version": "139.0.4",
+  "category": "networking",
+  "description": "Firefox is a free and open-source web browser",
+  "icon": "🌐",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-firefox\nservices:\n  server:\n    image: linuxserver/firefox:139.0.4\n    container_name: firefox\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      PUID: '1000'\n      PGID: '1000'\n    volumes:\n      - server_data-config:/config\n    ports:\n      - 127.0.0.1:3434:3000\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  server_data-config:\n    name: slashnode-firefox_server_data-config\n",
+  "web": {
+    "port": 3434,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 3434,
+    "path": "/"
+  }
+}

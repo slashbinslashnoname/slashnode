@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "l-town",
+  "name": "L-Town",
+  "version": "20260621",
+  "category": "social",
+  "description": "Open source multiplayer FPS browser game",
+  "icon": "💬",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-l-town\nservices:\n  app:\n    image: ghcr.io/besoeasy/l-town:20260621\n    container_name: l-town\n    restart: unless-stopped\n    networks:\n      - slashnode\n    ports:\n      - 127.0.0.1:30300:30300\nnetworks:\n  slashnode:\n    external: true\n",
+  "web": {
+    "port": 30300,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 30300,
+    "path": "/"
+  }
+}

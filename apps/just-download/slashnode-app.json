@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "just-download",
+  "name": "Just. Download.",
+  "version": "1.0.9",
+  "category": "media",
+  "description": "Download torrents. Just. Download.",
+  "icon": "🎬",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-just-download\nservices:\n  web:\n    image: codeberg.org/highghlow/just-download:v1.0.9\n    container_name: just-download\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      LOCK_TRANSMISSION_CONFIG: '1'\n      CONFIG_LOCATION: /config/config.json\n      CONFIG: '{\"indexers\": [], \"transmission\": {\"host\": \"transmission_server_1\", \"port\": 9091}}'\n    volumes:\n      - web_data-config:/config\n    ports:\n      - 127.0.0.1:3684:5000\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data-config:\n    name: slashnode-just-download_web_data-config\n",
+  "web": {
+    "port": 3684,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 3684,
+    "path": "/"
+  }
+}

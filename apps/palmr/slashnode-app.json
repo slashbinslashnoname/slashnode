@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "palmr",
+  "name": "Palmr",
+  "version": "3.3.2-beta",
+  "category": "files",
+  "description": "Open-Source File Transfer",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-palmr\nservices:\n  server:\n    image: kyantech/palmr:v3.3.2-beta\n    container_name: palmr\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      PALMR_UID: '1000'\n      PALMR_GID: '1000'\n    volumes:\n      - server_data:/app/server\n    ports:\n      - 127.0.0.1:8075:5487\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  server_data:\n    name: slashnode-palmr_server_data\n",
+  "web": {
+    "port": 8075,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8075,
+    "path": "/"
+  }
+}

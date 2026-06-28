@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "lubelogger",
+  "name": "LubeLogger",
+  "version": "1.6.8",
+  "category": "files",
+  "description": "A vehicle maintenance and fuel mileage tracker",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-lubelogger\nservices:\n  app:\n    image: ghcr.io/hargata/lubelogger:v1.6.8\n    container_name: lubelogger\n    restart: unless-stopped\n    networks:\n      - slashnode\n    volumes:\n      - app_data-app:/App/data\n      - app_data-keys:/root/.aspnet/DataProtection-Keys\n    ports:\n      - 127.0.0.1:8835:8080\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  app_data-app:\n    name: slashnode-lubelogger_app_data-app\n  app_data-keys:\n    name: slashnode-lubelogger_app_data-keys\n",
+  "web": {
+    "port": 8835,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8835,
+    "path": "/"
+  }
+}

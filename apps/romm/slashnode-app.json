@@ -1,0 +1,31 @@
+{
+  "manifestVersion": 1,
+  "id": "romm",
+  "name": "RomM",
+  "version": "4.9.2",
+  "category": "media",
+  "description": "A beautiful, powerful, self-hosted rom manager",
+  "icon": "🎬",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "APP_SEED",
+      "label": "seed",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Stored encrypted."
+    }
+  ],
+  "compose": "name: slashnode-romm\nservices:\n  server:\n    image: rommapp/romm:4.9.2\n    container_name: romm-server\n    restart: unless-stopped\n    networks:\n      - slashnode\n    depends_on:\n      db:\n        condition: service_healthy\n    environment:\n      DB_HOST: romm-db\n      DB_NAME: romm\n      DB_USER: romm-user\n      DB_PASSWD: moneyprintergobrr\n      ROMM_AUTH_SECRET_KEY: ${secret.APP_SEED}\n    volumes:\n      - server_data-resources:/romm/resources\n      - server_data-redis:/redis-data\n      - server_data-library:/romm/library\n      - server_data-assets:/romm/assets\n      - server_data-config:/romm/config\n    ports:\n      - 127.0.0.1:4002:8080\n  db:\n    image: mariadb:11.4.5\n    container_name: romm-db\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      MARIADB_ROOT_PASSWORD: umbrel\n      MARIADB_DATABASE: romm\n      MARIADB_USER: romm-user\n      MARIADB_PASSWORD: moneyprintergobrr\n    volumes:\n      - db_data-db:/var/lib/mysql\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  server_data-resources:\n    name: slashnode-romm_server_data-resources\n  server_data-redis:\n    name: slashnode-romm_server_data-redis\n  server_data-library:\n    name: slashnode-romm_server_data-library\n  server_data-assets:\n    name: slashnode-romm_server_data-assets\n  server_data-config:\n    name: slashnode-romm_server_data-config\n  db_data-db:\n    name: slashnode-romm_db_data-db\n",
+  "web": {
+    "port": 4002,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 4002,
+    "path": "/"
+  }
+}

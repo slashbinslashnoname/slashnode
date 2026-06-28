@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "airtrail",
+  "name": "AirTrail",
+  "version": "3.10.0",
+  "category": "files",
+  "description": "A modern, open-source personal flight tracking system",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-airtrail\nservices:\n  app:\n    image: johly/airtrail:v3.10.0\n    container_name: airtrail-app\n    restart: unless-stopped\n    networks:\n      - slashnode\n    depends_on:\n      postgres:\n        condition: service_healthy\n    environment:\n      UPLOAD_LOCATION: /app/uploads\n      DB_URL: postgres://airtrail:itworkslocally@airtrail-postgres:5432/airtrail\n    volumes:\n      - app_data-uploads:/app/uploads\n    ports:\n      - 127.0.0.1:3256:3000\n  postgres:\n    image: postgres:18.3-alpine\n    container_name: airtrail-postgres\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      POSTGRES_DB: airtrail\n      POSTGRES_USER: airtrail\n      POSTGRES_PASSWORD: itworkslocally\n      PGDATA: /data/pgdata\n    volumes:\n      - postgres_data-db:/data\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  app_data-uploads:\n    name: slashnode-airtrail_app_data-uploads\n  postgres_data-db:\n    name: slashnode-airtrail_postgres_data-db\n",
+  "web": {
+    "port": 3256,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 3256,
+    "path": "/"
+  }
+}

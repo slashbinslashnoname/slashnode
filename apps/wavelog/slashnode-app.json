@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "wavelog",
+  "name": "Wavelog",
+  "version": "3.0.0",
+  "category": "social",
+  "description": "Amateur radio logging software",
+  "icon": "💬",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-wavelog\nservices:\n  app:\n    image: ghcr.io/wavelog/wavelog:3.0.0\n    container_name: wavelog-app\n    restart: unless-stopped\n    networks:\n      - slashnode\n    depends_on:\n      - wavelog-db\n    environment:\n      CI_ENV: docker\n    volumes:\n      - app_data-config:/var/www/html/application/config/docker\n      - app_data-uploads:/var/www/html/uploads\n      - app_data-userdata:/var/www/html/userdata\n    ports:\n      - 127.0.0.1:8099:80\n  wavelog-db:\n    image: mariadb:11.4\n    container_name: wavelog-wavelog-db\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      MARIADB_RANDOM_ROOT_PASSWORD: 'yes'\n      MARIADB_DATABASE: wavelog\n      MARIADB_USER: wavelog\n      MARIADB_PASSWORD: wavelog\n    volumes:\n      - wavelog-db_data-db:/var/lib/mysql\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  app_data-config:\n    name: slashnode-wavelog_app_data-config\n  app_data-uploads:\n    name: slashnode-wavelog_app_data-uploads\n  app_data-userdata:\n    name: slashnode-wavelog_app_data-userdata\n  wavelog-db_data-db:\n    name: slashnode-wavelog_wavelog-db_data-db\n",
+  "web": {
+    "port": 8099,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8099,
+    "path": "/"
+  }
+}

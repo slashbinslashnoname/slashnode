@@ -1,0 +1,31 @@
+{
+  "manifestVersion": 1,
+  "id": "docmost",
+  "name": "Docmost",
+  "version": "0.90.1",
+  "category": "files",
+  "description": "An collaborative wiki and documentation software",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "APP_SEED",
+      "label": "seed",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Stored encrypted."
+    }
+  ],
+  "compose": "name: slashnode-docmost\nservices:\n  web:\n    image: docmost/docmost:0.90.1\n    container_name: docmost-web\n    restart: unless-stopped\n    networks:\n      - slashnode\n    depends_on:\n      - db\n      - redis\n    environment:\n      APP_URL: http://${node.exports.host}:8941\n      APP_SECRET: ${secret.APP_SEED}\n      DATABASE_URL: postgresql://docmostuser:docmostpass@docmost-db:5432/docmost?sslmode=disable\n      REDIS_URL: redis://docmost-redis:6379\n      DISABLE_TELEMETRY: 'true'\n    volumes:\n      - web_data-docmost_data:/app/data/storage\n    ports:\n      - 127.0.0.1:8941:3000\n  db:\n    image: postgres:17.3\n    container_name: docmost-db\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      POSTGRES_DB: docmost\n      POSTGRES_USER: docmostuser\n      POSTGRES_PASSWORD: docmostpass\n    volumes:\n      - db_data-db_data:/var/lib/postgresql/data\n  redis:\n    image: redis:8.0.1\n    container_name: docmost-redis\n    restart: unless-stopped\n    networks:\n      - slashnode\n    volumes:\n      - redis_data-redis_data:/data\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data-docmost_data:\n    name: slashnode-docmost_web_data-docmost_data\n  db_data-db_data:\n    name: slashnode-docmost_db_data-db_data\n  redis_data-redis_data:\n    name: slashnode-docmost_redis_data-redis_data\n",
+  "web": {
+    "port": 8941,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8941,
+    "path": "/"
+  }
+}

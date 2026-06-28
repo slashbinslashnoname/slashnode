@@ -1,0 +1,41 @@
+{
+  "manifestVersion": 1,
+  "id": "flatnotes",
+  "name": "flatnotes",
+  "version": "5.5.4",
+  "category": "files",
+  "description": "A self-hosted, database-less markdown note-taking app",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "APP_PASSWORD",
+      "label": "password",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Stored encrypted."
+    },
+    {
+      "key": "APP_SEED",
+      "label": "seed",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Stored encrypted."
+    }
+  ],
+  "compose": "name: slashnode-flatnotes\nservices:\n  server:\n    image: dullage/flatnotes:v5.5.4\n    container_name: flatnotes\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      PUID: '1000'\n      PGID: '1000'\n      FLATNOTES_AUTH_TYPE: password\n      FLATNOTES_USERNAME: admin\n      FLATNOTES_PASSWORD: ${secret.APP_PASSWORD}\n      FLATNOTES_SECRET_KEY: ${secret.APP_SEED}\n    volumes:\n      - server_data:/data\n    ports:\n      - 127.0.0.1:8523:8080\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  server_data:\n    name: slashnode-flatnotes_server_data\n",
+  "web": {
+    "port": 8523,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8523,
+    "path": "/"
+  },
+  "notes": "Default login — user: \"admin\", password: \"\"."
+}

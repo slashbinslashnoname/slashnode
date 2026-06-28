@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "zeronote",
+  "name": "ZeroNote",
+  "version": "1.0.12",
+  "category": "files",
+  "description": "All your notes, passwords, bookmarks, and 2FA in one secure, offline-first app",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-zeronote\nservices:\n  app:\n    image: ghcr.io/besoeasy/zeronote:1.0.12\n    container_name: zeronote\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      NODE_ENV: production\n    ports:\n      - 127.0.0.1:8000:8000\nnetworks:\n  slashnode:\n    external: true\n",
+  "web": {
+    "port": 8000,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8000,
+    "path": "/"
+  }
+}

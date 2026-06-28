@@ -1,0 +1,31 @@
+{
+  "manifestVersion": 1,
+  "id": "openclaw",
+  "name": "OpenClaw",
+  "version": "2026.6.10",
+  "category": "ai",
+  "description": "The AI that actually does things",
+  "icon": "🤖",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "APP_SEED",
+      "label": "seed",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 12,
+      "help": "Stored encrypted."
+    }
+  ],
+  "compose": "name: slashnode-openclaw\nservices:\n  gateway:\n    image: ghcr.io/getumbrel/openclaw-umbrel:2026.6.10\n    container_name: openclaw\n    restart: unless-stopped\n    networks:\n      - slashnode\n    init: true\n    environment:\n      APP_SEED: ${secret.APP_SEED}\n    volumes:\n      - gateway_data:/data\n      - gateway_data-linuxbrew:/home/linuxbrew\n    ports:\n      - 127.0.0.1:18789:18789\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  gateway_data:\n    name: slashnode-openclaw_gateway_data\n  gateway_data-linuxbrew:\n    name: slashnode-openclaw_gateway_data-linuxbrew\n",
+  "web": {
+    "port": 18789,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 18789,
+    "path": "/"
+  }
+}

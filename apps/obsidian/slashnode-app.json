@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "obsidian",
+  "name": "Obsidian",
+  "version": "1.8.10",
+  "category": "files",
+  "description": "The private and flexible writing app that adapts to the way you think",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-obsidian\nservices:\n  server:\n    image: linuxserver/obsidian:1.8.10\n    container_name: obsidian\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      PUID: '1000'\n      PGID: '1000'\n    volumes:\n      - server_data-config:/config\n    ports:\n      - 127.0.0.1:3435:3000\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  server_data-config:\n    name: slashnode-obsidian_server_data-config\n",
+  "web": {
+    "port": 3435,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 3435,
+    "path": "/"
+  }
+}

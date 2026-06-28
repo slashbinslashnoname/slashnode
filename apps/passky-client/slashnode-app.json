@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "passky-client",
+  "name": "Passky Client",
+  "version": "8.1.1",
+  "category": "files",
+  "description": "Simple, modern, lightweight, open source and secure password manager",
+  "icon": "📁",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-passky-client\nservices:\n  web:\n    image: rabbitcompany/passky-client:8.1.1\n    container_name: passky-client\n    restart: unless-stopped\n    networks:\n      - slashnode\n    ports:\n      - 127.0.0.1:5052:80\nnetworks:\n  slashnode:\n    external: true\n",
+  "web": {
+    "port": 5052,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 5052,
+    "path": "/"
+  }
+}

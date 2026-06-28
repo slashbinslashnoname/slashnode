@@ -1,0 +1,21 @@
+{
+  "manifestVersion": 1,
+  "id": "gupt",
+  "name": "Gupt",
+  "version": "2026.06.22",
+  "category": "social",
+  "description": "Self-hosted, end-to-end encrypted messenger built on Nostr",
+  "icon": "💬",
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: slashnode-gupt\nservices:\n  web:\n    image: ghcr.io/besoeasy/gupt:2026.06.22\n    container_name: gupt\n    restart: unless-stopped\n    networks:\n      - slashnode\n    ports:\n      - 127.0.0.1:8423:8000\nnetworks:\n  slashnode:\n    external: true\n",
+  "web": {
+    "port": 8423,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8423,
+    "path": "/"
+  }
+}
