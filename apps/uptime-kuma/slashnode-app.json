@@ -17,6 +17,5 @@
     "type": "http",
     "port": 8385,
     "path": "/"
-  },
-  "notes": "Ported from Umbrel (uptime-kuma). Upstream: https://uptime.kuma.pet. "
+  }
 }

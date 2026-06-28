@@ -17,6 +17,5 @@
     "type": "http",
     "port": 8282,
     "path": "/"
-  },
-  "notes": "Ported from Umbrel (wallos). Upstream: https://wallosapp.com. "
+  }
 }

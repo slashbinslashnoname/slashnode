@@ -17,6 +17,5 @@
     "type": "http",
     "port": 8089,
     "path": "/"
-  },
-  "notes": "Ported from Umbrel (vaultwarden). Upstream: https://github.com/dani-garcia. "
+  }
 }

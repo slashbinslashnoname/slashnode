@@ -15,7 +15,7 @@
       "required": true,
       "secret": true,
       "minLength": 12,
-      "help": "Mapped from Umbrel ${PASSWORD}. Stored encrypted."
+      "help": "Stored encrypted."
     }
   ],
   "compose": "name: slashnode-grafana\nservices:\n  web:\n    image: grafana/grafana:13.0.3\n    container_name: grafana\n    restart: unless-stopped\n    networks:\n      - slashnode\n    volumes:\n      - web_data:/var/lib/grafana\n    ports:\n      - 127.0.0.1:3030:3000\n    environment:\n      GF_SECURITY_ADMIN_PASSWORD: ${secret.PASSWORD}\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  web_data:\n    name: slashnode-grafana_web_data\n",
@@ -28,5 +28,5 @@
     "port": 3030,
     "path": "/"
   },
-  "notes": "Ported from Umbrel (grafana). Upstream: https://grafana.com. Username \"admin\", password is the one you set. "
+  "notes": "Username \"admin\", password is the one you set."
 }

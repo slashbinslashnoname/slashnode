@@ -17,6 +17,5 @@
     "type": "http",
     "port": 4422,
     "path": "/"
-  },
-  "notes": "Ported from Umbrel (excalidraw). Upstream: https://excalidraw.com/. "
+  }
 }

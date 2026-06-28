@@ -17,6 +17,5 @@
     "type": "http",
     "port": 8212,
     "path": "/"
-  },
-  "notes": "Ported from Umbrel (tautulli). Upstream: https://tautulli.com/. "
+  }
 }

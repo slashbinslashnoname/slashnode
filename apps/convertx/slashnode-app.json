@@ -17,6 +17,5 @@
     "type": "http",
     "port": 8386,
     "path": "/"
-  },
-  "notes": "Ported from Umbrel (convertx). Upstream: https://github.com/C4illin/ConvertX. "
+  }
 }

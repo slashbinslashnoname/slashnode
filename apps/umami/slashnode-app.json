@@ -15,7 +15,7 @@
       "required": true,
       "secret": true,
       "minLength": 12,
-      "help": "Mapped from Umbrel ${APP_SEED}. Stored encrypted."
+      "help": "Stored encrypted."
     }
   ],
   "compose": "name: slashnode-umami\nservices:\n  app:\n    image: ghcr.io/umami-software/umami:3.1.0\n    container_name: umami-app\n    restart: unless-stopped\n    networks:\n      - slashnode\n    user: '1001:1001'\n    depends_on:\n      - db\n    environment:\n      DATABASE_URL: postgresql://umami:umami@umami-db:5432/umami\n      DATABASE_TYPE: postgresql\n      APP_SECRET: ${secret.APP_SEED}\n    ports:\n      - 127.0.0.1:25727:25727\n  db:\n    image: postgres:15-alpine\n    container_name: umami-db\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      POSTGRES_DB: umami\n      POSTGRES_USER: umami\n      POSTGRES_PASSWORD: umami\n    volumes:\n      - db_data-db:/var/lib/postgresql/data\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  db_data-db:\n    name: slashnode-umami_db_data-db\n",
@@ -28,5 +28,5 @@
     "port": 25727,
     "path": "/"
   },
-  "notes": "Ported from Umbrel (umami). Upstream: https://umami.is. Default login admin / umami — change it on first login (umami has no password env var). Default login — user: \"admin\", password: \"umami\". ⚠️ ships a default password (\"umami\") — must be changed on first login. "
+  "notes": "Default login admin / umami — change it on first login (umami has no password env var). Default login — user: \"admin\", password: \"umami\". ⚠️ ships a default password (\"umami\") — must be changed on first login."
 }

@@ -17,6 +17,5 @@
     "type": "http",
     "port": 8887,
     "path": "/"
-  },
-  "notes": "Ported from Umbrel (sqlitebrowser). Upstream: https://sqlitebrowser.org/. "
+  }
 }

@@ -17,6 +17,5 @@
     "type": "http",
     "port": 8786,
     "path": "/"
-  },
-  "notes": "Ported from Umbrel (ittools). Upstream: https://it-tools.tech/. "
+  }
 }

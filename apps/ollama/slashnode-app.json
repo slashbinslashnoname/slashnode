@@ -26,7 +26,6 @@
     "port": 11434,
     "path": "/"
   },
-  "notes": "Ported from Umbrel (ollama). Upstream: https://ollama.com/. ",
   "gpu_services": [
     "ollama"
   ]

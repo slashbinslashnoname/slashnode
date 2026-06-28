@@ -17,6 +17,5 @@
     "type": "http",
     "port": 7017,
     "path": "/"
-  },
-  "notes": "Ported from Umbrel (libretranslate). Upstream: https://libretranslate.com. "
+  }
 }

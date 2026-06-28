@@ -17,6 +17,5 @@
     "type": "http",
     "port": 9003,
     "path": "/"
-  },
-  "notes": "Ported from Umbrel (thelounge). Upstream: https://thelounge.chat. Default login — user: \"umbrel\", password: \"\". "
+  }
 }

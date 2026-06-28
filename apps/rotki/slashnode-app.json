@@ -17,6 +17,5 @@
     "type": "http",
     "port": 8084,
     "path": "/"
-  },
-  "notes": "Ported from Umbrel (rotki). Upstream: https://rotki.com. "
+  }
 }

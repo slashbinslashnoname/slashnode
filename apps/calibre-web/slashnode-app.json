@@ -18,5 +18,5 @@
     "port": 8098,
     "path": "/"
   },
-  "notes": "Ported from Umbrel (calibre-web). Upstream: https://github.com/janeczku/calibre-web. Default login admin / admin123 — change it on first login (Calibre-Web has no password env var). Default login — user: \"admin\", password: \"admin123\". ⚠️ ships a default password (\"admin123\") — must be changed on first login. "
+  "notes": "Default login admin / admin123 — change it on first login (Calibre-Web has no password env var). Default login — user: \"admin\", password: \"admin123\". ⚠️ ships a default password (\"admin123\") — must be changed on first login."
 }

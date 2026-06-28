@@ -17,6 +17,5 @@
     "type": "http",
     "port": 6060,
     "path": "/"
-  },
-  "notes": "Ported from Umbrel (booklore). Upstream: https://demo.booklore.dev/login. "
+  }
 }

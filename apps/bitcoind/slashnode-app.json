@@ -37,14 +37,26 @@
       "default": "mainnet"
     },
     {
-      "key": "PRUNE_GB",
-      "label": "Prune (GB, 0 = full node)",
+      "key": "PRUNE_MB",
+      "label": "Prune target (MB)",
       "type": "number",
       "default": 0,
-      "min": 0
+      "min": 0,
+      "help": "0 = full node (keep every block). To prune, set a size in MB — minimum 550, e.g. 10000 ≈ 10 GB. Pruning requires Tx index = 0 and is NOT compatible with Electrs/Mempool (they need the full chain)."
+    },
+    {
+      "key": "TXINDEX",
+      "label": "Transaction index (txindex)",
+      "type": "select",
+      "options": [
+        "1",
+        "0"
+      ],
+      "default": "1",
+      "help": "1 = on, needed by Electrs/Mempool (full node only). Set 0 when pruning — txindex and pruning cannot be used together."
     }
   ],
-  "compose": "name: \"slashnode-bitcoind\"\nservices:\n  bitcoind:\n    image: \"bitcoin/bitcoin:28.1\"\n    container_name: \"bitcoind\"\n    restart: \"unless-stopped\"\n    networks:\n      - slashnode\n    entrypoint: \"bitcoind\"\n    command:\n      - \"-datadir=/home/bitcoin/.bitcoin\"\n      - \"-server=1\"\n      - \"-txindex=1\"\n      - \"-rpcbind=0.0.0.0\"\n      - \"-rpcallowip=0.0.0.0/0\"\n      - \"-rpcuser=${input.RPC_USER}\"\n      - \"-rpcpassword=${secret.RPC_PASSWORD}\"\n      - \"-zmqpubrawblock=tcp://0.0.0.0:28332\"\n      - \"-zmqpubrawtx=tcp://0.0.0.0:28333\"\n    ports:\n      - \"8333:8333\"\n      - \"127.0.0.1:8332:8332\"\n    volumes:\n      - \"bitcoin-data:/home/bitcoin/.bitcoin\"\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  bitcoin-data:\n    name: \"slashnode-bitcoind_bitcoind_bitcoin-data\"\n",
+  "compose": "name: \"slashnode-bitcoind\"\nservices:\n  bitcoind:\n    image: \"bitcoin/bitcoin:28.1\"\n    container_name: \"bitcoind\"\n    restart: \"unless-stopped\"\n    networks:\n      - slashnode\n    entrypoint: \"bitcoind\"\n    command:\n      - \"-datadir=/home/bitcoin/.bitcoin\"\n      - \"-server=1\"\n      - \"-prune=${input.PRUNE_MB}\"\n      - \"-txindex=${input.TXINDEX}\"\n      - \"-rpcbind=0.0.0.0\"\n      - \"-rpcallowip=0.0.0.0/0\"\n      - \"-rpcuser=${input.RPC_USER}\"\n      - \"-rpcpassword=${secret.RPC_PASSWORD}\"\n      - \"-zmqpubrawblock=tcp://0.0.0.0:28332\"\n      - \"-zmqpubrawtx=tcp://0.0.0.0:28333\"\n    ports:\n      - \"8333:8333\"\n      - \"127.0.0.1:8332:8332\"\n    volumes:\n      - \"bitcoin-data:/home/bitcoin/.bitcoin\"\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  bitcoin-data:\n    name: \"slashnode-bitcoind_bitcoind_bitcoin-data\"\n",
   "probe": {
     "type": "rpc",
     "port": 8332,
@@ -81,5 +93,6 @@
       "port": 8333
     }
   ],
-  "priority": 115
+  "priority": 115,
+  "notes": "Pruning: set 'Prune target (MB)' (min 550, e.g. 10000 ≈ 10 GB) AND set 'Transaction index' to 0 — bitcoind refuses to start with both pruning and txindex. A pruned node saves disk but cannot back Electrs / Mempool (those need the full chain + txindex=1)."
 }

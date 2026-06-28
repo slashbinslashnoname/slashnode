@@ -17,6 +17,5 @@
     "type": "http",
     "port": 5678,
     "path": "/"
-  },
-  "notes": "Ported from Umbrel (n8n). Upstream: https://n8n.io. "
+  }
 }

@@ -17,6 +17,5 @@
     "type": "http",
     "port": 8387,
     "path": "/"
-  },
-  "notes": "Ported from Umbrel (docuseal). Upstream: https://www.docuseal.com/. "
+  }
 }

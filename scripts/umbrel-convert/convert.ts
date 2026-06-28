@@ -392,7 +392,7 @@ async function convert(appId: string, ship = false): Promise<Report> {
     required: true,
     secret: true,
     minLength: 12,
-    help: `Mapped from Umbrel ${"${" + name + "}"}. Stored encrypted.`,
+    help: "Stored encrypted.",
   }));
 
   const login = ov.passwordEnv
@@ -402,8 +402,11 @@ async function convert(appId: string, ship = false): Promise<Report> {
       : "";
   const ovNote = ov.note ? ov.note + " " : "";
   const secNote = security.size ? `⚠️ ${[...security].join("; ")}. ` : "";
+  // Shipped manifests carry only substantive notes (overrides, login, security) —
+  // no Umbrel/upstream boilerplate. The review pool keeps a provenance line.
+  const shipNotes = (ovNote + login + secNote).trim();
   const notesText = ship
-    ? `Ported from Umbrel (${appId}). ` + (meta.website ? `Upstream: ${meta.website}. ` : "") + ovNote + login + secNote
+    ? shipNotes
     : `Auto-converted from getumbrel/umbrel-apps (${appId}). Review before shipping. ` +
       (meta.website ? `Upstream: ${meta.website}. ` : "") + ovNote + login + secNote;
 
@@ -420,8 +423,8 @@ async function convert(appId: string, ship = false): Promise<Report> {
     compose: composeYaml,
     web: { port: webHostPort, path: meta.path && meta.path !== "" ? meta.path : "/" },
     probe: { type: "http", port: webHostPort, path: "/" },
-    notes: notesText,
   };
+  if (notesText) manifest.notes = notesText;
 
   const json = JSON.stringify(manifest, null, 2) + "\n";
   const outRoot = ship ? APPS_DIR : OUT_DIR;

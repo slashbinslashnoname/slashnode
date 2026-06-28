@@ -26,7 +26,6 @@
     "port": 7050,
     "path": "/"
   },
-  "notes": "Ported from Umbrel (librechat). Upstream: https://librechat.ai/. Default login — user: \"umbrel@umbrel.local\", password: \"\". ",
   "gpu_services": [
     "rag_api"
   ]

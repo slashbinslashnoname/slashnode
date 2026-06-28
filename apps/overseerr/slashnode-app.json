@@ -17,6 +17,5 @@
     "type": "http",
     "port": 5055,
     "path": "/"
-  },
-  "notes": "Ported from Umbrel (overseerr). Upstream: https://overseerr.dev/. "
+  }
 }

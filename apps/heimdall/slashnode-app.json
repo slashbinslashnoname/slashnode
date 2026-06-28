@@ -17,6 +17,5 @@
     "type": "http",
     "port": 7392,
     "path": "/"
-  },
-  "notes": "Ported from Umbrel (heimdall). Upstream: https://heimdall.site. "
+  }
 }
