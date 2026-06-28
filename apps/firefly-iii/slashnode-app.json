@@ -12,10 +12,12 @@
       "key": "APP_FIREFLY_III_APP_KEY",
       "label": "firefly iii app key",
       "type": "password",
-      "required": true,
+      "required": false,
       "secret": true,
-      "minLength": 12,
-      "help": "Stored encrypted."
+      "minLength": 32,
+      "help": "32-char app encryption key — leave blank to auto-generate.",
+      "generate": true,
+      "maxLength": 32
     }
   ],
   "compose": "name: slashnode-firefly-iii\nservices:\n  server:\n    image: fireflyiii/core:version-6.6.3\n    container_name: firefly-iii-server\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      APP_KEY: ${secret.APP_FIREFLY_III_APP_KEY}\n      DB_HOST: firefly-iii-db\n      DB_PORT: '3306'\n      DB_CONNECTION: mysql\n      DB_DATABASE: fireflyiii\n      DB_USERNAME: fireflyiii\n      DB_PASSWORD: moneyprintergobrrr\n    volumes:\n      - server_data-upload:/var/www/html/storage/upload\n      - server_data-logs:/var/www/html/storage/logs\n    ports:\n      - 127.0.0.1:30009:8080\n  db:\n    image: mariadb:10.9.4\n    container_name: firefly-iii-db\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      MYSQL_DATABASE: fireflyiii\n      MYSQL_USER: fireflyiii\n      MYSQL_PASSWORD: moneyprintergobrrr\n      MYSQL_ROOT_PASSWORD: moneyprintergobrrr\n    volumes:\n      - db_data-mysql:/var/lib/mysql\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  server_data-upload:\n    name: slashnode-firefly-iii_server_data-upload\n  server_data-logs:\n    name: slashnode-firefly-iii_server_data-logs\n  db_data-mysql:\n    name: slashnode-firefly-iii_db_data-mysql\n",
