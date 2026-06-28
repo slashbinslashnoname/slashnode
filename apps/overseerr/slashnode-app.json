@@ -8,7 +8,7 @@
   "icon": "🎬",
   "dependencies": [],
   "inputs": [],
-  "compose": "name: slashnode-overseerr\nservices:\n  server:\n    image: linuxserver/overseerr:1.35.0\n    container_name: overseerr\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      PUID: '1000'\n      PGID: '1000'\n    volumes:\n      - server_data-config:/config\n    ports:\n      - 127.0.0.1:5055:5055\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  server_data-config:\n    name: slashnode-overseerr_server_data-config\n",
+  "compose": "name: slashnode-overseerr\nservices:\n  server:\n    image: sctx/overseerr:1.35.0\n    container_name: overseerr\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      CONFIG_DIRECTORY: /config\n    volumes:\n      - server_data-config:/config\n    ports:\n      - 127.0.0.1:5055:5055\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  server_data-config:\n    name: slashnode-overseerr_server_data-config\n",
   "web": {
     "port": 5055,
     "path": "/"
