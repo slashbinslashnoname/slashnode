@@ -34,7 +34,7 @@
       "help": "If set, a database with this name is created on first start."
     }
   ],
-  "compose": "name: \"slashnode-postgresql\"\nservices:\n  postgresql:\n    image: \"postgres:17\"\n    container_name: \"postgresql\"\n    restart: \"unless-stopped\"\n    networks:\n      - slashnode\n    environment:\n      POSTGRES_PASSWORD: \"${secret.PASSWORD}\"\n      POSTGRES_USER: \"${input.USER}\"\n      POSTGRES_DB: \"${input.DATABASE}\"\n    ports:\n      - \"127.0.0.1:5432:5432\"\n    volumes:\n      - \"postgresql-data:/var/lib/postgresql/data\"\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  postgresql-data:\n    name: \"slashnode-postgresql_postgresql_postgresql-data\"\n",
+  "compose": "name: \"slashnode-postgresql\"\nservices:\n  postgresql:\n    image: \"postgres:17\"\n    container_name: \"postgresql\"\n    restart: \"unless-stopped\"\n    networks:\n      - slashnode\n    environment:\n      PGDATA: /var/lib/postgresql/pgdata\n      POSTGRES_PASSWORD: \"${secret.PASSWORD}\"\n      POSTGRES_USER: \"${input.USER}\"\n      POSTGRES_DB: \"${input.DATABASE}\"\n    ports:\n      - \"127.0.0.1:5432:5432\"\n    volumes:\n      - \"postgresql-data:/var/lib/postgresql\"\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  postgresql-data:\n    name: \"slashnode-postgresql_postgresql_postgresql-data\"\n",
   "probe": {
     "type": "tcp",
     "port": 5432
