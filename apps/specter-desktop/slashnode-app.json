@@ -19,6 +19,5 @@
     "type": "http",
     "port": 25441,
     "path": "/"
-  },
-  "notes": "Ported from Umbrel (specter-desktop). Upstream: https://specter.solutions. "
+  }
 }

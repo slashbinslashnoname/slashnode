@@ -17,6 +17,5 @@
     "type": "http",
     "port": 8020,
     "path": "/"
-  },
-  "notes": "Ported from Umbrel (super-productivity). Upstream: https://super-productivity.com/. "
+  }
 }

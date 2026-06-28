@@ -18,5 +18,5 @@
     "port": 9283,
     "path": "/"
   },
-  "notes": "Ported from Umbrel (grocy). Upstream: https://grocy.info/. Default login admin / admin — change it on first login (grocy has no password env var). Default login — user: \"admin\", password: \"admin\". ⚠️ ships a default password (\"admin\") — must be changed on first login. "
+  "notes": "Default login admin / admin — change it on first login (grocy has no password env var). Default login — user: \"admin\", password: \"admin\". ⚠️ ships a default password (\"admin\") — must be changed on first login."
 }

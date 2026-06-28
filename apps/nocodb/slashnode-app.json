@@ -20,6 +20,5 @@
     "type": "http",
     "port": 2183,
     "path": "/"
-  },
-  "notes": "Ported from Umbrel (nocodb). Upstream: https://nocodb.com. "
+  }
 }

@@ -17,6 +17,5 @@
     "type": "http",
     "port": 8788,
     "path": "/"
-  },
-  "notes": "Ported from Umbrel (enclosed). Upstream: https://enclosed.cc/. "
+  }
 }

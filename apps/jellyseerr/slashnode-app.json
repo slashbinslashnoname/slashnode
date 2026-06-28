@@ -17,6 +17,5 @@
     "type": "http",
     "port": 5056,
     "path": "/"
-  },
-  "notes": "Ported from Umbrel (jellyseerr). Upstream: https://docs.seerr.dev/. "
+  }
 }

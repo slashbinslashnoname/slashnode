@@ -17,6 +17,5 @@
     "type": "http",
     "port": 8384,
     "path": "/"
-  },
-  "notes": "Ported from Umbrel (syncthing). Upstream: https://syncthing.net. "
+  }
 }

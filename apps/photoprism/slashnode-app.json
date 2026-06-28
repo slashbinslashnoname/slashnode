@@ -18,7 +18,7 @@
       "required": true,
       "secret": true,
       "minLength": 12,
-      "help": "Mapped from Umbrel ${APP_PASSWORD}. Stored encrypted."
+      "help": "Stored encrypted."
     },
     {
       "key": "USE_GPU",
@@ -38,7 +38,7 @@
     "port": 8087,
     "path": "/"
   },
-  "notes": "Ported from Umbrel (photoprism). Upstream: https://photoprism.app. Admin password is the value you set (PHOTOPRISM_ADMIN_PASSWORD). The internal MariaDB password is app-internal. Default login — user: \"admin\", password: \"\". ",
+  "notes": "Admin password is the value you set (PHOTOPRISM_ADMIN_PASSWORD). The internal MariaDB password is app-internal. Default login — user: \"admin\", password: \"\".",
   "gpu_services": [
     "web"
   ]

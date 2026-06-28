@@ -17,6 +17,5 @@
     "type": "http",
     "port": 8222,
     "path": "/"
-  },
-  "notes": "Ported from Umbrel (snapdrop). Upstream: https://snapdrop.net/. "
+  }
 }

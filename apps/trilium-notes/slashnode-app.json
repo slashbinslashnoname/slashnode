@@ -17,6 +17,5 @@
     "type": "http",
     "port": 3779,
     "path": "/"
-  },
-  "notes": "Ported from Umbrel (trilium-notes). Upstream: https://github.com/TriliumNext. "
+  }
 }

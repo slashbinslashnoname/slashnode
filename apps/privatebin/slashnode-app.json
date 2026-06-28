@@ -17,6 +17,5 @@
     "type": "http",
     "port": 3070,
     "path": "/"
-  },
-  "notes": "Ported from Umbrel (privatebin). Upstream: https://privatebin.info/. "
+  }
 }

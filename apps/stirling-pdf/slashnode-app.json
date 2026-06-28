@@ -20,6 +20,5 @@
     "type": "http",
     "port": 27829,
     "path": "/"
-  },
-  "notes": "Ported from Umbrel (stirling-pdf). Upstream: https://stirlingtools.com/. "
+  }
 }

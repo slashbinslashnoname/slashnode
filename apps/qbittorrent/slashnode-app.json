@@ -18,5 +18,5 @@
     "port": 8094,
     "path": "/"
   },
-  "notes": "Ported from Umbrel (qbittorrent). Upstream: https://qbittorrent.org/. qBittorrent prints a random temporary WebUI password for user 'admin' to its log on each start — open the logs panel, then set a permanent password in the WebUI. Default login — user: \"admin\", password: \"adminadmin\". ⚠️ ships a default password (\"adminadmin\") — must be changed on first login. "
+  "notes": "qBittorrent prints a random temporary WebUI password for user 'admin' to its log on each start — open the logs panel, then set a permanent password in the WebUI. Default login — user: \"admin\", password: \"adminadmin\". ⚠️ ships a default password (\"adminadmin\") — must be changed on first login."
 }

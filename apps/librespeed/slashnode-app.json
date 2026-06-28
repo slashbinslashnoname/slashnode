@@ -17,6 +17,5 @@
     "type": "http",
     "port": 3011,
     "path": "/"
-  },
-  "notes": "Ported from Umbrel (librespeed). Upstream: https://librespeed.org/. "
+  }
 }

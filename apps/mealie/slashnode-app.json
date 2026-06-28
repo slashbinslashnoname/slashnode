@@ -17,6 +17,5 @@
     "type": "http",
     "port": 9925,
     "path": "/"
-  },
-  "notes": "Ported from Umbrel (mealie). Upstream: https://docs.mealie.io/. "
+  }
 }

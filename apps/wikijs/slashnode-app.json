@@ -18,5 +18,5 @@
     "port": 9182,
     "path": "/"
   },
-  "notes": "Ported from Umbrel (wikijs). Upstream: https://js.wiki/. Runs the LinuxServer image as root with PUID/PGID=1000 — it seeds /config/config.yml and uses an embedded SQLite database on first start."
+  "notes": "Runs the LinuxServer image as root with PUID/PGID=1000 — it seeds /config/config.yml and uses an embedded SQLite database on first start."
 }

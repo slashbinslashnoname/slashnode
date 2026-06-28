@@ -17,6 +17,5 @@
     "type": "http",
     "port": 3432,
     "path": "/"
-  },
-  "notes": "Ported from Umbrel (freshrss). Upstream: https://freshrss.org/. "
+  }
 }

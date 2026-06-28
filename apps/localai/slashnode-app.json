@@ -26,7 +26,6 @@
     "port": 8793,
     "path": "/"
   },
-  "notes": "Ported from Umbrel (localai). Upstream: https://localai.io/. ",
   "gpu_services": [
     "api"
   ]

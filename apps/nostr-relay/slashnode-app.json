@@ -17,6 +17,5 @@
     "type": "http",
     "port": 4848,
     "path": "/"
-  },
-  "notes": "Ported from Umbrel (nostr-relay). Upstream: https://umbrel.com. "
+  }
 }
