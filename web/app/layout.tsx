@@ -3,6 +3,7 @@ import "./globals.css";
 import { VersionBadge } from "@/components/VersionBadge";
 import { Background } from "@/components/Background";
 import { ConsoleProvider } from "@/components/console/ConsoleProvider";
+import { DataProvider } from "@/components/store/DataProvider";
 import { getStatus, getUpdate } from "@/lib/api";
 
 export const metadata: Metadata = {
@@ -36,7 +37,9 @@ export default async function RootLayout({
       </head>
       <body className="min-h-screen antialiased">
         <Background />
-        <ConsoleProvider>{children}</ConsoleProvider>
+        <DataProvider>
+          <ConsoleProvider>{children}</ConsoleProvider>
+        </DataProvider>
         <VersionBadge
           version={status?.version ?? "—"}
           available={!!update?.available}

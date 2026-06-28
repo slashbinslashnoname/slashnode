@@ -1,13 +1,14 @@
+"use client";
+
 import Link from "next/link";
 import { TopControls } from "@/components/TopControls";
 import { StoreList } from "@/components/StoreList";
-import { getApps } from "@/lib/api";
+import { useData } from "@/components/store/DataProvider";
 
-export const dynamic = "force-dynamic";
-
-export default async function Store() {
-  const data = await getApps();
-  const apps = data?.apps ?? [];
+export default function Store() {
+  // The catalog lives in the global store (polled in the layout), so coming back
+  // to the store from another page is instant — no refetch.
+  const { apps, ready } = useData();
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-5xl px-4 py-10">
@@ -25,7 +26,7 @@ export default async function Store() {
         </Link>
       </header>
 
-      {apps.length === 0 ? (
+      {ready && apps.length === 0 ? (
         <p className="text-muted">No apps found (is the daemon reachable?).</p>
       ) : (
         <StoreList apps={apps} />
