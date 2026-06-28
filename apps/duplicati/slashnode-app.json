@@ -1,0 +1,41 @@
+{
+  "manifestVersion": 1,
+  "id": "duplicati",
+  "name": "Duplicati",
+  "version": "2.3.0",
+  "category": "files",
+  "description": "Encrypted, incremental backups to local, network or cloud storage (S3, B2, WebDAV, SFTP…)",
+  "icon": "💾",
+  "dependencies": [],
+  "inputs": [
+    {
+      "key": "DUPLICATI__WEBSERVICE_PASSWORD",
+      "label": "web UI password",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "minLength": 8,
+      "help": "Password to sign in to the Duplicati web UI. Stored encrypted."
+    },
+    {
+      "key": "SETTINGS_ENCRYPTION_KEY",
+      "label": "settings encryption key",
+      "type": "password",
+      "required": false,
+      "secret": true,
+      "generate": true,
+      "help": "Encrypts Duplicati's local settings database — auto-generated if left blank. Stored encrypted."
+    }
+  ],
+  "compose": "name: slashnode-duplicati\nservices:\n  app:\n    image: linuxserver/duplicati:2.3.0\n    container_name: duplicati\n    restart: unless-stopped\n    networks:\n      - slashnode\n    environment:\n      PUID: '1000'\n      PGID: '1000'\n      TZ: Etc/UTC\n      SETTINGS_ENCRYPTION_KEY: \"${secret.SETTINGS_ENCRYPTION_KEY}\"\n      DUPLICATI__WEBSERVICE_PASSWORD: \"${secret.DUPLICATI__WEBSERVICE_PASSWORD}\"\n    volumes:\n      - app_data-config:/config\n      - app_data-backups:/backups\n      - app_data-source:/source\n    ports:\n      - 127.0.0.1:8200:8200\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  app_data-config:\n    name: slashnode-duplicati_app_data-config\n  app_data-backups:\n    name: slashnode-duplicati_app_data-backups\n  app_data-source:\n    name: slashnode-duplicati_app_data-source\n",
+  "web": {
+    "port": 8200,
+    "path": "/"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8200,
+    "path": "/"
+  },
+  "notes": "Sign in to the web UI with the password you set. Backups are stored in the `backups` volume by default and the `source` volume is what gets backed up — to back up real data, add a host bind-mount (e.g. `- /var/lib/slashnode:/source/slashnode:ro`) or another app's volume under `/source`, then point a Duplicati backup job at it. Destinations can also be remote (S3, Backblaze B2, WebDAV, SFTP, Google Drive…)."
+}
