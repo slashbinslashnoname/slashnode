@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/slashbinslashnoname/slashnode/internal/apps"
+	"github.com/slashbinslashnoname/slashnode/internal/backup"
 	"github.com/slashbinslashnoname/slashnode/internal/config"
 	"github.com/slashbinslashnoname/slashnode/internal/migrate"
 	"github.com/slashbinslashnoname/slashnode/internal/paths"
@@ -326,6 +327,77 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 			updater.Restart()
 		}()
 		writeJSON(w, http.StatusAccepted, map[string]string{"status": "restarting"})
+	}))
+
+	// --- Backup / restore (rclone to a configurable destination) ---
+	mux.Handle("GET /api/v1/backup/config", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
+		cfg, _ := backup.LoadConfig()
+		d := cfg.Destination
+		// Never echo credentials back to the browser — only whether they're set.
+		writeJSON(w, http.StatusOK, map[string]any{
+			"kind": d.Kind, "prefix": d.Prefix, "provider": d.Provider,
+			"endpoint": d.Endpoint, "region": d.Region, "bucket": d.Bucket,
+			"host": d.Host, "port": d.Port, "user": d.User,
+			"has_secret": d.SecretKey != "" || d.Pass != "",
+			"all":        cfg.All,
+			"configured": d.Configured(),
+			"last_run":   cfg.LastRun, "last_result": cfg.LastResult,
+		})
+	}))
+	mux.Handle("POST /api/v1/backup/config", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Destination backup.Destination `json:"destination"`
+			All         bool               `json:"all"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "bad request"})
+			return
+		}
+		// Preserve stored secrets when the form leaves them blank (the GET never
+		// exposes them, so a round-trip would otherwise wipe them).
+		old, _ := backup.LoadConfig()
+		if body.Destination.SecretKey == "" {
+			body.Destination.SecretKey = old.Destination.SecretKey
+		}
+		if body.Destination.Pass == "" {
+			body.Destination.Pass = old.Destination.Pass
+		}
+		cfg := backup.Config{Destination: body.Destination, All: body.All,
+			LastRun: old.LastRun, LastResult: old.LastResult}
+		if err := backup.SaveConfig(cfg); err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return
+		}
+		if err := cfg.Destination.WriteRcloneConf(); err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	}))
+	mux.Handle("POST /api/v1/backup/test", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
+		var sb strings.Builder
+		if err := backup.Test(&sb); err != nil {
+			writeJSON(w, http.StatusOK, map[string]any{"ok": false, "error": err.Error(), "output": sb.String()})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"ok": true, "output": sb.String()})
+	}))
+	mux.Handle("POST /api/v1/backup/run", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
+		all := r.URL.Query().Get("all") == "true"
+		fw := streamHeader(w)
+		if err := backup.Run(backup.Options{All: all, Version: Version}, fw); err != nil {
+			fmt.Fprintf(fw, "\nBACKUP FAILED: %v\n", err)
+			return
+		}
+		fmt.Fprintln(fw, "\nBACKUP OK")
+	}))
+	mux.Handle("POST /api/v1/restore", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
+		fw := streamHeader(w)
+		if err := backup.Restore(fw); err != nil {
+			fmt.Fprintf(fw, "\nRESTORE FAILED: %v\n", err)
+			return
+		}
+		fmt.Fprintln(fw, "\nRESTORE OK")
 	}))
 
 	// --- App Store ---
@@ -725,6 +797,20 @@ func (fw *flushWriter) Write(p []byte) (int, error) {
 		fw.f.Flush()
 	}
 	return n, err
+}
+
+// streamHeader sets up a chunked text/plain response and returns a flushWriter
+// so handlers can stream live progress line-by-line to the browser.
+func streamHeader(w http.ResponseWriter) *flushWriter {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("X-Accel-Buffering", "no")
+	w.WriteHeader(http.StatusOK)
+	fw := &flushWriter{w: w}
+	if f, ok := w.(http.Flusher); ok {
+		fw.f = f
+	}
+	return fw
 }
 
 // validHost reports whether s is a plain hostname/domain/IP safe to write into
