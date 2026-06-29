@@ -36,6 +36,13 @@ func RegistryFile() string        { return p("var", "lib", "slashnode", "registr
 func SchemaFile() string          { return p("var", "lib", "slashnode", "schema.json") }
 func BackupsDir() string          { return p("var", "lib", "slashnode", "backups") }
 
+// Backup destination config (rclone). RcloneConfigFile holds the destination
+// credentials (mode 0600); BackupConfigFile holds the non-secret destination
+// settings + last-run status.
+func RcloneConfigDir() string  { return p("var", "lib", "slashnode", "rclone") }
+func RcloneConfigFile() string { return p("var", "lib", "slashnode", "rclone", "rclone.conf") }
+func BackupConfigFile() string { return p("var", "lib", "slashnode", "backup.json") }
+
 // Per-app runtime directory (generated compose file, etc.).
 func AppRuntimeDir(id string) string { return p("var", "lib", "slashnode", "apps", id) }
 func AppComposeFile(id string) string {
