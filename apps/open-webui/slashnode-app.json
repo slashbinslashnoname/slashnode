@@ -8,7 +8,7 @@
   "icon": "💬",
   "dependencies": [],
   "inputs": [],
-  "compose": "name: \"slashnode-open-webui\"\nservices:\n  open-webui:\n    image: \"ghcr.io/open-webui/open-webui:main\"\n    container_name: \"open-webui\"\n    restart: \"unless-stopped\"\n    networks:\n      - slashnode\n    ports:\n      - \"3010:8080\"\n    volumes:\n      - \"open-webui-data:/app/backend/data\"\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  open-webui-data:\n    name: \"slashnode-open-webui_open-webui_open-webui-data\"\n",
+  "compose": "name: \"slashnode-open-webui\"\nservices:\n  open-webui:\n    image: \"ghcr.io/open-webui/open-webui:main\"\n    container_name: \"open-webui\"\n    restart: \"unless-stopped\"\n    networks:\n      - slashnode\n    ports:\n      - \"127.0.0.1:3010:8080\"\n    volumes:\n      - \"open-webui-data:/app/backend/data\"\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  open-webui-data:\n    name: \"slashnode-open-webui_open-webui_open-webui-data\"\n",
   "web": {
     "port": 3010,
     "path": "/"

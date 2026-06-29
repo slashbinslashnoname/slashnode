@@ -17,5 +17,6 @@
     "type": "http",
     "port": 18790,
     "path": "/"
-  }
+  },
+  "priority": 111
 }
