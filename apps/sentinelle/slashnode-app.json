@@ -4,7 +4,7 @@
   "name": "Sentinelle",
   "version": "0.1.0",
   "category": ["bitcoin", "lightning"],
-  "description": "Self-hosted Bitcoin invoicing gateway. Turn a price in BTC, EUR or USD into a time-boxed invoice payable on two rails at once — on-chain (a fresh address per invoice from your watch-only xpub/ypub/zpub) and Lightning (BOLT11 from your own phoenixd node). Ships a React admin with realtime WebSocket payment events, revocable merchant API keys, reimbursements and a compliant CSV/XLSX accounting export.",
+  "description": "Self-hosted Bitcoin invoicing gateway: on-chain (xpub) and Lightning (phoenixd) invoices with a React admin.",
   "icon": "🛡️",
   "priority": 116,
   "dependencies": [],
@@ -27,5 +27,5 @@
       "path": "/api"
     }
   ],
-  "notes": "Sentinelle serves its admin dashboard at /admin and a JSON + WebSocket API on the same port. On first run, open the app and register an admin password (stored hashed) — that is the only credential bootstrap.\n\nThen configure at least one payment rail in Settings:\n- On-chain: paste your account-level xpub/ypub/zpub. It is watch-only — the server can derive a fresh receive address per invoice but can never spend.\n- Lightning (optional): point it at your own phoenixd node's HTTP URL + password. Install the phoenixd app separately if you want the Lightning rail.\n\nEverything operational (xpub, phoenixd, block explorer, exchange rates, invoice TTL, CORS, SMTP) lives in the app's SQLite database on the sentinelle-data volume — there are no secrets in the environment. Create a merchant API key in the API keys tab for your shop to call POST /api/invoices."
+  "notes": "First run: open /admin and set an admin password. In Settings, add a watch-only xpub (on-chain) and/or a phoenixd URL (Lightning), then create a merchant API key for your shop to call POST /api/invoices. Config and data live on the sentinelle-data volume."
 }
