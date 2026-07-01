@@ -19,6 +19,10 @@
 - **Reach it over Tor** — the SlashNode UI and any app with a web interface can
   be served as `.onion` hidden services. (Raw service endpoints — Bitcoin
   RPC/P2P, Electrum, Lightning… — are not exposed over Tor yet.)
+- **Back up off-site to a node they own** — connect two SlashNodes over
+  [Tailscale](#off-site-backup-between-nodes-tailscale) (WireGuard, NAT-piercing,
+  no port forwarding) and sync one onto the other, even across the world. One at
+  home, one at your parents' — real off-site backups, fully self-hosted.
 
 > Under the hood it's a Go daemon (`slashnoded`) — a single binary — that
 > installs on any existing Debian/Ubuntu in one line and orchestrates apps via
@@ -89,6 +93,9 @@ slashnoded status         # node status (--post-install: URL + credentials)
 slashnoded update         # apply the latest binary update (--to <tag>)
 slashnoded check-update   # check for an update (called by the timer; notify-only)
 slashnoded prune          # remove dangling docker images (daily timer; on bootstrap/updates)
+slashnoded backup         # sync data to the configured destination (--all, --test)
+slashnoded restore        # restore data from the configured destination (--yes)
+slashnoded tailscale      # join a tailnet for off-site peer backup (up | down | status)
 slashnoded uninstall      # remove service + binary (--purge: data too)
 ```
 
@@ -109,6 +116,50 @@ The systemd timer also checks daily and records availability in
 `/var/lib/slashnode/update.json`; the API additionally does a short-cached live
 check so the UI reflects new releases promptly. Configurable in `config.json`
 (`update.policy`, `update.channel`).
+
+## Backup & restore
+
+Under **Settings → Backup & restore** (or `slashnoded backup` / `restore`),
+SlashNode incrementally syncs its state — config, secrets, `.onion` keys and app
+data volumes — to a destination via rclone. The rclone binary is never installed
+on the host: every transfer runs the official `rclone/rclone` Docker image with
+the source mounted read-only. Large re-syncable chains (Bitcoin, Monero…) are
+skipped unless *include chains* is on. Credentials stay on the node (mode `0600`)
+and never reach the browser. Destinations:
+
+- **local** — a mounted path on the node (USB disk, NFS mount…)
+- **s3** — any S3-compatible store (AWS, MinIO, Backblaze B2, R2, Wasabi…)
+- **sftp** — rsync-over-SSH-style sync to a remote host
+- **node** — another SlashNode you own, over Tailscale (see below)
+
+## Off-site backup between nodes (Tailscale)
+
+Connect two SlashNodes in different physical locations and back one up onto the
+other — real off-site, fully self-hosted backups on hardware you own. This works
+across the internet, not just on the same LAN.
+
+Under **Settings → Tailscale** (or `slashnoded tailscale up --authkey …`), the
+node joins a [Tailscale](https://tailscale.com) tailnet: a private WireGuard mesh
+that pierces NAT with no port forwarding and no public IP. `tailscaled` runs from
+the official `tailscale/tailscale` Docker image in host-networking mode, so the
+**host** itself gets a stable `100.x` tailnet address; its identity is persisted
+in a Docker volume, so it survives restarts and upgrades. The auth key is used
+once to authenticate and is **never stored** on the node.
+
+Once both nodes are on the same tailnet, pick the **node (Tailscale peer)**
+destination in the backup panel and point it at the other node's `100.x` address
+(shown in each node's Tailscale panel). The transport is SSH/SFTP to that peer,
+end-to-end encrypted by WireGuard.
+
+```bash
+# on each node — get a reusable auth key from the Tailscale admin console
+slashnoded tailscale up --authkey tskey-auth-… --hostname slashnode-home
+slashnoded tailscale status        # show this node's tailnet address + peers
+# then, on the node you want to protect, set its backup destination to the
+# other node's 100.x address (Settings → Backup → node), and back up.
+```
+
+> One at home, one at your parents' — you asked for it, and here it is.
 
 ## Development
 
