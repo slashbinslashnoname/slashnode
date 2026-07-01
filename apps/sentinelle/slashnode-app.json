@@ -1,0 +1,31 @@
+{
+  "manifestVersion": 1,
+  "id": "sentinelle",
+  "name": "Sentinelle",
+  "version": "0.1.0",
+  "category": ["bitcoin", "lightning"],
+  "description": "Self-hosted Bitcoin invoicing gateway. Turn a price in BTC, EUR or USD into a time-boxed invoice payable on two rails at once — on-chain (a fresh address per invoice from your watch-only xpub/ypub/zpub) and Lightning (BOLT11 from your own phoenixd node). Ships a React admin with realtime WebSocket payment events, revocable merchant API keys, reimbursements and a compliant CSV/XLSX accounting export.",
+  "icon": "🛡️",
+  "priority": 116,
+  "dependencies": [],
+  "inputs": [],
+  "compose": "name: \"slashnode-sentinelle\"\nservices:\n  sentinelle:\n    image: \"ghcr.io/slashbinslashnoname/sentinelle:latest\"\n    container_name: \"sentinelle\"\n    restart: \"unless-stopped\"\n    networks:\n      - slashnode\n    environment:\n      HOST: \"0.0.0.0\"\n      PORT: \"8072\"\n      DATABASE_PATH: \"/app/data/sentinelle.sqlite\"\n    ports:\n      - \"127.0.0.1:8072:8072\"\n    volumes:\n      - \"sentinelle-data:/app/data\"\nnetworks:\n  slashnode:\n    external: true\nvolumes:\n  sentinelle-data:\n    name: \"slashnode-sentinelle_sentinelle_sentinelle-data\"\n",
+  "web": {
+    "port": 8072,
+    "path": "/admin"
+  },
+  "probe": {
+    "type": "http",
+    "port": 8072,
+    "path": "/health"
+  },
+  "endpoints": [
+    {
+      "label": "Merchant API",
+      "scheme": "http",
+      "port": 8072,
+      "path": "/api"
+    }
+  ],
+  "notes": "Sentinelle serves its admin dashboard at /admin and a JSON + WebSocket API on the same port. On first run, open the app and register an admin password (stored hashed) — that is the only credential bootstrap.\n\nThen configure at least one payment rail in Settings:\n- On-chain: paste your account-level xpub/ypub/zpub. It is watch-only — the server can derive a fresh receive address per invoice but can never spend.\n- Lightning (optional): point it at your own phoenixd node's HTTP URL + password. Install the phoenixd app separately if you want the Lightning rail.\n\nEverything operational (xpub, phoenixd, block explorer, exchange rates, invoice TTL, CORS, SMTP) lives in the app's SQLite database on the sentinelle-data volume — there are no secrets in the environment. Create a merchant API key in the API keys tab for your shop to call POST /api/invoices."
+}
