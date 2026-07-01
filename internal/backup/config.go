@@ -23,8 +23,12 @@ const rcloneImage = "rclone/rclone:latest"
 //   - s3:    any S3-compatible store (AWS, MinIO, Backblaze B2 via S3, R2, Wasabi…)
 //   - sftp:  rsync-over-SSH-style incremental sync to a remote host
 //   - local: a mounted path on the node (USB disk, NFS mount…)
+//   - node:  another SlashNode reached over Tailscale — off-site, self-hosted
+//     backup onto a peer you own (transported over SSH/SFTP, encrypted
+//     end-to-end by WireGuard). Same wire format as sftp; Host holds the
+//     peer's 100.x tailnet address (or MagicDNS name).
 type Destination struct {
-	Kind   string `json:"kind"`   // s3 | sftp | local
+	Kind   string `json:"kind"`   // s3 | sftp | local | node
 	Prefix string `json:"prefix"` // sub-path within the destination (e.g. "slashnode")
 
 	// s3
@@ -35,7 +39,7 @@ type Destination struct {
 	AccessKey string `json:"access_key,omitempty"`
 	SecretKey string `json:"secret_key,omitempty"`
 
-	// sftp
+	// sftp / node (node reuses these; Host is the peer's tailnet address)
 	Host string `json:"host,omitempty"`
 	Port int    `json:"port,omitempty"`
 	User string `json:"user,omitempty"`
@@ -78,10 +82,35 @@ func (d Destination) Configured() bool {
 	switch d.Kind {
 	case "s3":
 		return d.Bucket != "" && d.AccessKey != "" && d.SecretKey != ""
-	case "sftp":
+	case "sftp", "node":
 		return d.Host != "" && d.User != ""
 	case "local":
 		return d.Prefix != ""
+	}
+	return false
+}
+
+// Validate rejects destinations whose free-text fields could inject extra
+// directives into the rendered rclone.conf. Host/User for the SSH transports
+// (sftp, node) end up on their own `key = value` lines, so a newline or control
+// character in them must never be accepted. Empty (unconfigured) is allowed.
+func (d Destination) Validate() error {
+	if d.Kind == "sftp" || d.Kind == "node" {
+		if strings.ContainsAny(d.Host, " \t\r\n\"") || hasControl(d.Host) {
+			return fmt.Errorf("invalid host")
+		}
+		if strings.ContainsAny(d.User, " \t\r\n\"") || hasControl(d.User) {
+			return fmt.Errorf("invalid user")
+		}
+	}
+	return nil
+}
+
+func hasControl(s string) bool {
+	for _, r := range s {
+		if r < 0x20 || r == 0x7f {
+			return true
+		}
 	}
 	return false
 }
@@ -100,7 +129,7 @@ func (d Destination) targetRoot() string {
 	switch d.Kind {
 	case "s3":
 		return "backup:" + d.Bucket + "/" + d.prefixOr()
-	case "sftp":
+	case "sftp", "node":
 		return "backup:" + d.prefixOr()
 	case "local":
 		return "/dest" // the host path is bind-mounted at /dest in the container
@@ -148,7 +177,7 @@ func (d Destination) WriteRcloneConf() error {
 		if d.Region != "" {
 			fmt.Fprintf(&b, "region = %s\n", d.Region)
 		}
-	case "sftp":
+	case "sftp", "node":
 		port := d.Port
 		if port == 0 {
 			port = 22

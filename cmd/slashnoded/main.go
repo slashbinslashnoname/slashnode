@@ -53,6 +53,8 @@ func main() {
 		err = cli.Backup(args)
 	case "restore":
 		err = cli.Restore(args)
+	case "tailscale":
+		err = cli.Tailscale(args)
 	case "uninstall":
 		err = cli.Uninstall(args)
 	case "version", "-v", "--version":

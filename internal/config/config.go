@@ -48,6 +48,15 @@ type Tor struct {
 	Enabled bool `json:"enabled"`
 }
 
+// Tailscale controls whether the node joins a Tailscale tailnet (for private,
+// off-site peer-to-peer connectivity — e.g. backing one node up onto another in
+// a different location). The auth key is never persisted here: it is used once
+// to authenticate, after which the tailscaled state volume keeps the identity.
+type Tailscale struct {
+	Enabled  bool   `json:"enabled"`
+	Hostname string `json:"hostname,omitempty"` // machine name shown on the tailnet
+}
+
 // Theme controls the appearance of the UI.
 type Theme struct {
 	// Mode : "system", "light" or "dark".
@@ -58,16 +67,17 @@ type Theme struct {
 
 // Config is the persisted configuration of the node.
 type Config struct {
-	Version   string `json:"version"`
-	NodeID    string `json:"node_id"`
-	Hostname  string `json:"hostname"`
-	DataDir   string `json:"data_dir"`
-	HTTP      HTTP   `json:"http"`
-	Access    Access `json:"access"`
-	Tor       Tor    `json:"tor"`
-	Theme     Theme  `json:"theme"`
-	Update    Update `json:"update"`
-	CreatedAt string `json:"created_at"`
+	Version   string    `json:"version"`
+	NodeID    string    `json:"node_id"`
+	Hostname  string    `json:"hostname"`
+	DataDir   string    `json:"data_dir"`
+	HTTP      HTTP      `json:"http"`
+	Access    Access    `json:"access"`
+	Tor       Tor       `json:"tor"`
+	Tailscale Tailscale `json:"tailscale"`
+	Theme     Theme     `json:"theme"`
+	Update    Update    `json:"update"`
+	CreatedAt string    `json:"created_at"`
 }
 
 // Default builds a default configuration, with a random NodeID.
@@ -83,7 +93,8 @@ func Default(version, dataDir string) (*Config, error) {
 		DataDir:   dataDir,
 		HTTP:      HTTP{Bind: "0.0.0.0", Port: 8080, APIPort: 8081},
 		Access:    Access{Mode: "local", Address: "", PasswordProtected: true},
-		Tor:       Tor{Enabled: true}, // Tor on by default: UI + apps reachable over .onion
+		Tor:       Tor{Enabled: true},                        // Tor on by default: UI + apps reachable over .onion
+		Tailscale: Tailscale{Enabled: false},                 // opt-in: joined once an auth key is supplied
 		Theme:     Theme{Mode: "system", Primary: "#e5484d"}, // red
 		Update:    Update{Policy: "notify", Channel: "stable"},
 		CreatedAt: time.Now().UTC().Format(time.RFC3339),

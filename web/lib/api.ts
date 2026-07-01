@@ -113,6 +113,7 @@ export type Config = {
   http: { bind: string; port: number; api_port: number };
   access: { mode: string; address: string; password_protected: boolean };
   tor: { enabled: boolean };
+  tailscale: { enabled: boolean; hostname?: string };
   theme: { mode: string; primary: string };
   update: { policy: string; channel: string };
   created_at: string;

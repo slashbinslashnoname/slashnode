@@ -9,7 +9,7 @@ const btnPrimary =
 const btnGhost =
   "cursor-pointer rounded-lg border border-border px-3 py-2 text-sm hover:border-primary disabled:cursor-default disabled:opacity-60";
 
-type Kind = "local" | "s3" | "sftp";
+type Kind = "local" | "s3" | "sftp" | "node";
 
 type Cfg = {
   kind?: Kind;
@@ -157,7 +157,7 @@ export function BackupPanel() {
         label="Destination type"
         value={kind}
         onChange={(v) => setKind(v as Kind)}
-        options={["local", "s3", "sftp"]}
+        options={["local", "s3", "sftp", "node"]}
       />
 
       {kind === "local" && (
@@ -185,6 +185,23 @@ export function BackupPanel() {
           <Field label="User"><input value={user} onChange={(e) => setUser(e.target.value)} className={inputCls} /></Field>
           <Field label="Password"><input type="password" value={pass} placeholder={hasSecret ? "•••••• (unchanged)" : ""} onChange={(e) => setPass(e.target.value)} className={inputCls} /></Field>
           <Field label="Remote path"><input value={prefix} placeholder="slashnode" onChange={(e) => setPrefix(e.target.value)} className={inputCls} /></Field>
+        </div>
+      )}
+
+      {kind === "node" && (
+        <div className="flex flex-col gap-3">
+          <p className="text-xs text-muted">
+            Back up onto <b>another SlashNode you own</b>, over your Tailscale
+            tailnet — encrypted end-to-end by WireGuard, no port forwarding. Both
+            nodes must be connected (see the Tailscale panel above). Use the
+            peer’s <code>100.x</code> tailnet address and a login (SSH user) on
+            that node.
+          </p>
+          <Field label="Peer tailnet address (100.x or MagicDNS name)"><input value={host} placeholder="100.101.102.103" onChange={(e) => setHost(e.target.value)} className={inputCls} /></Field>
+          <Field label="SSH port"><input value={port} placeholder="22" onChange={(e) => setPort(e.target.value)} className={inputCls} /></Field>
+          <Field label="User (login on the peer node)"><input value={user} onChange={(e) => setUser(e.target.value)} className={inputCls} /></Field>
+          <Field label="Password"><input type="password" value={pass} placeholder={hasSecret ? "•••••• (unchanged)" : ""} onChange={(e) => setPass(e.target.value)} className={inputCls} /></Field>
+          <Field label="Remote path on the peer"><input value={prefix} placeholder="slashnode-backup" onChange={(e) => setPrefix(e.target.value)} className={inputCls} /></Field>
         </div>
       )}
 

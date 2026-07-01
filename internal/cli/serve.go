@@ -27,6 +27,7 @@ import (
 	"github.com/slashbinslashnoname/slashnode/internal/registry"
 	"github.com/slashbinslashnoname/slashnode/internal/secrets"
 	"github.com/slashbinslashnoname/slashnode/internal/system"
+	"github.com/slashbinslashnoname/slashnode/internal/tailscale"
 	"github.com/slashbinslashnoname/slashnode/internal/updater"
 )
 
@@ -69,6 +70,10 @@ func Serve(args []string) error {
 	go func() {
 		_ = apps.ReloadProxy()
 		_ = apps.ReloadTor(appsDir)
+		// Rejoin the tailnet if Tailscale is enabled, so off-site peer backup
+		// survives a reboot without re-supplying an auth key (the persisted
+		// state volume re-authenticates the node).
+		tailscale.Reconcile(cfg.Tailscale.Enabled, cfg.Tailscale.Hostname, os.Stderr)
 	}()
 
 	// Next runs on a localhost-only internal port; slashnoded fronts the public
@@ -353,6 +358,10 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "bad request"})
 			return
 		}
+		if err := body.Destination.Validate(); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
 		// Preserve stored secrets when the form leaves them blank (the GET never
 		// exposes them, so a round-trip would otherwise wipe them).
 		old, _ := backup.LoadConfig()
@@ -398,6 +407,49 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 			return
 		}
 		fmt.Fprintln(fw, "\nRESTORE OK")
+	}))
+
+	// --- Tailscale (private off-site connectivity for peer backup) ---
+	mux.Handle("GET /api/v1/tailscale", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
+		st := tailscale.GetStatus()
+		writeJSON(w, http.StatusOK, map[string]any{
+			"enabled":  cfg.Tailscale.Enabled,
+			"hostname": cfg.Tailscale.Hostname,
+			"status":   st,
+		})
+	}))
+	// Join / re-authenticate the tailnet. The auth key is used once and never
+	// persisted — the tailscaled state volume keeps the identity afterwards.
+	mux.Handle("POST /api/v1/tailscale/up", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			AuthKey  string `json:"authkey"`
+			Hostname string `json:"hostname"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		if !tailscale.ValidHostname(body.Hostname) {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid hostname"})
+			return
+		}
+		fw := streamHeader(w)
+		if err := tailscale.Up(body.AuthKey, body.Hostname, fw); err != nil {
+			fmt.Fprintf(fw, "\nTAILSCALE FAILED: %v\n", err)
+			return
+		}
+		cfg.Tailscale.Enabled = true
+		if body.Hostname != "" {
+			cfg.Tailscale.Hostname = body.Hostname
+		}
+		_ = cfg.Save(paths.ConfigFile())
+		fmt.Fprintln(fw, "\nTAILSCALE OK")
+	}))
+	mux.Handle("POST /api/v1/tailscale/down", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
+		if err := tailscale.Down(io.Discard); err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return
+		}
+		cfg.Tailscale.Enabled = false
+		_ = cfg.Save(paths.ConfigFile())
+		writeJSON(w, http.StatusOK, map[string]string{"status": "stopped"})
 	}))
 
 	// --- App Store ---

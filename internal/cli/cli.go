@@ -55,6 +55,7 @@ Commands:
   migrate      Apply pending schema migrations (--dry-run to preview)
   backup       Sync data to the configured destination (--all, --test)
   restore      Restore data from the configured destination (--yes)
+  tailscale    Join a tailnet for off-site peer backup (up | down | status)
   uninstall    Remove the service and binary (--purge also removes data)
   version      Print the version
   help         Show this help
