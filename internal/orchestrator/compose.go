@@ -169,12 +169,54 @@ func Pull(appID, composeFile string) error {
 
 // PullStreamed pulls the app's images, streaming docker's output to w.
 func PullStreamed(appID, composeFile string, w io.Writer) error {
-	return runStreamed(w, "docker", "compose", "-p", project(appID), "-f", composeFile, "pull")
+	return runComposePull(w, "docker", "compose", "-p", project(appID), "-f", composeFile, "pull")
 }
 
-// UpStreamed brings the app up, streaming docker's output to w.
+// UpStreamed brings the app up, streaming docker's output to w. `up` also pulls
+// any images not present locally, so it goes through the same rate-limit-aware
+// wrapper as PullStreamed.
 func UpStreamed(appID, composeFile string, w io.Writer) error {
-	return runStreamed(w, "docker", "compose", "-p", project(appID), "-f", composeFile, "up", "-d")
+	return runComposePull(w, "docker", "compose", "-p", project(appID), "-f", composeFile, "up", "-d")
+}
+
+// composePullParallel caps how many images docker compose pulls at once. A burst
+// of simultaneous anonymous pulls (a multi-image app like supabase fetches ~8)
+// is what trips Docker Hub's per-IP rate limiter, so we serialise them.
+const composePullParallel = 3
+
+// runComposePull runs a compose command that may pull images. It bounds pull
+// concurrency and, on a Docker Hub 429 (Too Many Requests), retries with backoff
+// — cached layers make each retry cheaper and the limit is a short rolling
+// window, so a burst that got throttled usually succeeds on a later attempt.
+// For a genuinely exhausted quota, `docker login` on the host is the real fix.
+func runComposePull(w io.Writer, name string, args ...string) error {
+	const maxAttempts = 4
+	env := []string{"COMPOSE_PARALLEL_LIMIT=" + strconv.Itoa(composePullParallel)}
+	var lastErr error
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		var captured strings.Builder
+		err := runStreamedEnv(io.MultiWriter(w, &captured), env, name, args...)
+		if err == nil {
+			return nil
+		}
+		lastErr = err
+		if attempt >= maxAttempts || !isRateLimited(captured.String()) {
+			break
+		}
+		delay := time.Duration(attempt*attempt) * 5 * time.Second
+		fmt.Fprintf(w, "\n--> Docker Hub rate limit hit (429); retrying in %s (attempt %d/%d)…\n",
+			delay, attempt+1, maxAttempts)
+		time.Sleep(delay)
+	}
+	return lastErr
+}
+
+// isRateLimited reports whether docker's output indicates a Docker Hub 429.
+func isRateLimited(out string) bool {
+	l := strings.ToLower(out)
+	return strings.Contains(l, "toomanyrequests") ||
+		strings.Contains(l, "429 too many requests") ||
+		strings.Contains(l, "too many requests")
 }
 
 // Prune reclaims disk by removing dangling images (old layers left behind by
@@ -460,7 +502,16 @@ func run(name string, args ...string) error {
 
 // runStreamed runs a command writing its combined stdout+stderr to w live.
 func runStreamed(w io.Writer, name string, args ...string) error {
+	return runStreamedEnv(w, nil, name, args...)
+}
+
+// runStreamedEnv is runStreamed with extra environment variables appended to the
+// inherited environment.
+func runStreamedEnv(w io.Writer, extraEnv []string, name string, args ...string) error {
 	cmd := exec.Command(name, args...)
+	if len(extraEnv) > 0 {
+		cmd.Env = append(os.Environ(), extraEnv...)
+	}
 	cmd.Stdout = w
 	cmd.Stderr = w
 	if err := cmd.Run(); err != nil {
