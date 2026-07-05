@@ -58,6 +58,8 @@ type Input struct {
 	Help        string   `json:"help,omitempty"`
 	Secret      bool     `json:"secret,omitempty"`
 	Generate    bool     `json:"generate,omitempty"`
+	GenerateJWT string   `json:"generateJWT,omitempty"` // role claim: derive an HS256 JWT signed with SignWith
+	SignWith    string   `json:"signWith,omitempty"`    // key of the (earlier, generated) input holding the JWT secret
 	Options     []string `json:"options,omitempty"`
 	MinLength   int      `json:"minLength,omitempty"`
 	Min         *float64 `json:"min,omitempty"`
