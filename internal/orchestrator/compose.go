@@ -167,9 +167,73 @@ func Pull(appID, composeFile string) error {
 	return run("docker", "compose", "-p", project(appID), "-f", composeFile, "pull")
 }
 
-// PullStreamed pulls the app's images, streaming docker's output to w.
+// PullStreamed pulls the app's images, streaming docker's output to w. To avoid
+// tripping Docker Hub's per-IP rate limit, a multi-image app (supabase fetches
+// ~8) is pulled one service at a time with a pace delay between images, and each
+// image is retried on its own — a successfully-pulled image is never
+// re-requested. Single-image apps fall back to a plain compose pull.
 func PullStreamed(appID, composeFile string, w io.Writer) error {
-	return runComposePull(w, "docker", "compose", "-p", project(appID), "-f", composeFile, "pull")
+	services, err := composeServices(appID, composeFile)
+	if err != nil || len(services) <= 1 {
+		return runComposePull(w, "docker", "compose", "-p", project(appID), "-f", composeFile, "pull")
+	}
+	for i, svc := range services {
+		if i > 0 {
+			time.Sleep(pullPaceDelay)
+		}
+		fmt.Fprintf(w, "--> pulling %s (%d/%d)\n", svc, i+1, len(services))
+		if err := pullServiceWithRetry(w, appID, composeFile, svc); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// composeServices lists the app's compose service names.
+func composeServices(appID, composeFile string) ([]string, error) {
+	out, err := output("docker", "compose", "-p", project(appID), "-f", composeFile, "config", "--services")
+	if err != nil {
+		return nil, err
+	}
+	return strings.Fields(out), nil
+}
+
+// pullPaceDelay is the gap left between consecutive single-image pulls so a
+// multi-image app fetches gently rather than in a burst.
+const pullPaceDelay = 2 * time.Second
+
+// pullBackoff is the retry schedule for a single image that hits a Docker Hub
+// 429. It is deliberately long-ish (~3 min total) because the limit is a rolling
+// per-IP window; a short pause won't clear it. If every attempt is throttled we
+// give up rather than keep burning what's left of the quota.
+var pullBackoff = []time.Duration{15 * time.Second, 60 * time.Second, 120 * time.Second}
+
+// pullServiceWithRetry pulls a single compose service, retrying only on a Docker
+// Hub 429 (a real error surfaces immediately). On a genuinely exhausted quota it
+// returns an error pointing at the real fixes: wait for the window, or
+// `docker login` on the host to raise the limit.
+func pullServiceWithRetry(w io.Writer, appID, composeFile, svc string) error {
+	args := []string{"compose", "-p", project(appID), "-f", composeFile, "pull", svc}
+	var lastErr error
+	for attempt := 0; ; attempt++ {
+		var captured strings.Builder
+		err := runStreamed(io.MultiWriter(w, &captured), "docker", args...)
+		if err == nil {
+			return nil
+		}
+		lastErr = err
+		if !isRateLimited(captured.String()) {
+			return err
+		}
+		if attempt >= len(pullBackoff) {
+			return fmt.Errorf("docker hub rate limit (429) pulling %s; wait for the limit to "+
+				"reset or run `docker login` on the host to raise it: %w", svc, lastErr)
+		}
+		delay := pullBackoff[attempt]
+		fmt.Fprintf(w, "\n--> Docker Hub rate limit hit (429) on %s; retrying in %s (attempt %d/%d)…\n",
+			svc, delay, attempt+2, len(pullBackoff)+1)
+		time.Sleep(delay)
+	}
 }
 
 // UpStreamed brings the app up, streaming docker's output to w. `up` also pulls
