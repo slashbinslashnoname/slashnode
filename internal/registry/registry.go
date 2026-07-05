@@ -8,16 +8,34 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 )
 
+// hostArch is the CPU architecture the daemon — and therefore every container
+// it launches — runs on (Go's GOARCH: "amd64", "arm64", …). Docker Hub reports
+// each tag's platforms with the same architecture names, so we can match on it.
+var hostArch = runtime.GOARCH
+
+// tagResult mirrors one entry of Docker Hub's tags API. The `images` array lists
+// the platforms (os/architecture) the tag's manifest actually publishes.
+type tagResult struct {
+	Name   string `json:"name"`
+	Images []struct {
+		OS   string `json:"os"`
+		Arch string `json:"architecture"`
+	} `json:"images"`
+}
+
 // Tags returns up to ~100 tags for a docker image, sorted newest-first using a
 // version-aware ordering (so v31 precedes v28, and stable releases precede
-// pre-releases/variants). Returns an empty slice (no error) for images hosted
-// outside Docker Hub.
+// pre-releases/variants). Tags whose manifest does not publish a linux image for
+// the host architecture are dropped — pulling them would fail with "no matching
+// manifest", so the picker must never offer them. Returns an empty slice (no
+// error) for images hosted outside Docker Hub.
 func Tags(image string) ([]string, error) {
 	repo, ok := dockerHubRepo(image)
 	if !ok {
@@ -37,21 +55,42 @@ func Tags(image string) ([]string, error) {
 		return nil, fmt.Errorf("registry returned %s for %s", resp.Status, repo)
 	}
 	var body struct {
-		Results []struct {
-			Name string `json:"name"`
-		} `json:"results"`
+		Results []tagResult `json:"results"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
 		return nil, err
 	}
-	tags := make([]string, 0, len(body.Results))
-	for _, r := range body.Results {
-		if r.Name != "" {
+	return usableTags(body.Results, hostArch), nil
+}
+
+// usableTags keeps the tags runnable on arch (dropping architecture-locked tags
+// for other CPUs) and returns them sorted newest-first.
+func usableTags(results []tagResult, arch string) []string {
+	tags := make([]string, 0, len(results))
+	for _, r := range results {
+		if r.Name != "" && runsOnArch(r, arch) {
 			tags = append(tags, r.Name)
 		}
 	}
 	SortVersions(tags)
-	return tags, nil
+	return tags
+}
+
+// runsOnArch reports whether a tag publishes a linux image for arch. A tag with
+// no usable platform data (empty or only "unknown" entries — e.g. attestation
+// manifests) is kept: we lack the evidence to exclude it, so we defer to docker.
+func runsOnArch(r tagResult, arch string) bool {
+	known := false
+	for _, im := range r.Images {
+		if im.Arch == "" || im.Arch == "unknown" {
+			continue
+		}
+		known = true
+		if (im.OS == "" || im.OS == "linux") && im.Arch == arch {
+			return true
+		}
+	}
+	return !known
 }
 
 // SortedTags is retained for callers that want an explicit sorted call; Tags
@@ -62,7 +101,8 @@ func SortedTags(image string) ([]string, error) { return Tags(image) }
 // newest tag that carries a real numeric version, is not a pre-release (rc /
 // alpha / beta) and has no variant suffix (e.g. "-alpine"). Falls back to the
 // first tag, or "" for an empty list. Use it to default a version picker to the
-// latest production release.
+// latest production release. The list is expected to already be filtered to
+// host-runnable tags by Tags/usableTags.
 func LatestStable(tags []string) string {
 	for _, t := range tags {
 		v := parseVersion(t)
