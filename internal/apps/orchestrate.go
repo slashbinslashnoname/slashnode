@@ -15,6 +15,8 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/crypto/bcrypt"
+
 	"github.com/slashbinslashnoname/slashnode/internal/config"
 	"github.com/slashbinslashnoname/slashnode/internal/orchestrator"
 	"github.com/slashbinslashnoname/slashnode/internal/paths"
@@ -332,6 +334,45 @@ func SetDomain(dir, id, domain string) error {
 		}
 	}
 	inst.Domain = domain
+	state.Installed[id] = inst
+	if err := saveState(state); err != nil {
+		return err
+	}
+	return ReloadProxy()
+}
+
+// proxyAuthUserRe restricts basic-auth usernames to a safe token so the value
+// can't break the Caddyfile line it lands in (`basic_auth { <user> <hash> }`).
+var proxyAuthUserRe = regexp.MustCompile(`^[A-Za-z0-9._@-]{1,64}$`)
+
+// SetProxyAuth puts an installed app behind HTTP basic auth at the reverse proxy
+// (or removes it). An empty user AND password clears the protection; otherwise
+// both are required and the password is stored only as a bcrypt hash. Re-renders
+// the Caddyfile so the change takes effect immediately.
+func SetProxyAuth(dir, id, user, password string) error {
+	state := LoadState()
+	inst, ok := state.Installed[id]
+	if !ok {
+		return fmt.Errorf("app not installed: %s", id)
+	}
+	user = strings.TrimSpace(user)
+	if user == "" && password == "" {
+		inst.ProxyAuthUser = ""
+		inst.ProxyAuthHash = ""
+	} else {
+		if !proxyAuthUserRe.MatchString(user) {
+			return fmt.Errorf("invalid username: use letters, digits or . _ @ - (max 64)")
+		}
+		if len(password) < 8 {
+			return fmt.Errorf("password: 8 characters minimum")
+		}
+		hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+		if err != nil {
+			return err
+		}
+		inst.ProxyAuthUser = user
+		inst.ProxyAuthHash = string(hash)
+	}
 	state.Installed[id] = inst
 	if err := saveState(state); err != nil {
 		return err

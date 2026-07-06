@@ -22,6 +22,7 @@ const POST_ACTIONS = new Set([
   "update-latest",
   "set-version",
   "domain",
+  "auth",
 ]);
 
 async function proxy(
@@ -73,6 +74,6 @@ export async function POST(
     return Response.json({ error: "unknown action" }, { status: 404 });
   }
   const search = new URL(req.url).search;
-  const body = action === "install" ? await req.text() : undefined;
+  const body = action === "install" || action === "auth" ? await req.text() : undefined;
   return proxy("POST", id, action, search, body);
 }

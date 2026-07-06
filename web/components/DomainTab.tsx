@@ -149,6 +149,103 @@ A   ${subLabel}.${base}   <node-ip>`}
           }
         />
       )}
+
+      <hr className="border-border" />
+      <AccessProtection app={app} />
+    </div>
+  );
+}
+
+// AccessProtection guards the app's public URL with HTTP basic auth at the
+// reverse proxy — a login prompt for ANY app, regardless of whether the app
+// itself has authentication. The password is sent once and stored only as a
+// bcrypt hash server-side; it's never returned to the browser.
+function AccessProtection({ app }: { app: App }) {
+  const router = useRouter();
+  const [user, setUser] = useState(app.proxy_auth_user || "");
+  const [password, setPassword] = useState("");
+  const [state, setState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [err, setErr] = useState("");
+
+  async function submit(clear: boolean) {
+    setErr("");
+    setState("saving");
+    try {
+      const r = await fetch(`/api/apps/${app.id}/auth`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(clear ? { user: "", password: "" } : { user, password }),
+      });
+      if (!r.ok) {
+        const j = await r.json().catch(() => ({}));
+        setErr(j.error || "failed");
+        setState("error");
+        return;
+      }
+      setPassword("");
+      if (clear) setUser("");
+      setState("saved");
+      router.refresh();
+    } catch {
+      setState("error");
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div>
+        <div className="text-sm font-medium">Password protection</div>
+        <p className="text-xs text-muted">
+          {app.proxy_auth
+            ? "This app is protected — visitors must sign in with the username and password below."
+            : "This app is served without a login. Add a username and password to require sign-in."}
+        </p>
+      </div>
+
+      <label className="flex flex-col gap-1">
+        <span className="text-sm font-medium">Username</span>
+        <input
+          value={user}
+          onChange={(e) => setUser(e.target.value)}
+          placeholder="admin"
+          autoComplete="off"
+          className={inputCls}
+        />
+      </label>
+      <label className="flex flex-col gap-1">
+        <span className="text-sm font-medium">Password</span>
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder={app.proxy_auth ? "•••••••• (unchanged)" : "at least 8 characters"}
+          autoComplete="new-password"
+          className={inputCls}
+        />
+        <span className="text-xs text-muted">
+          Stored hashed (bcrypt); never shown again after saving.
+        </span>
+      </label>
+
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => submit(false)}
+          disabled={state === "saving" || !user || password.length < 8}
+          className="cursor-pointer rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white disabled:cursor-default disabled:opacity-60"
+        >
+          {state === "saving" ? "saving…" : state === "saved" ? "✓ saved" : app.proxy_auth ? "Update password" : "Protect app"}
+        </button>
+        {app.proxy_auth && (
+          <button
+            onClick={() => submit(true)}
+            disabled={state === "saving"}
+            className="cursor-pointer rounded-lg border border-border px-4 py-2 text-sm font-medium text-muted hover:text-fg disabled:opacity-60"
+          >
+            Remove protection
+          </button>
+        )}
+        {err && <span className="text-sm text-primary">{err}</span>}
+      </div>
     </div>
   );
 }

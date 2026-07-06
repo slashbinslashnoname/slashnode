@@ -41,7 +41,12 @@ func ReloadProxy() error {
 			if a.Domain != "" {
 				appHost = a.Domain
 			}
-			routes = append(routes, caddy.Route{Host: appHost, UpstreamPort: a.WebPort})
+			routes = append(routes, caddy.Route{
+				Host:          appHost,
+				UpstreamPort:  a.WebPort,
+				BasicAuthUser: a.ProxyAuthUser,
+				BasicAuthHash: a.ProxyAuthHash,
+			})
 		}
 	}
 

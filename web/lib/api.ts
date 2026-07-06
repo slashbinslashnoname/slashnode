@@ -51,6 +51,8 @@ export type App = {
   onion?: string;
   subdomain?: string;
   domain?: string;
+  proxy_auth?: boolean;
+  proxy_auth_user?: string;
   host?: string;
   hidden?: boolean;
   base_id?: string;

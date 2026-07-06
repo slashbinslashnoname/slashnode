@@ -445,6 +445,8 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 			entry.UpdateAvailable = inst.Version != base.Version
 			entry.Subdomain = apps.AppSubdomain(id)
 			entry.Domain = inst.Domain
+			entry.ProxyAuth = inst.ProxyAuthHash != ""
+			entry.ProxyAuthUser = inst.ProxyAuthUser
 			entry.Host = apps.BaseHost(cfg)
 			if onion := apps.AppOnion(id); onion != "" {
 				entry.Onion = onion
@@ -669,6 +671,22 @@ func apiHandler(cfg *config.Config, sec *secrets.Secrets, appsDir string) http.H
 			}
 		}
 		writeJSON(w, http.StatusOK, map[string]string{"status": "domain-set"})
+	}))
+
+	// Put an app behind (or remove) HTTP basic auth at the reverse proxy. An
+	// empty user+password clears the protection; the password never persists in
+	// plaintext (bcrypt-hashed by SetProxyAuth).
+	mux.Handle("POST /api/v1/apps/{id}/auth", bearer(sec, func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			User     string `json:"user"`
+			Password string `json:"password"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		if err := apps.SetProxyAuth(appsDir, r.PathValue("id"), body.User, body.Password); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]string{"status": "auth-set"})
 	}))
 
 	mux.Handle("POST /api/v1/apps/{id}/start", bearer(sec, lifecycle(apps.Start, "started")))

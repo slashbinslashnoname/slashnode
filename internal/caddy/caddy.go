@@ -18,6 +18,11 @@ import (
 type Route struct {
 	Host         string
 	UpstreamPort int
+	// BasicAuthUser + BasicAuthHash, when both set, put the host behind HTTP
+	// basic auth (Caddy's basic_auth). BasicAuthHash is a bcrypt hash — never a
+	// plaintext password.
+	BasicAuthUser string
+	BasicAuthHash string
 }
 
 // Caddyfile renders the configuration: the root host → the front end, and a
@@ -35,6 +40,11 @@ func Caddyfile(routes []Route, internalTLS bool) string {
 		fmt.Fprintf(&b, "%s {\n", r.Host)
 		if internalTLS {
 			b.WriteString("\ttls internal\n")
+		}
+		// Optional HTTP basic auth in front of the upstream. The password is a
+		// bcrypt hash; Caddy runs authentication before the reverse proxy.
+		if r.BasicAuthUser != "" && r.BasicAuthHash != "" {
+			fmt.Fprintf(&b, "\tbasic_auth {\n\t\t%s %s\n\t}\n", r.BasicAuthUser, r.BasicAuthHash)
 		}
 		fmt.Fprintf(&b, "\treverse_proxy 127.0.0.1:%d\n}\n\n", r.UpstreamPort)
 	}
