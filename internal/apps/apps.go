@@ -165,6 +165,8 @@ type CatalogEntry struct {
 	Onion            string            `json:"onion,omitempty"`     // raw .onion host of the app, web + endpoints (set by the API layer)
 	Subdomain        string            `json:"subdomain,omitempty"` // effective reverse-proxy subdomain (set by the API layer)
 	Domain           string            `json:"domain,omitempty"`    // custom domain override (set by the API layer)
+	ProxyAuth        bool              `json:"proxy_auth,omitempty"`      // whether the app is behind HTTP basic auth (set by the API layer)
+	ProxyAuthUser    string            `json:"proxy_auth_user,omitempty"` // current basic-auth username, if any (set by the API layer)
 	Host             string            `json:"host,omitempty"`      // node base host apps live under (set by the API layer)
 	BaseID           string            `json:"base_id,omitempty"`   // manifest this (possibly instance) entry derives from
 	Instances        []InstanceRef     `json:"instances,omitempty"` // installed instances of the base (set by the API layer)
@@ -278,6 +280,8 @@ type InstalledApp struct {
 	ImageTags        map[string]string `json:"image_tags,omitempty"` // service → chosen image tag override
 	Subdomain        string            `json:"subdomain,omitempty"`  // reverse-proxy subdomain override (default: id)
 	Domain           string            `json:"domain,omitempty"`     // full custom domain (e.g. app.example.com), served in addition to the subdomain
+	ProxyAuthUser    string            `json:"proxy_auth_user,omitempty"` // HTTP basic-auth username guarding the app at the reverse proxy
+	ProxyAuthHash    string            `json:"proxy_auth_hash,omitempty"` // bcrypt hash of the basic-auth password (never plaintext)
 	MigrationVersion int               `json:"migration_version,omitempty"` // last applied per-app migration
 	InstalledAt      string            `json:"installed_at"`
 	Inputs      map[string]string `json:"inputs"`
