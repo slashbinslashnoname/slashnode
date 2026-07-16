@@ -858,6 +858,8 @@ func installOne(dir, appID string, provided, imageTagOverride map[string]string,
 		ImageTags:        imageTags,
 		Subdomain:        prev.Subdomain,          // preserve the subdomain override across updates
 		Domain:           prev.Domain,             // preserve the custom domain across updates
+		ProxyAuthUser:    prev.ProxyAuthUser,       // preserve basic-auth protection across updates
+		ProxyAuthHash:    prev.ProxyAuthHash,
 		MigrationVersion: appMigrationLatest(man), // current after a successful install/reapply
 		InstalledAt:      time.Now().UTC().Format(time.RFC3339),
 		Inputs:           nonSecret,

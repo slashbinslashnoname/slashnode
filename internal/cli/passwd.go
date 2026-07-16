@@ -6,6 +6,7 @@ import (
 
 	"github.com/slashbinslashnoname/slashnode/internal/paths"
 	"github.com/slashbinslashnoname/slashnode/internal/secrets"
+	"github.com/slashbinslashnoname/slashnode/internal/updater"
 )
 
 // Passwd sets the admin password: `slashnoded passwd [new-password]`. With no
@@ -33,5 +34,9 @@ func Passwd(args []string) error {
 	}
 	fmt.Println(colorize("✓ admin password updated", ansiRed))
 	fmt.Printf("  password: %s\n", pw)
+	// serve holds secrets in memory for its lifetime, so a running daemon
+	// won't see this change until it re-reads secrets.json on restart.
+	updater.Restart()
+	fmt.Println(colorize("✓ daemon restarting to apply the new password", ansiRed))
 	return nil
 }
